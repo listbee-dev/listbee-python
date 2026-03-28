@@ -9,6 +9,7 @@ import pytest
 import respx
 
 from listbee._base_client import SyncClient
+from listbee._pagination import SyncCursorPage
 from listbee.resources.webhooks import Webhooks
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
@@ -139,21 +140,34 @@ class TestDeleteWebhook:
 
 
 class TestListWebhookEvents:
-    def test_list_events_returns_list(self, webhooks):
+    def test_list_events_returns_page(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/events").mock(
                 return_value=httpx.Response(
                     200, json={"object": "list", "data": [WEBHOOK_EVENT_JSON], "has_more": False, "cursor": None}
                 )
             )
-            results = webhooks.list_events("wh_3mK8nP2qR5tW7xY1")
-        assert len(results) == 1
-        assert isinstance(results[0], WebhookEventResponse)
-        assert results[0].status == "delivered"
+            page = webhooks.list_events("wh_3mK8nP2qR5tW7xY1")
+        assert isinstance(page, SyncCursorPage)
+        assert len(page.data) == 1
+        assert isinstance(page.data[0], WebhookEventResponse)
+        assert page.data[0].status == "delivered"
+        assert page.has_more is False
+
+    def test_list_events_with_status_filter(self, webhooks):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.get("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/events").mock(
+                return_value=httpx.Response(
+                    200, json={"object": "list", "data": [WEBHOOK_EVENT_JSON], "has_more": False, "cursor": None}
+                )
+            )
+            webhooks.list_events("wh_3mK8nP2qR5tW7xY1", status="delivered")
+        assert route.called
+        assert "status=delivered" in str(route.calls[0].request.url)
 
 
-class TestTestWebhook:
-    def test_test_returns_result(self, webhooks):
+class TestWebhookTest:
+    def test_webhook(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.post("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/test").mock(
                 return_value=httpx.Response(200, json=WEBHOOK_TEST_JSON)

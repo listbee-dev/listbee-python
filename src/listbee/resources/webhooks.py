@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
 if TYPE_CHECKING:
@@ -102,31 +103,38 @@ class Webhooks:
         webhook_id: str,
         *,
         status: str | None = None,
+        limit: int = 20,
         cursor: str | None = None,
-        limit: int | None = None,
-    ) -> list[WebhookEventResponse]:
+    ) -> SyncCursorPage[WebhookEventResponse]:
         """List delivery events for a webhook endpoint.
 
+        Iterating the returned page automatically fetches subsequent pages:
+
+        .. code-block:: python
+
+            for event in client.webhooks.list_events("wh_abc123"):
+                print(event.id)
+
         Args:
-            webhook_id: The webhook's unique identifier.
-            status: Filter by status: ``"pending"``, ``"delivered"``, or ``"failed"``.
+            webhook_id: Webhook ID (e.g. "wh_abc123").
+            status: Filter by status (``"pending"``, ``"delivered"``, ``"failed"``).
+            limit: Results per page (1-100, default 20).
             cursor: Pagination cursor from a previous response.
-            limit: Maximum number of results (1-100).
 
         Returns:
-            A list of :class:`~listbee.types.webhook.WebhookEventResponse` objects.
+            A :class:`~listbee._pagination.SyncCursorPage` of
+            :class:`~listbee.types.webhook.WebhookEventResponse` objects.
         """
-        params: dict[str, Any] = {}
+        params: dict[str, Any] = {"limit": limit}
         if status is not None:
             params["status"] = status
         if cursor is not None:
             params["cursor"] = cursor
-        if limit is not None:
-            params["limit"] = limit
-        response = self._client._get(f"/v1/webhooks/{webhook_id}/events", params=params)
-        body = response.json()
-        items = body.get("data", [])
-        return [WebhookEventResponse.model_validate(item) for item in items]
+        return self._client._get_page(
+            path=f"/v1/webhooks/{webhook_id}/events",
+            params=params,
+            model=WebhookEventResponse,
+        )
 
     def test(self, webhook_id: str) -> WebhookTestResponse:
         """Send a test event to the webhook endpoint.
@@ -233,31 +241,38 @@ class AsyncWebhooks:
         webhook_id: str,
         *,
         status: str | None = None,
+        limit: int = 20,
         cursor: str | None = None,
-        limit: int | None = None,
-    ) -> list[WebhookEventResponse]:
+    ) -> AsyncCursorPage[WebhookEventResponse]:
         """List delivery events for a webhook endpoint (async).
 
+        Async-iterate the returned page to transparently fetch subsequent pages:
+
+        .. code-block:: python
+
+            async for event in await client.webhooks.list_events("wh_abc123"):
+                print(event.id)
+
         Args:
-            webhook_id: The webhook's unique identifier.
-            status: Filter by status: ``"pending"``, ``"delivered"``, or ``"failed"``.
+            webhook_id: Webhook ID (e.g. "wh_abc123").
+            status: Filter by status (``"pending"``, ``"delivered"``, ``"failed"``).
+            limit: Results per page (1-100, default 20).
             cursor: Pagination cursor from a previous response.
-            limit: Maximum number of results (1-100).
 
         Returns:
-            A list of :class:`~listbee.types.webhook.WebhookEventResponse` objects.
+            An :class:`~listbee._pagination.AsyncCursorPage` of
+            :class:`~listbee.types.webhook.WebhookEventResponse` objects.
         """
-        params: dict[str, Any] = {}
+        params: dict[str, Any] = {"limit": limit}
         if status is not None:
             params["status"] = status
         if cursor is not None:
             params["cursor"] = cursor
-        if limit is not None:
-            params["limit"] = limit
-        response = await self._client._get(f"/v1/webhooks/{webhook_id}/events", params=params)
-        body = response.json()
-        items = body.get("data", [])
-        return [WebhookEventResponse.model_validate(item) for item in items]
+        return await self._client._get_page(
+            path=f"/v1/webhooks/{webhook_id}/events",
+            params=params,
+            model=WebhookEventResponse,
+        )
 
     async def test(self, webhook_id: str) -> WebhookTestResponse:
         """Send a test event to the webhook endpoint (async).
