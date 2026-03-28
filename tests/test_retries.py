@@ -78,9 +78,7 @@ def test_422_no_retry_raises_validation_error():
     """A 422 should not be retried and must raise ValidationError."""
     client = SyncClient(api_key="lb_key", max_retries=1)
     with respx.mock(base_url="https://api.listbee.so") as mock:
-        route = mock.get("/v1/listings/my-slug").mock(
-            return_value=httpx.Response(422, json=VALIDATION_ERROR_BODY)
-        )
+        route = mock.get("/v1/listings/my-slug").mock(return_value=httpx.Response(422, json=VALIDATION_ERROR_BODY))
         with pytest.raises(ValidationError):
             client._get("/v1/listings/my-slug")
 
@@ -91,9 +89,7 @@ def test_401_no_retry_raises_authentication_error():
     """A 401 should not be retried and must raise AuthenticationError."""
     client = SyncClient(api_key="lb_key", max_retries=1)
     with respx.mock(base_url="https://api.listbee.so") as mock:
-        route = mock.get("/v1/listings/my-slug").mock(
-            return_value=httpx.Response(401, json=AUTH_ERROR_BODY)
-        )
+        route = mock.get("/v1/listings/my-slug").mock(return_value=httpx.Response(401, json=AUTH_ERROR_BODY))
         with pytest.raises(AuthenticationError):
             client._get("/v1/listings/my-slug")
 
@@ -109,9 +105,8 @@ def test_500_all_attempts_raises_internal_server_error():
             httpx.Response(500, json=ERROR_BODY),
             httpx.Response(500, json=ERROR_BODY),
         ]
-        with patch("time.sleep"):
-            with pytest.raises(InternalServerError):
-                client._get("/v1/listings/my-slug")
+        with patch("time.sleep"), pytest.raises(InternalServerError):
+            client._get("/v1/listings/my-slug")
 
     assert route.call_count == 2
 
@@ -136,9 +131,7 @@ def test_max_retries_zero_never_retries():
     """With max_retries=0, a 500 must raise immediately without retrying."""
     client = SyncClient(api_key="lb_key", max_retries=0)
     with respx.mock(base_url="https://api.listbee.so") as mock:
-        route = mock.get("/v1/listings/my-slug").mock(
-            return_value=httpx.Response(500, json=ERROR_BODY)
-        )
+        route = mock.get("/v1/listings/my-slug").mock(return_value=httpx.Response(500, json=ERROR_BODY))
         with pytest.raises(InternalServerError):
             client._get("/v1/listings/my-slug")
 

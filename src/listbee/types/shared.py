@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 if sys.version_info >= (3, 11):
     from enum import StrEnum
 else:
+
     class StrEnum(str, Enum):  # type: ignore[no-redef]
         """StrEnum backport for Python 3.10."""
 
@@ -103,8 +104,7 @@ class ListingReadiness(BaseModel):
 
     sellable: bool = Field(
         description=(
-            "True when buyers can complete a purchase on this listing. "
-            "False means one or more blockers prevent sales."
+            "True when buyers can complete a purchase on this listing. False means one or more blockers prevent sales."
         ),
         examples=[True],
     )
@@ -119,10 +119,7 @@ class AccountReadiness(BaseModel):
     """Operational readiness state for an account."""
 
     operational: bool = Field(
-        description=(
-            "True when the account can sell. "
-            "False means one or more blockers prevent operations."
-        ),
+        description=("True when the account can sell. False means one or more blockers prevent operations."),
         examples=[True],
     )
     blockers: list[Blocker] = Field(

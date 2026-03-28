@@ -63,9 +63,7 @@ class TestCreateWebhook:
 class TestListWebhooks:
     def test_list_webhooks_returns_list(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/webhooks").mock(
-                return_value=httpx.Response(200, json={"data": [WEBHOOK_JSON]})
-            )
+            mock.get("/v1/webhooks").mock(return_value=httpx.Response(200, json={"data": [WEBHOOK_JSON]}))
             results = webhooks.list()
         assert isinstance(results, list)
         assert len(results) == 1
@@ -75,18 +73,14 @@ class TestListWebhooks:
     def test_list_webhooks_falls_back_to_items_key(self, webhooks):
         """Backwards compatibility: if 'data' key is absent, try 'items'."""
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/webhooks").mock(
-                return_value=httpx.Response(200, json={"items": [WEBHOOK_JSON]})
-            )
+            mock.get("/v1/webhooks").mock(return_value=httpx.Response(200, json={"items": [WEBHOOK_JSON]}))
             results = webhooks.list()
         assert len(results) == 1
         assert results[0].id == "wh_3mK8nP2qR5tW7xY1"
 
     def test_list_webhooks_empty(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/webhooks").mock(
-                return_value=httpx.Response(200, json={"data": []})
-            )
+            mock.get("/v1/webhooks").mock(return_value=httpx.Response(200, json={"data": []}))
             results = webhooks.list()
         assert results == []
 
@@ -95,9 +89,7 @@ class TestUpdateWebhook:
     def test_update_webhook_returns_updated_response(self, webhooks):
         updated_json = {**WEBHOOK_JSON, "name": "Renamed", "enabled": False}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.put("/v1/webhooks/wh_3mK8nP2qR5tW7xY1").mock(
-                return_value=httpx.Response(200, json=updated_json)
-            )
+            mock.put("/v1/webhooks/wh_3mK8nP2qR5tW7xY1").mock(return_value=httpx.Response(200, json=updated_json))
             result = webhooks.update("wh_3mK8nP2qR5tW7xY1", name="Renamed", enabled=False)
         assert isinstance(result, WebhookResponse)
         assert result.name == "Renamed"
@@ -119,9 +111,7 @@ class TestUpdateWebhook:
 class TestDeleteWebhook:
     def test_delete_webhook_sends_delete_request(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.delete("/v1/webhooks/wh_3mK8nP2qR5tW7xY1").mock(
-                return_value=httpx.Response(204)
-            )
+            route = mock.delete("/v1/webhooks/wh_3mK8nP2qR5tW7xY1").mock(return_value=httpx.Response(204))
             result = webhooks.delete("wh_3mK8nP2qR5tW7xY1")
         assert route.called
         assert result is None

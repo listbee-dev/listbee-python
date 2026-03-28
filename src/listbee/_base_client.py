@@ -55,9 +55,7 @@ class BaseClient:
 
     def _ensure_api_key(self) -> str:
         if not self._api_key:
-            raise ListBeeError(
-                "No API key provided. Set api_key= or the LISTBEE_API_KEY environment variable."
-            )
+            raise ListBeeError("No API key provided. Set api_key= or the LISTBEE_API_KEY environment variable.")
         return self._api_key
 
     def _build_headers(self) -> dict[str, str]:

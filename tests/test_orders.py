@@ -37,9 +37,7 @@ def orders(sync_client):
 class TestGetOrder:
     def test_get_order_returns_order_response(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_9xM4kP7nR2qT5wY1").mock(
-                return_value=httpx.Response(200, json=ORDER_JSON)
-            )
+            mock.get("/v1/orders/ord_9xM4kP7nR2qT5wY1").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             result = orders.get("ord_9xM4kP7nR2qT5wY1")
         assert isinstance(result, OrderResponse)
         assert result.id == "ord_9xM4kP7nR2qT5wY1"
@@ -50,9 +48,7 @@ class TestGetOrder:
 
     def test_get_order_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.get("/v1/orders/ord_abc").mock(
-                return_value=httpx.Response(200, json=ORDER_JSON)
-            )
+            route = mock.get("/v1/orders/ord_abc").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             orders.get("ord_abc")
         assert route.called
 

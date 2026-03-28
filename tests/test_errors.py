@@ -22,7 +22,14 @@ class TestExceptionHierarchy:
         assert issubclass(APITimeoutError, ListBeeError)
 
     def test_status_exceptions_inherit_from_api_status_error(self):
-        for exc in [AuthenticationError, NotFoundError, ConflictError, ValidationError, RateLimitError, InternalServerError]:
+        for exc in [
+            AuthenticationError,
+            NotFoundError,
+            ConflictError,
+            ValidationError,
+            RateLimitError,
+            InternalServerError,
+        ]:
             assert issubclass(exc, APIStatusError)
 
     def test_api_status_error_has_rfc_9457_fields(self):
