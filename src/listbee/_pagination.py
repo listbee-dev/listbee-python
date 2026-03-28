@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Generic, Iterator, TypeVar
+
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from listbee._base_client import AsyncClient, SyncClient
+
+T = TypeVar("T", bound=BaseModel)
+
+
+class SyncCursorPage(Generic[T]):
+    """A paginated list that auto-iterates through all pages.
+
+    Use as an iterator to transparently fetch all pages:
+        for item in client.listings.list():
+            print(item.name)
+
+    Or access the current page directly:
+        page = client.listings.list()
+        page.data       # list of items
+        page.has_more   # bool
+        page.cursor     # next page cursor
+    """
+
+    object: str = "list"
+
+    def __init__(
+        self,
+        *,
+        data: list[T],
+        has_more: bool,
+        cursor: str | None,
+        client: SyncClient,
+        path: str,
+        params: dict[str, Any],
+        model: type[T],
+    ) -> None:
+        self.data = data
+        self.has_more = has_more
+        self.cursor = cursor
+        self._client = client
+        self._path = path
+        self._params = params
+        self._model = model
+
+    def __iter__(self) -> Iterator[T]:
+        page = self
+        while True:
+            yield from page.data
+            if not page.has_more or page.cursor is None:
+                break
+            page = self._client._get_page(
+                path=self._path,
+                params={**self._params, "cursor": page.cursor},
+                model=self._model,
+            )
+
+
+class AsyncCursorPage(Generic[T]):
+    """Async version of SyncCursorPage. Use with `async for`."""
+
+    object: str = "list"
+
+    def __init__(
+        self,
+        *,
+        data: list[T],
+        has_more: bool,
+        cursor: str | None,
+        client: AsyncClient,
+        path: str,
+        params: dict[str, Any],
+        model: type[T],
+    ) -> None:
+        self.data = data
+        self.has_more = has_more
+        self.cursor = cursor
+        self._client = client
+        self._path = path
+        self._params = params
+        self._model = model
+
+    async def __aiter__(self):
+        page = self
+        while True:
+            for item in page.data:
+                yield item
+            if not page.has_more or page.cursor is None:
+                break
+            page = await self._client._get_page(
+                path=self._path,
+                params={**self._params, "cursor": page.cursor},
+                model=self._model,
+            )
