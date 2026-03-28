@@ -53,6 +53,11 @@ class BaseClient:
         self._timeout = timeout
         self._max_retries = max_retries
 
+    @property
+    def base_url(self) -> str:
+        """The base URL this client sends requests to."""
+        return self._base_url
+
     def _ensure_api_key(self) -> str:
         if not self._api_key:
             raise ListBeeError("No API key provided. Set api_key= or the LISTBEE_API_KEY environment variable.")
