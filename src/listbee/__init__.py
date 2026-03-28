@@ -25,7 +25,9 @@ from listbee._exceptions import (
     NotFoundError,
     RateLimitError,
     ValidationError,
+    WebhookVerificationError,
 )
+from listbee.webhooks import verify_signature
 from listbee.types import (
     AccountReadiness,
     AccountResponse,
@@ -60,6 +62,8 @@ __all__ = [
     "ValidationError",
     "RateLimitError",
     "InternalServerError",
+    "WebhookVerificationError",
+    "verify_signature",
     "AccountReadiness",
     "AccountResponse",
     "Blocker",

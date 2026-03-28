@@ -98,6 +98,10 @@ class InternalServerError(APIStatusError):
     """Raised on 500+ responses — server-side error."""
 
 
+class WebhookVerificationError(ListBeeError):
+    """Raised when webhook signature verification fails."""
+
+
 STATUS_CODE_TO_EXCEPTION: dict[int, type[APIStatusError]] = {
     401: AuthenticationError,
     404: NotFoundError,
