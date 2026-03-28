@@ -10,7 +10,28 @@ import respx
 
 from listbee._base_client import SyncClient
 from listbee.resources.webhooks import Webhooks
-from listbee.types.webhook import WebhookResponse
+from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
+
+WEBHOOK_EVENT_JSON = {
+    "object": "webhook_event",
+    "id": "evt_7kQ2xY9mN3pR5tW1",
+    "event_type": "order.completed",
+    "status": "delivered",
+    "attempts": 1,
+    "max_retries": 5,
+    "response_status": 200,
+    "last_error": None,
+    "created_at": "2026-03-28T12:00:00Z",
+    "delivered_at": "2026-03-28T12:00:01Z",
+}
+
+WEBHOOK_TEST_JSON = {
+    "object": "webhook_test",
+    "success": True,
+    "status_code": 200,
+    "response_body": "OK",
+    "error": None,
+}
 
 WEBHOOK_JSON = {
     "object": "webhook",
@@ -115,3 +136,29 @@ class TestDeleteWebhook:
             result = webhooks.delete("wh_3mK8nP2qR5tW7xY1")
         assert route.called
         assert result is None
+
+
+class TestListWebhookEvents:
+    def test_list_events_returns_list(self, webhooks):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/events").mock(
+                return_value=httpx.Response(
+                    200, json={"object": "list", "data": [WEBHOOK_EVENT_JSON], "has_more": False, "cursor": None}
+                )
+            )
+            results = webhooks.list_events("wh_3mK8nP2qR5tW7xY1")
+        assert len(results) == 1
+        assert isinstance(results[0], WebhookEventResponse)
+        assert results[0].status == "delivered"
+
+
+class TestTestWebhook:
+    def test_test_returns_result(self, webhooks):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/test").mock(
+                return_value=httpx.Response(200, json=WEBHOOK_TEST_JSON)
+            )
+            result = webhooks.test("wh_3mK8nP2qR5tW7xY1")
+        assert isinstance(result, WebhookTestResponse)
+        assert result.success is True
+        assert result.status_code == 200

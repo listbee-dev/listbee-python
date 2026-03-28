@@ -45,8 +45,10 @@ from listbee.types import (
     OrderResponse,
     OrderStatus,
     Review,
+    WebhookEventResponse,
     WebhookEventType,
     WebhookResponse,
+    WebhookTestResponse,
 )
 
 __all__ = [
@@ -80,6 +82,8 @@ __all__ = [
     "OrderResponse",
     "OrderStatus",
     "Review",
+    "WebhookEventResponse",
     "WebhookEventType",
     "WebhookResponse",
+    "WebhookTestResponse",
 ]

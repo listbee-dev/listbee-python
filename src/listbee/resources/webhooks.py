@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from listbee.types.webhook import WebhookResponse
+from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -97,6 +97,49 @@ class Webhooks:
         """
         self._client._delete(f"/v1/webhooks/{webhook_id}")
 
+    def list_events(
+        self,
+        webhook_id: str,
+        *,
+        status: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> list[WebhookEventResponse]:
+        """List delivery events for a webhook endpoint.
+
+        Args:
+            webhook_id: The webhook's unique identifier.
+            status: Filter by status: ``"pending"``, ``"delivered"``, or ``"failed"``.
+            cursor: Pagination cursor from a previous response.
+            limit: Maximum number of results (1-100).
+
+        Returns:
+            A list of :class:`~listbee.types.webhook.WebhookEventResponse` objects.
+        """
+        params: dict[str, Any] = {}
+        if status is not None:
+            params["status"] = status
+        if cursor is not None:
+            params["cursor"] = cursor
+        if limit is not None:
+            params["limit"] = limit
+        response = self._client._get(f"/v1/webhooks/{webhook_id}/events", params=params)
+        body = response.json()
+        items = body.get("data", [])
+        return [WebhookEventResponse.model_validate(item) for item in items]
+
+    def test(self, webhook_id: str) -> WebhookTestResponse:
+        """Send a test event to the webhook endpoint.
+
+        Args:
+            webhook_id: The webhook's unique identifier.
+
+        Returns:
+            A :class:`~listbee.types.webhook.WebhookTestResponse` with the delivery result.
+        """
+        response = self._client._post(f"/v1/webhooks/{webhook_id}/test")
+        return WebhookTestResponse.model_validate(response.json())
+
 
 class AsyncWebhooks:
     """Async resource for the /v1/webhooks endpoint."""
@@ -184,3 +227,46 @@ class AsyncWebhooks:
             webhook_id: The webhook's unique identifier (e.g. "wh_3mK8nP2qR5tW7xY1").
         """
         await self._client._delete(f"/v1/webhooks/{webhook_id}")
+
+    async def list_events(
+        self,
+        webhook_id: str,
+        *,
+        status: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> list[WebhookEventResponse]:
+        """List delivery events for a webhook endpoint (async).
+
+        Args:
+            webhook_id: The webhook's unique identifier.
+            status: Filter by status: ``"pending"``, ``"delivered"``, or ``"failed"``.
+            cursor: Pagination cursor from a previous response.
+            limit: Maximum number of results (1-100).
+
+        Returns:
+            A list of :class:`~listbee.types.webhook.WebhookEventResponse` objects.
+        """
+        params: dict[str, Any] = {}
+        if status is not None:
+            params["status"] = status
+        if cursor is not None:
+            params["cursor"] = cursor
+        if limit is not None:
+            params["limit"] = limit
+        response = await self._client._get(f"/v1/webhooks/{webhook_id}/events", params=params)
+        body = response.json()
+        items = body.get("data", [])
+        return [WebhookEventResponse.model_validate(item) for item in items]
+
+    async def test(self, webhook_id: str) -> WebhookTestResponse:
+        """Send a test event to the webhook endpoint (async).
+
+        Args:
+            webhook_id: The webhook's unique identifier.
+
+        Returns:
+            A :class:`~listbee.types.webhook.WebhookTestResponse` with the delivery result.
+        """
+        response = await self._client._post(f"/v1/webhooks/{webhook_id}/test")
+        return WebhookTestResponse.model_validate(response.json())

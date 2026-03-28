@@ -20,7 +20,7 @@ from listbee.types.shared import (
     StrEnum,
     WebhookEventType,
 )
-from listbee.types.webhook import WebhookResponse
+from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
 __all__ = [
     # Enums
@@ -44,7 +44,9 @@ __all__ = [
     # Order
     "OrderResponse",
     # Webhook
+    "WebhookEventResponse",
     "WebhookResponse",
+    "WebhookTestResponse",
     # Account
     "AccountResponse",
     # Pagination
