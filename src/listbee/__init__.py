@@ -27,7 +27,6 @@ from listbee._exceptions import (
     ValidationError,
     WebhookVerificationError,
 )
-from listbee.webhooks import verify_signature
 from listbee.types import (
     AccountReadiness,
     AccountResponse,
@@ -50,6 +49,7 @@ from listbee.types import (
     WebhookResponse,
     WebhookTestResponse,
 )
+from listbee.webhooks import verify_signature
 
 __all__ = [
     "ListBee",

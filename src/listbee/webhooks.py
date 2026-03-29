@@ -48,7 +48,7 @@ def verify_signature(
     try:
         timestamp = int(timestamp_str)
     except ValueError:
-        raise WebhookVerificationError("Invalid webhook header: non-numeric timestamp")
+        raise WebhookVerificationError("Invalid webhook header: non-numeric timestamp") from None
 
     now = int(time.time())
     if abs(now - timestamp) > tolerance:
