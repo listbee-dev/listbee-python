@@ -79,7 +79,7 @@ class BlockerResolve(BaseModel):
     )
     url: str = Field(
         description="URL where the user can resolve this blocker.",
-        examples=["https://listbee.so/console/connect/stripe"],
+        examples=["https://listbee.so/connect/stripe"],
     )
 
 

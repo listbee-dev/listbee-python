@@ -55,7 +55,7 @@ class TestGetAccount:
                         "message": "Connect a Stripe account to accept payments",
                         "resolve": {
                             "action": "connect_stripe",
-                            "url": "https://listbee.so/console/connect/stripe",
+                            "url": "https://listbee.so/connect/stripe",
                         },
                     }
                 ],
@@ -68,4 +68,4 @@ class TestGetAccount:
         assert len(result.readiness.blockers) == 1
         assert result.readiness.blockers[0].code == "payments_not_configured"
         assert result.readiness.blockers[0].resolve.action == "connect_stripe"
-        assert result.readiness.blockers[0].resolve.url == "https://listbee.so/console/connect/stripe"
+        assert result.readiness.blockers[0].resolve.url == "https://listbee.so/connect/stripe"

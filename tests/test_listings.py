@@ -76,7 +76,7 @@ class TestCreateListing:
                         "message": "Connect a Stripe account to accept payments",
                         "resolve": {
                             "action": "connect_stripe",
-                            "url": "https://listbee.so/console/connect/stripe",
+                            "url": "https://listbee.so/connect/stripe",
                         },
                     }
                 ],
