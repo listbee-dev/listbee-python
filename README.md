@@ -1,9 +1,9 @@
 # listbee
 
-[![PyPI version](https://img.shields.io/pypi/v/listbee.svg)](https://pypi.org/project/listbee/)
+[![PyPI version](https://img.shields.io/pypi/v/listbee)](https://pypi.org/project/listbee/)
 [![CI](https://github.com/listbee-dev/listbee-python/actions/workflows/ci.yml/badge.svg)](https://github.com/listbee-dev/listbee-python/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/pypi/pyversions/listbee.svg)](https://pypi.org/project/listbee/)
+[![Python](https://img.shields.io/pypi/pyversions/listbee)](https://pypi.org/project/listbee/)
 
 Official Python SDK for the [ListBee API](https://listbee.so) — one API call to sell and deliver digital content.
 
