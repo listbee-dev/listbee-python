@@ -23,7 +23,7 @@ class Account:
             The :class:`~listbee.types.account.AccountResponse` for the
             authenticated account.
         """
-        response = self._client._get("/v1/account")
+        response = self._client.get("/v1/account")
         return AccountResponse.model_validate(response.json())
 
 
@@ -40,5 +40,5 @@ class AsyncAccount:
             The :class:`~listbee.types.account.AccountResponse` for the
             authenticated account.
         """
-        response = await self._client._get("/v1/account")
+        response = await self._client.get("/v1/account")
         return AccountResponse.model_validate(response.json())

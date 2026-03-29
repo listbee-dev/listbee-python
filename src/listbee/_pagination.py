@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from pydantic import BaseModel
@@ -52,7 +52,7 @@ class SyncCursorPage(Generic[T]):
             yield from page.data
             if not page.has_more or page.cursor is None:
                 break
-            page = self._client._get_page(
+            page = self._client.get_page(
                 path=self._path,
                 params={**self._params, "cursor": page.cursor},
                 model=self._model,
@@ -83,14 +83,14 @@ class AsyncCursorPage(Generic[T]):
         self._params = params
         self._model = model
 
-    async def __aiter__(self):
+    async def __aiter__(self) -> AsyncIterator[T]:
         page = self
         while True:
             for item in page.data:
                 yield item
             if not page.has_more or page.cursor is None:
                 break
-            page = await self._client._get_page(
+            page = await self._client.get_page(
                 path=self._path,
                 params={**self._params, "cursor": page.cursor},
                 model=self._model,

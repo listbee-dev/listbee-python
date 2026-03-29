@@ -34,7 +34,7 @@ class TestSyncCursorPage:
             params={},
             model=FakeItem,
         )
-        mock_client._get_page.return_value = page2
+        mock_client.get_page.return_value = page2
 
         page1 = SyncCursorPage(
             data=[FakeItem(name="a"), FakeItem(name="b")],
@@ -47,7 +47,7 @@ class TestSyncCursorPage:
         )
         names = [item.name for item in page1]
         assert names == ["a", "b", "c"]
-        mock_client._get_page.assert_called_once_with(
+        mock_client.get_page.assert_called_once_with(
             path="/test",
             params={"limit": 2, "cursor": "cursor_abc"},
             model=FakeItem,

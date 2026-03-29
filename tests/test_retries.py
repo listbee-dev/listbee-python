@@ -52,7 +52,7 @@ def test_500_then_200_retries_and_succeeds():
             httpx.Response(200, json=SUCCESS_BODY),
         ]
         with patch("time.sleep"):
-            response = client._get("/v1/listings/my-slug")
+            response = client.get("/v1/listings/my-slug")
 
     assert response.status_code == 200
     assert route.call_count == 2
@@ -68,7 +68,7 @@ def test_429_then_200_retries_and_succeeds():
             httpx.Response(200, json=SUCCESS_BODY),
         ]
         with patch("time.sleep"):
-            response = client._get("/v1/listings/my-slug")
+            response = client.get("/v1/listings/my-slug")
 
     assert response.status_code == 200
     assert route.call_count == 2
@@ -80,7 +80,7 @@ def test_422_no_retry_raises_validation_error():
     with respx.mock(base_url="https://api.listbee.so") as mock:
         route = mock.get("/v1/listings/my-slug").mock(return_value=httpx.Response(422, json=VALIDATION_ERROR_BODY))
         with pytest.raises(ValidationError):
-            client._get("/v1/listings/my-slug")
+            client.get("/v1/listings/my-slug")
 
     assert route.call_count == 1
 
@@ -91,7 +91,7 @@ def test_401_no_retry_raises_authentication_error():
     with respx.mock(base_url="https://api.listbee.so") as mock:
         route = mock.get("/v1/listings/my-slug").mock(return_value=httpx.Response(401, json=AUTH_ERROR_BODY))
         with pytest.raises(AuthenticationError):
-            client._get("/v1/listings/my-slug")
+            client.get("/v1/listings/my-slug")
 
     assert route.call_count == 1
 
@@ -106,7 +106,7 @@ def test_500_all_attempts_raises_internal_server_error():
             httpx.Response(500, json=ERROR_BODY),
         ]
         with patch("time.sleep"), pytest.raises(InternalServerError):
-            client._get("/v1/listings/my-slug")
+            client.get("/v1/listings/my-slug")
 
     assert route.call_count == 2
 
@@ -121,7 +121,7 @@ def test_retry_after_header_is_respected():
             httpx.Response(200, json=SUCCESS_BODY),
         ]
         with patch("listbee._base_client.time") as mock_time:
-            client._get("/v1/listings/my-slug")
+            client.get("/v1/listings/my-slug")
 
     mock_time.sleep.assert_called_once_with(5.0)
     assert route.call_count == 2
@@ -133,6 +133,6 @@ def test_max_retries_zero_never_retries():
     with respx.mock(base_url="https://api.listbee.so") as mock:
         route = mock.get("/v1/listings/my-slug").mock(return_value=httpx.Response(500, json=ERROR_BODY))
         with pytest.raises(InternalServerError):
-            client._get("/v1/listings/my-slug")
+            client.get("/v1/listings/my-slug")
 
     assert route.call_count == 1

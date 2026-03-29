@@ -28,11 +28,11 @@ from listbee._exceptions import (
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 
 try:
-    from importlib.metadata import version
+    from importlib.metadata import version as _get_version
 
-    _SDK_VERSION = version("listbee")
+    _sdk_version = _get_version("listbee")
 except Exception:
-    _SDK_VERSION = "0.0.0"
+    _sdk_version = "0.0.0"
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -68,7 +68,7 @@ class BaseClient:
         return {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": f"listbee-python/{_SDK_VERSION}",
+            "User-Agent": f"listbee-python/{_sdk_version}",
         }
 
     def _should_retry(self, status_code: int, attempt: int) -> bool:
@@ -165,7 +165,7 @@ class SyncClient(BaseClient):
 
                 # Non-retryable error: parse and raise
                 try:
-                    body = response.json()
+                    body: dict[str, Any] = response.json()
                 except Exception:
                     body = {}
                 raise_for_status(response.status_code, body, dict(response.headers))
@@ -176,26 +176,26 @@ class SyncClient(BaseClient):
         # (unreachable in normal flow; kept for type completeness)
         assert last_response is not None  # pragma: no cover
         try:
-            body = last_response.json()
+            body_: dict[str, Any] = last_response.json()
         except Exception:
-            body = {}
-        raise_for_status(last_response.status_code, body, dict(last_response.headers))  # pragma: no cover
+            body_ = {}
+        raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
-    def _get(self, path: str, *, params: dict[str, Any] | None = None, timeout: float | None = None) -> httpx.Response:
+    def get(self, path: str, *, params: dict[str, Any] | None = None, timeout: float | None = None) -> httpx.Response:
         return self._request("GET", path, params=params, timeout=timeout)
 
-    def _post(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
+    def post(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
         return self._request("POST", path, json=json, timeout=timeout)
 
-    def _put(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
+    def put(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
         return self._request("PUT", path, json=json, timeout=timeout)
 
-    def _delete(self, path: str, *, timeout: float | None = None) -> httpx.Response:
+    def delete(self, path: str, *, timeout: float | None = None) -> httpx.Response:
         return self._request("DELETE", path, timeout=timeout)
 
-    def _get_page(self, path: str, params: dict[str, Any], model: type[T]) -> SyncCursorPage[T]:
+    def get_page(self, path: str, params: dict[str, Any], model: type[T]) -> SyncCursorPage[T]:
         """Fetch a paginated list response and return a SyncCursorPage."""
-        response = self._get(path, params=params)
+        response = self.get(path, params=params)
         body = response.json()
         items = [model.model_validate(item) for item in body.get("data", [])]
         return SyncCursorPage(
@@ -276,7 +276,7 @@ class AsyncClient(BaseClient):
                     continue
 
                 try:
-                    body = response.json()
+                    body: dict[str, Any] = response.json()
                 except Exception:
                     body = {}
                 raise_for_status(response.status_code, body, dict(response.headers))
@@ -286,28 +286,28 @@ class AsyncClient(BaseClient):
         # Exhausted retries — raise from last response
         assert last_response is not None  # pragma: no cover
         try:
-            body = last_response.json()
+            body_: dict[str, Any] = last_response.json()
         except Exception:
-            body = {}
-        raise_for_status(last_response.status_code, body, dict(last_response.headers))  # pragma: no cover
+            body_ = {}
+        raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
-    async def _get(
+    async def get(
         self, path: str, *, params: dict[str, Any] | None = None, timeout: float | None = None
     ) -> httpx.Response:
         return await self._request("GET", path, params=params, timeout=timeout)
 
-    async def _post(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
+    async def post(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
         return await self._request("POST", path, json=json, timeout=timeout)
 
-    async def _put(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
+    async def put(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
         return await self._request("PUT", path, json=json, timeout=timeout)
 
-    async def _delete(self, path: str, *, timeout: float | None = None) -> httpx.Response:
+    async def delete(self, path: str, *, timeout: float | None = None) -> httpx.Response:
         return await self._request("DELETE", path, timeout=timeout)
 
-    async def _get_page(self, path: str, params: dict[str, Any], model: type[T]) -> AsyncCursorPage[T]:
+    async def get_page(self, path: str, params: dict[str, Any], model: type[T]) -> AsyncCursorPage[T]:
         """Fetch a paginated list response and return an AsyncCursorPage."""
-        response = await self._get(path, params=params)
+        response = await self.get(path, params=params)
         body = response.json()
         items = [model.model_validate(item) for item in body.get("data", [])]
         return AsyncCursorPage(

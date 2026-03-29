@@ -26,7 +26,7 @@ class Orders:
         Returns:
             The :class:`~listbee.types.order.OrderResponse` for that order.
         """
-        response = self._client._get(f"/v1/orders/{order_id}")
+        response = self._client.get(f"/v1/orders/{order_id}")
         return OrderResponse.model_validate(response.json())
 
     def list(
@@ -59,7 +59,7 @@ class Orders:
             params["status"] = status
         if cursor is not None:
             params["cursor"] = cursor
-        return self._client._get_page("/v1/orders", params, OrderResponse)
+        return self._client.get_page("/v1/orders", params, OrderResponse)
 
 
 class AsyncOrders:
@@ -77,7 +77,7 @@ class AsyncOrders:
         Returns:
             The :class:`~listbee.types.order.OrderResponse` for that order.
         """
-        response = await self._client._get(f"/v1/orders/{order_id}")
+        response = await self._client.get(f"/v1/orders/{order_id}")
         return OrderResponse.model_validate(response.json())
 
     async def list(
@@ -110,4 +110,4 @@ class AsyncOrders:
             params["status"] = status
         if cursor is not None:
             params["cursor"] = cursor
-        return await self._client._get_page("/v1/orders", params, OrderResponse)
+        return await self._client.get_page("/v1/orders", params, OrderResponse)

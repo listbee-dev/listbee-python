@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 
 class ListBeeError(Exception):
@@ -111,16 +112,14 @@ STATUS_CODE_TO_EXCEPTION: dict[int, type[APIStatusError]] = {
 }
 
 
-def raise_for_status(status_code: int, body: dict, headers: dict[str, str]) -> None:
+def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, str]) -> None:
     """Parse an RFC 9457 error body and raise the appropriate exception."""
-    kwargs = {
-        "type": body.get("type", ""),
-        "title": body.get("title", ""),
-        "status": body.get("status", status_code),
-        "detail": body.get("detail", ""),
-        "code": body.get("code", ""),
-        "param": body.get("param"),
-    }
+    error_type: str = body.get("type", "")
+    error_title: str = body.get("title", "")
+    error_status: int = body.get("status", status_code)
+    error_detail: str = body.get("detail", "")
+    error_code: str = body.get("code", "")
+    error_param: str | None = body.get("param")
 
     exc_class = STATUS_CODE_TO_EXCEPTION.get(status_code)
 
@@ -129,10 +128,26 @@ def raise_for_status(status_code: int, body: dict, headers: dict[str, str]) -> N
         remaining_str = headers.get("x-ratelimit-remaining")
         reset_str = headers.get("x-ratelimit-reset")
 
-        kwargs["limit"] = int(limit_str) if limit_str else None
-        kwargs["remaining"] = int(remaining_str) if remaining_str else None
-        kwargs["reset"] = datetime.fromtimestamp(float(reset_str)) if reset_str else None
-        raise RateLimitError(**kwargs)
+        raise RateLimitError(
+            type=error_type,
+            title=error_title,
+            status=error_status,
+            detail=error_detail,
+            code=error_code,
+            param=error_param,
+            limit=int(limit_str) if limit_str else None,
+            remaining=int(remaining_str) if remaining_str else None,
+            reset=datetime.fromtimestamp(float(reset_str)) if reset_str else None,
+        )
+
+    kwargs: dict[str, Any] = {
+        "type": error_type,
+        "title": error_title,
+        "status": error_status,
+        "detail": error_detail,
+        "code": error_code,
+        "param": error_param,
+    }
 
     if exc_class is not None:
         raise exc_class(**kwargs)

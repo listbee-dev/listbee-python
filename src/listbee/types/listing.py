@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -126,16 +126,14 @@ class ListingResponse(BaseModel):
         examples=[1243],
     )
     reviews: list[Review] = Field(
-        default_factory=list,
+        default=[],
         description="Featured review cards shown on the product page.",
-        examples=[[]],
     )
     faqs: list[FaqItem] = Field(
-        default_factory=list,
+        default=[],
         description="FAQ accordion items shown on the product page.",
-        examples=[[]],
     )
-    metadata: dict | None = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Arbitrary key-value pairs forwarded in webhook events.",
         examples=[{"source": "n8n", "campaign": "launch-week"}],

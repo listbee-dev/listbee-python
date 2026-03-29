@@ -38,7 +38,7 @@ class Webhooks:
         body: dict[str, Any] = {"name": name, "url": url}
         if events is not None:
             body["events"] = events
-        response = self._client._post("/v1/webhooks", json=body)
+        response = self._client.post("/v1/webhooks", json=body)
         return WebhookResponse.model_validate(response.json())
 
     def list(self) -> list[WebhookResponse]:
@@ -49,7 +49,7 @@ class Webhooks:
         Returns:
             A list of :class:`~listbee.types.webhook.WebhookResponse` objects.
         """
-        response = self._client._get("/v1/webhooks")
+        response = self._client.get("/v1/webhooks")
         body = response.json()
         # Try "data" key first; fall back to "items" for backwards compat
         items = body.get("data") if body.get("data") is not None else body.get("items", [])
@@ -87,7 +87,7 @@ class Webhooks:
             body["events"] = events
         if enabled is not None:
             body["enabled"] = enabled
-        response = self._client._put(f"/v1/webhooks/{webhook_id}", json=body)
+        response = self._client.put(f"/v1/webhooks/{webhook_id}", json=body)
         return WebhookResponse.model_validate(response.json())
 
     def delete(self, webhook_id: str) -> None:
@@ -96,7 +96,7 @@ class Webhooks:
         Args:
             webhook_id: The webhook's unique identifier (e.g. "wh_3mK8nP2qR5tW7xY1").
         """
-        self._client._delete(f"/v1/webhooks/{webhook_id}")
+        self._client.delete(f"/v1/webhooks/{webhook_id}")
 
     def list_events(
         self,
@@ -130,7 +130,7 @@ class Webhooks:
             params["status"] = status
         if cursor is not None:
             params["cursor"] = cursor
-        return self._client._get_page(
+        return self._client.get_page(
             path=f"/v1/webhooks/{webhook_id}/events",
             params=params,
             model=WebhookEventResponse,
@@ -145,7 +145,7 @@ class Webhooks:
         Returns:
             A :class:`~listbee.types.webhook.WebhookTestResponse` with the delivery result.
         """
-        response = self._client._post(f"/v1/webhooks/{webhook_id}/test")
+        response = self._client.post(f"/v1/webhooks/{webhook_id}/test")
         return WebhookTestResponse.model_validate(response.json())
 
 
@@ -176,7 +176,7 @@ class AsyncWebhooks:
         body: dict[str, Any] = {"name": name, "url": url}
         if events is not None:
             body["events"] = events
-        response = await self._client._post("/v1/webhooks", json=body)
+        response = await self._client.post("/v1/webhooks", json=body)
         return WebhookResponse.model_validate(response.json())
 
     async def list(self) -> list[WebhookResponse]:
@@ -187,7 +187,7 @@ class AsyncWebhooks:
         Returns:
             A list of :class:`~listbee.types.webhook.WebhookResponse` objects.
         """
-        response = await self._client._get("/v1/webhooks")
+        response = await self._client.get("/v1/webhooks")
         body = response.json()
         # Try "data" key first; fall back to "items" for backwards compat
         items = body.get("data") if body.get("data") is not None else body.get("items", [])
@@ -225,7 +225,7 @@ class AsyncWebhooks:
             body["events"] = events
         if enabled is not None:
             body["enabled"] = enabled
-        response = await self._client._put(f"/v1/webhooks/{webhook_id}", json=body)
+        response = await self._client.put(f"/v1/webhooks/{webhook_id}", json=body)
         return WebhookResponse.model_validate(response.json())
 
     async def delete(self, webhook_id: str) -> None:
@@ -234,7 +234,7 @@ class AsyncWebhooks:
         Args:
             webhook_id: The webhook's unique identifier (e.g. "wh_3mK8nP2qR5tW7xY1").
         """
-        await self._client._delete(f"/v1/webhooks/{webhook_id}")
+        await self._client.delete(f"/v1/webhooks/{webhook_id}")
 
     async def list_events(
         self,
@@ -268,7 +268,7 @@ class AsyncWebhooks:
             params["status"] = status
         if cursor is not None:
             params["cursor"] = cursor
-        return await self._client._get_page(
+        return await self._client.get_page(
             path=f"/v1/webhooks/{webhook_id}/events",
             params=params,
             model=WebhookEventResponse,
@@ -283,5 +283,5 @@ class AsyncWebhooks:
         Returns:
             A :class:`~listbee.types.webhook.WebhookTestResponse` with the delivery result.
         """
-        response = await self._client._post(f"/v1/webhooks/{webhook_id}/test")
+        response = await self._client.post(f"/v1/webhooks/{webhook_id}/test")
         return WebhookTestResponse.model_validate(response.json())

@@ -109,9 +109,8 @@ class ListingReadiness(BaseModel):
         examples=[True],
     )
     blockers: list[Blocker] = Field(
-        default_factory=list,
+        default=[],
         description="What's preventing sales. Empty when `sellable` is true.",
-        examples=[[]],
     )
 
 
@@ -123,7 +122,6 @@ class AccountReadiness(BaseModel):
         examples=[True],
     )
     blockers: list[Blocker] = Field(
-        default_factory=list,
+        default=[],
         description="What's preventing operations. Empty when `operational` is true.",
-        examples=[[]],
     )

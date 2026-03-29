@@ -30,14 +30,14 @@ class Listings:
         highlights: list[str] | None = None,
         cta: str | None = None,
         cover_url: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         compare_at_price: int | None = None,
         badges: list[str] | None = None,
         cover_blur: str = "auto",
         rating: float | None = None,
         rating_count: int | None = None,
-        reviews: list[dict] | None = None,
-        faqs: list[dict] | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+        faqs: list[dict[str, Any]] | None = None,
         timeout: float | None = None,
     ) -> ListingResponse:
         """Create a new listing.
@@ -105,7 +105,7 @@ class Listings:
             body["faqs"] = faqs
 
         effective_timeout = timeout if timeout is not None else LISTING_CREATE_TIMEOUT
-        response = self._client._post("/v1/listings", json=body, timeout=effective_timeout)
+        response = self._client.post("/v1/listings", json=body, timeout=effective_timeout)
         return ListingResponse.model_validate(response.json())
 
     def get(self, slug: str) -> ListingResponse:
@@ -117,7 +117,7 @@ class Listings:
         Returns:
             The :class:`~listbee.types.listing.ListingResponse` for that slug.
         """
-        response = self._client._get(f"/v1/listings/{slug}")
+        response = self._client.get(f"/v1/listings/{slug}")
         return ListingResponse.model_validate(response.json())
 
     def list(self, *, limit: int = 20, cursor: str | None = None) -> SyncCursorPage[ListingResponse]:
@@ -141,7 +141,7 @@ class Listings:
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
             params["cursor"] = cursor
-        return self._client._get_page("/v1/listings", params, ListingResponse)
+        return self._client.get_page("/v1/listings", params, ListingResponse)
 
     def delete(self, slug: str) -> None:
         """Delete a listing.
@@ -149,7 +149,7 @@ class Listings:
         Args:
             slug: The listing's URL slug (e.g. "seo-playbook").
         """
-        self._client._delete(f"/v1/listings/{slug}")
+        self._client.delete(f"/v1/listings/{slug}")
 
 
 class AsyncListings:
@@ -170,14 +170,14 @@ class AsyncListings:
         highlights: list[str] | None = None,
         cta: str | None = None,
         cover_url: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         compare_at_price: int | None = None,
         badges: list[str] | None = None,
         cover_blur: str = "auto",
         rating: float | None = None,
         rating_count: int | None = None,
-        reviews: list[dict] | None = None,
-        faqs: list[dict] | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+        faqs: list[dict[str, Any]] | None = None,
         timeout: float | None = None,
     ) -> ListingResponse:
         """Create a new listing (async).
@@ -245,7 +245,7 @@ class AsyncListings:
             body["faqs"] = faqs
 
         effective_timeout = timeout if timeout is not None else LISTING_CREATE_TIMEOUT
-        response = await self._client._post("/v1/listings", json=body, timeout=effective_timeout)
+        response = await self._client.post("/v1/listings", json=body, timeout=effective_timeout)
         return ListingResponse.model_validate(response.json())
 
     async def get(self, slug: str) -> ListingResponse:
@@ -257,7 +257,7 @@ class AsyncListings:
         Returns:
             The :class:`~listbee.types.listing.ListingResponse` for that slug.
         """
-        response = await self._client._get(f"/v1/listings/{slug}")
+        response = await self._client.get(f"/v1/listings/{slug}")
         return ListingResponse.model_validate(response.json())
 
     async def list(self, *, limit: int = 20, cursor: str | None = None) -> AsyncCursorPage[ListingResponse]:
@@ -281,7 +281,7 @@ class AsyncListings:
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
             params["cursor"] = cursor
-        return await self._client._get_page("/v1/listings", params, ListingResponse)
+        return await self._client.get_page("/v1/listings", params, ListingResponse)
 
     async def delete(self, slug: str) -> None:
         """Delete a listing (async).
@@ -289,4 +289,4 @@ class AsyncListings:
         Args:
             slug: The listing's URL slug (e.g. "seo-playbook").
         """
-        await self._client._delete(f"/v1/listings/{slug}")
+        await self._client.delete(f"/v1/listings/{slug}")

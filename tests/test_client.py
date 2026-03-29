@@ -50,7 +50,7 @@ class TestHeaders:
     def test_bearer_token_sent_in_request(self, client):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/listings").mock(return_value=httpx.Response(200, json={}))
-            client._get("/v1/listings")
+            client.get("/v1/listings")
         assert route.called
         sent_headers = route.calls[0].request.headers
         assert sent_headers["authorization"] == "Bearer lb_test_key_1234567890abcdef"
@@ -58,7 +58,7 @@ class TestHeaders:
     def test_user_agent_sent_in_request(self, client):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/listings").mock(return_value=httpx.Response(200, json={}))
-            client._get("/v1/listings")
+            client.get("/v1/listings")
         assert route.called
         sent_headers = route.calls[0].request.headers
         assert "listbee-python/" in sent_headers["user-agent"]
@@ -95,7 +95,7 @@ class TestContextManager:
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/listings").mock(return_value=httpx.Response(200, json={}))
             with SyncClient(api_key="lb_key") as client:
-                client._get("/v1/listings")
+                client.get("/v1/listings")
         # After exiting the context, the internal client should be closed/None
         assert client._http_client is None
 
@@ -117,7 +117,7 @@ class TestTransportErrors:
             mock_client = mock_get.return_value
             mock_client.request.side_effect = httpx.ReadTimeout("timed out")
             with pytest.raises(APITimeoutError, match="timed out"):
-                client._get("/v1/listings")
+                client.get("/v1/listings")
 
     def test_connect_error_raises_api_connection_error(self):
         client = SyncClient(api_key="lb_key", max_retries=0)
@@ -128,4 +128,4 @@ class TestTransportErrors:
             mock_client = mock_get.return_value
             mock_client.request.side_effect = httpx.ConnectError("connection refused")
             with pytest.raises(APIConnectionError, match="connection refused"):
-                client._get("/v1/listings")
+                client.get("/v1/listings")
