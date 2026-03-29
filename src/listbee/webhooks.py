@@ -52,9 +52,7 @@ def verify_signature(
 
     now = int(time.time())
     if abs(now - timestamp) > tolerance:
-        raise WebhookVerificationError(
-            f"Webhook timestamp outside tolerance: {abs(now - timestamp)}s > {tolerance}s"
-        )
+        raise WebhookVerificationError(f"Webhook timestamp outside tolerance: {abs(now - timestamp)}s > {tolerance}s")
 
     signed_content = f"{timestamp_str}.{payload}"
     expected = hmac.new(secret.encode(), signed_content.encode(), hashlib.sha256).hexdigest()
