@@ -1,7 +1,17 @@
+default_stages: [pre-push]
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [--fix]
       - id: ruff-format
+        args: [--check]
+  - repo: local
+    hooks:
+      - id: pytest
+        name: tests
+        entry: uv run pytest -x -v
+        language: system
+        pass_filenames: false
+        always_run: true
