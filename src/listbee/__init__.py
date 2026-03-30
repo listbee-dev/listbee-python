@@ -30,6 +30,8 @@ from listbee._exceptions import (
 from listbee.types import (
     AccountReadiness,
     AccountResponse,
+    SignupResponse,
+    VerifyResponse,
     Action,
     ActionCode,
     ActionKind,
@@ -82,6 +84,8 @@ __all__ = [
     "OrderResponse",
     "OrderStatus",
     "Review",
+    "SignupResponse",
+    "VerifyResponse",
     "WebhookEventResponse",
     "WebhookEventType",
     "WebhookResponse",

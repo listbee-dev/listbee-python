@@ -20,6 +20,7 @@ from listbee.types.shared import (
     StrEnum,
     WebhookEventType,
 )
+from listbee.types.signup import SignupResponse, VerifyResponse
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
 __all__ = [
@@ -49,6 +50,9 @@ __all__ = [
     "WebhookTestResponse",
     # Account
     "AccountResponse",
+    # Signup
+    "SignupResponse",
+    "VerifyResponse",
     # Pagination
     "CursorPage",
 ]
