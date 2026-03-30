@@ -192,12 +192,22 @@ class Listings:
         """
         body: dict[str, Any] = {}
         fields = {
-            "name": name, "price": price, "currency": currency,
-            "description": description, "tagline": tagline,
-            "highlights": highlights, "cta": cta, "cover_url": cover_url,
-            "metadata": metadata, "compare_at_price": compare_at_price,
-            "badges": badges, "cover_blur": cover_blur, "rating": rating,
-            "rating_count": rating_count, "reviews": reviews, "faqs": faqs,
+            "name": name,
+            "price": price,
+            "currency": currency,
+            "description": description,
+            "tagline": tagline,
+            "highlights": highlights,
+            "cta": cta,
+            "cover_url": cover_url,
+            "metadata": metadata,
+            "compare_at_price": compare_at_price,
+            "badges": badges,
+            "cover_blur": cover_blur,
+            "rating": rating,
+            "rating_count": rating_count,
+            "reviews": reviews,
+            "faqs": faqs,
         }
         for key, value in fields.items():
             if value is not None:
@@ -394,12 +404,22 @@ class AsyncListings:
         """
         body: dict[str, Any] = {}
         fields = {
-            "name": name, "price": price, "currency": currency,
-            "description": description, "tagline": tagline,
-            "highlights": highlights, "cta": cta, "cover_url": cover_url,
-            "metadata": metadata, "compare_at_price": compare_at_price,
-            "badges": badges, "cover_blur": cover_blur, "rating": rating,
-            "rating_count": rating_count, "reviews": reviews, "faqs": faqs,
+            "name": name,
+            "price": price,
+            "currency": currency,
+            "description": description,
+            "tagline": tagline,
+            "highlights": highlights,
+            "cta": cta,
+            "cover_url": cover_url,
+            "metadata": metadata,
+            "compare_at_price": compare_at_price,
+            "badges": badges,
+            "cover_blur": cover_blur,
+            "rating": rating,
+            "rating_count": rating_count,
+            "reviews": reviews,
+            "faqs": faqs,
         }
         for key, value in fields.items():
             if value is not None:

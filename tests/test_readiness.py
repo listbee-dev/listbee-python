@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from listbee.types.shared import (
     AccountReadiness,
@@ -63,7 +64,7 @@ class TestActionResolve:
 
     def test_frozen(self):
         resolve = ActionResolve(method="GET", endpoint=None, url="https://example.com", params=None)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             resolve.method = "POST"  # type: ignore[misc]
 
 
@@ -107,7 +108,7 @@ class TestAction:
             message="test",
             resolve=ActionResolve(method="GET", endpoint=None, url=None, params=None),
         )
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             action.code = ActionCode.CONNECT_STRIPE  # type: ignore[misc]
 
 
@@ -123,9 +124,7 @@ class TestListingReadiness:
             code=ActionCode.SET_STRIPE_KEY,
             kind=ActionKind.API,
             message="Set your Stripe key",
-            resolve=ActionResolve(
-                method="PUT", endpoint="/v1/account/stripe", url=None, params=None
-            ),
+            resolve=ActionResolve(method="PUT", endpoint="/v1/account/stripe", url=None, params=None),
         )
         readiness = ListingReadiness(sellable=False, actions=[action], next="set_stripe_key")
         assert readiness.sellable is False

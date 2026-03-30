@@ -162,9 +162,7 @@ class TestListListings:
 class TestUpdateListing:
     def test_update_sends_only_provided_fields(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/seo-playbook").mock(
-                return_value=httpx.Response(200, json=LISTING_JSON)
-            )
+            route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             listings.update("seo-playbook", name="Updated Name", price=3900)
         body = json.loads(route.calls[0].request.content)
         assert body == {"name": "Updated Name", "price": 3900}
@@ -174,9 +172,7 @@ class TestUpdateListing:
     def test_update_returns_listing_response(self, listings):
         updated = {**LISTING_JSON, "name": "Updated Name", "price": 3900}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.put("/v1/listings/seo-playbook").mock(
-                return_value=httpx.Response(200, json=updated)
-            )
+            mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=updated))
             result = listings.update("seo-playbook", name="Updated Name", price=3900)
         assert isinstance(result, ListingResponse)
         assert result.name == "Updated Name"

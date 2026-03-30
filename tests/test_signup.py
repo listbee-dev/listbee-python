@@ -36,9 +36,7 @@ class TestSignupCreate:
     def test_create_returns_signup_response(self):
         client = ListBee(api_key=None, base_url="https://api.listbee.so")
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/account/signup").mock(
-                return_value=httpx.Response(200, json=SIGNUP_RESPONSE)
-            )
+            mock.post("/v1/account/signup").mock(return_value=httpx.Response(200, json=SIGNUP_RESPONSE))
             result = client.signup.create(email="new@example.com")
 
         assert isinstance(result, SignupResponse)
@@ -50,9 +48,7 @@ class TestSignupCreate:
     def test_create_sends_no_auth_header(self):
         client = ListBee(api_key=None, base_url="https://api.listbee.so")
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/account/signup").mock(
-                return_value=httpx.Response(200, json=SIGNUP_RESPONSE)
-            )
+            route = mock.post("/v1/account/signup").mock(return_value=httpx.Response(200, json=SIGNUP_RESPONSE))
             client.signup.create(email="new@example.com")
 
         assert route.called
@@ -64,9 +60,7 @@ class TestSignupVerify:
     def test_verify_returns_verify_response(self):
         client = ListBee(api_key=None, base_url="https://api.listbee.so")
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/account/verify").mock(
-                return_value=httpx.Response(200, json=VERIFY_RESPONSE)
-            )
+            mock.post("/v1/account/verify").mock(return_value=httpx.Response(200, json=VERIFY_RESPONSE))
             result = client.signup.verify(email="new@example.com", code="123456")
 
         assert isinstance(result, VerifyResponse)
@@ -78,9 +72,7 @@ class TestSignupVerify:
     def test_verify_sends_no_auth_header(self):
         client = ListBee(api_key=None, base_url="https://api.listbee.so")
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/account/verify").mock(
-                return_value=httpx.Response(200, json=VERIFY_RESPONSE)
-            )
+            route = mock.post("/v1/account/verify").mock(return_value=httpx.Response(200, json=VERIFY_RESPONSE))
             client.signup.verify(email="new@example.com", code="123456")
 
         assert route.called
@@ -90,9 +82,7 @@ class TestSignupVerify:
     def test_verify_request_body_contains_email_and_code(self):
         client = ListBee(api_key=None, base_url="https://api.listbee.so")
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/account/verify").mock(
-                return_value=httpx.Response(200, json=VERIFY_RESPONSE)
-            )
+            route = mock.post("/v1/account/verify").mock(return_value=httpx.Response(200, json=VERIFY_RESPONSE))
             client.signup.verify(email="new@example.com", code="123456")
 
         assert route.called

@@ -124,8 +124,7 @@ class ListingReadiness(BaseModel):
 
     sellable: bool = Field(
         description=(
-            "True when buyers can complete a purchase on this listing. "
-            "False means one or more actions are needed."
+            "True when buyers can complete a purchase on this listing. False means one or more actions are needed."
         ),
         examples=[True],
     )

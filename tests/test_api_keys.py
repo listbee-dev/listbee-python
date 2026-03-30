@@ -40,9 +40,7 @@ def api_keys(sync_client):
 class TestListApiKeys:
     def test_list_returns_list_of_api_key_responses(self, api_keys):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/api-keys").mock(
-                return_value=httpx.Response(200, json={"data": [API_KEY_JSON]})
-            )
+            mock.get("/v1/api-keys").mock(return_value=httpx.Response(200, json={"data": [API_KEY_JSON]}))
             results = api_keys.list()
         assert isinstance(results, list)
         assert len(results) == 1
@@ -53,9 +51,7 @@ class TestListApiKeys:
 
     def test_list_empty(self, api_keys):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/api-keys").mock(
-                return_value=httpx.Response(200, json={"data": []})
-            )
+            mock.get("/v1/api-keys").mock(return_value=httpx.Response(200, json={"data": []}))
             results = api_keys.list()
         assert results == []
 
@@ -63,9 +59,7 @@ class TestListApiKeys:
 class TestCreateApiKey:
     def test_create_returns_api_key_with_key_value(self, api_keys):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/api-keys").mock(
-                return_value=httpx.Response(200, json=API_KEY_CREATED_JSON)
-            )
+            mock.post("/v1/api-keys").mock(return_value=httpx.Response(200, json=API_KEY_CREATED_JSON))
             result = api_keys.create(name="Production")
         assert isinstance(result, ApiKeyResponse)
         assert result.id == "lbk_7kQ2xY9mN3pR5tW1"
@@ -73,9 +67,7 @@ class TestCreateApiKey:
 
     def test_create_sends_correct_request_body(self, api_keys):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/api-keys").mock(
-                return_value=httpx.Response(200, json=API_KEY_CREATED_JSON)
-            )
+            route = mock.post("/v1/api-keys").mock(return_value=httpx.Response(200, json=API_KEY_CREATED_JSON))
             api_keys.create(name="Production")
         body = json.loads(route.calls[0].request.content)
         assert body == {"name": "Production"}
@@ -84,9 +76,7 @@ class TestCreateApiKey:
 class TestDeleteApiKey:
     def test_delete_returns_none(self, api_keys):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.delete("/v1/api-keys/lbk_7kQ2xY9mN3pR5tW1").mock(
-                return_value=httpx.Response(204)
-            )
+            route = mock.delete("/v1/api-keys/lbk_7kQ2xY9mN3pR5tW1").mock(return_value=httpx.Response(204))
             result = api_keys.delete("lbk_7kQ2xY9mN3pR5tW1")
         assert route.called
         assert result is None
