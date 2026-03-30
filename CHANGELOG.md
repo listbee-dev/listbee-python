@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-30
+
+### Breaking
+
+- Readiness model overhauled: `Blocker`, `BlockerCode`, `BlockerAction`, `BlockerResolve` removed
+- New types: `Action`, `ActionCode`, `ActionKind`, `ActionResolve`
+- `ListingReadiness` and `AccountReadiness` now use `actions` list and `next` pointer instead of `blockers`
+
+### Added
+
+- `client.signup.create()` and `client.signup.verify()` — agent self-service onboarding (unauthenticated)
+- `client.api_keys.list()`, `.create()`, `.delete()` — API key management
+- `client.stripe.set_key()`, `.connect()`, `.disconnect()` — Stripe configuration
+- `client.listings.update()` — partial listing updates
+- Support for unauthenticated requests via `authenticated=False` parameter
+
 ## [0.1.1] - 2026-03-29
 
 ### Fixed

@@ -126,6 +126,13 @@ listing = client.listings.get("seo-playbook-2026")
 for listing in client.listings.list():
     print(listing.slug, listing.name)
 
+# Update — partial updates
+updated = client.listings.update(
+    "seo-playbook",
+    name="SEO Playbook 2026 Updated",
+    price=3900,
+)
+
 # Delete
 client.listings.delete("seo-playbook-2026")
 ```
@@ -199,6 +206,52 @@ print(account.fee_rate)     # "0.10" (10%)
 print(account.readiness.operational)
 ```
 
+### Signup
+
+Agent self-service onboarding — no API key required:
+
+```python
+from listbee import ListBee
+
+client = ListBee(api_key=None)
+
+# Request a signup code
+client.signup.create(email="seller@example.com")
+
+# Verify the code — returns account + API key
+result = client.signup.verify(email="seller@example.com", code="123456")
+print(result.api_key)  # lb_... (one-time display)
+```
+
+### API Keys
+
+```python
+# List all API keys
+for key in client.api_keys.list():
+    print(key.id, key.label)
+
+# Create a new key — the key value is only shown once
+new_key = client.api_keys.create(label="CI pipeline")
+print(new_key.key)  # lb_... (save this immediately)
+
+# Delete a key
+client.api_keys.delete("lbk_7kQ2xY9mN3pR5tW1")
+```
+
+### Stripe
+
+```python
+# Set your Stripe secret key
+client.stripe.set_key(key="sk_live_...")
+
+# Generate a Stripe Connect onboarding link
+connect = client.stripe.connect()
+print(connect.url)  # redirect seller here
+
+# Disconnect Stripe
+client.stripe.disconnect()
+```
+
 ## Readiness System
 
 Every listing and account includes a `readiness` field that tells you whether it can currently accept payments.
@@ -206,36 +259,33 @@ Every listing and account includes a `readiness` field that tells you whether it
 - `listing.readiness.sellable` — `True` when buyers can complete a purchase
 - `account.readiness.operational` — `True` when the account can sell
 
-When `False`, a `blockers` list explains what's preventing sales and how to fix it.
+When `False`, an `actions` list explains what's needed and how to resolve each item. The `next` field points to the highest-priority action (prefers `kind: api`).
 
 ```python
-from listbee import BlockerCode
+from listbee import ActionKind
 
-listing = client.listings.get("seo-playbook")
-
-if not listing.readiness.sellable:
-    for blocker in listing.readiness.blockers:
-        print(f"Blocker: {blocker.code}")          # e.g. "payments_not_configured"
-        print(f"  {blocker.message}")               # human-readable explanation
-        print(f"  Fix: {blocker.resolve.action}")   # machine-readable action
-        print(f"  URL: {blocker.resolve.url}")      # where to resolve it
-
-        if blocker.code == BlockerCode.PAYMENTS_NOT_CONFIGURED:
-            # Direct the seller to connect Stripe
-            redirect_to(blocker.resolve.url)
-```
-
-Account-level blockers follow the same shape:
-
-```python
 account = client.account.get()
-
 if not account.readiness.operational:
-    for blocker in account.readiness.blockers:
-        print(blocker.code, blocker.resolve.url)
+    for action in account.readiness.actions:
+        if action.kind == ActionKind.API:
+            print(f"API action: {action.code} -> {action.resolve.endpoint}")
+        else:
+            print(f"Manual step: {action.code} -> {action.resolve.url}")
+    # Highest priority action
+    print(f"Next action: {account.readiness.next}")
 ```
 
-**Blocker codes:**
+Listing readiness follows the same shape:
+
+```python
+listing = client.listings.get("seo-playbook")
+if not listing.readiness.sellable:
+    for action in listing.readiness.actions:
+        print(action.code, action.message)
+    print(f"Next: {listing.readiness.next}")
+```
+
+**Action codes:**
 
 | Code | Meaning |
 |------|---------|
@@ -422,8 +472,8 @@ from listbee import (
     AccountResponse,
     ListingReadiness,
     AccountReadiness,
-    Blocker,
-    BlockerResolve,
+    Action,
+    ActionResolve,
     Review,
     FaqItem,
     CursorPage,
@@ -434,8 +484,8 @@ from listbee import (
     ListingStatus,      # "published"
     OrderStatus,        # "completed"
     WebhookEventType,   # "order.completed" | "order.refunded" | ...
-    BlockerCode,        # "payments_not_configured" | ...
-    BlockerAction,      # "connect_stripe" | ...
+    ActionCode,         # "payments_not_configured" | ...
+    ActionKind,         # "api" | "human"
 
     # Exceptions
     ListBeeError,
@@ -454,7 +504,7 @@ from listbee import (
 Use enums to avoid magic strings:
 
 ```python
-from listbee import ContentType, BlockerCode, WebhookEventType
+from listbee import ContentType, ActionCode, ActionKind, WebhookEventType
 
 # Check content type
 if listing.content_type == ContentType.FILE:
@@ -473,12 +523,12 @@ webhook = client.webhooks.create(
     ],
 )
 
-# Branch on blocker code
-for blocker in listing.readiness.blockers:
-    if blocker.code == BlockerCode.PAYMENTS_NOT_CONFIGURED:
-        print(f"Connect Stripe: {blocker.resolve.url}")
-    elif blocker.code == BlockerCode.CHARGES_DISABLED:
-        print(f"Enable charges: {blocker.resolve.url}")
+# Branch on action code
+for action in listing.readiness.actions:
+    if action.code == ActionCode.PAYMENTS_NOT_CONFIGURED:
+        print(f"Connect Stripe: {action.resolve.url}")
+    elif action.code == ActionCode.CHARGES_DISABLED:
+        print(f"Enable charges: {action.resolve.url}")
 ```
 
 ## Requirements
