@@ -37,7 +37,7 @@ class AccountResponse(BaseModel):
     readiness: AccountReadiness = Field(
         description=(
             "Account operational readiness. `operational` is true when the account can sell. "
-            "If false, `blockers` lists what's missing with resolve URLs."
+            "If false, `actions` lists what's needed with resolve details and `next` points to the highest-priority action."
         ),
     )
     created_at: datetime = Field(

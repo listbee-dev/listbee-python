@@ -150,7 +150,7 @@ class ListingResponse(BaseModel):
     readiness: ListingReadiness = Field(
         description=(
             "Monetization readiness. `sellable` is true when buyers can complete a purchase. "
-            "If false, `blockers` lists what's missing with machine-readable codes and resolve URLs."
+            "If false, `actions` lists what's needed with resolve details and `next` points to the highest-priority action."
         ),
     )
     created_at: datetime = Field(
