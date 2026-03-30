@@ -1,10 +1,5 @@
 # listbee
 
-[![PyPI version](https://img.shields.io/pypi/v/listbee?v=1)](https://pypi.org/project/listbee/)
-[![CI](https://github.com/listbee-dev/listbee-python/actions/workflows/ci.yml/badge.svg)](https://github.com/listbee-dev/listbee-python/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/pypi/pyversions/listbee?v=1)](https://pypi.org/project/listbee/)
-
 Official Python SDK for the [ListBee API](https://listbee.so) — one API call to sell and deliver digital content.
 
 ## Install
