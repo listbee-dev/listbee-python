@@ -54,9 +54,7 @@ class TestCreateListing:
     def test_create_listing_returns_listing_response(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            result = listings.create(
-                name="SEO Playbook", price=2999, content="https://example.com/file.pdf"
-            )
+            result = listings.create(name="SEO Playbook", price=2999, content="https://example.com/file.pdf")
         assert isinstance(result, ListingResponse)
         assert result.id == "lst_abc123"
         assert result.slug == "seo-playbook"

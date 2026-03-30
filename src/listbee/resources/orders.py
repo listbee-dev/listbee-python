@@ -67,7 +67,9 @@ class Orders:
         if listing is not None:
             params["listing"] = listing
         if created_after is not None:
-            params["created_after"] = created_after.isoformat() if isinstance(created_after, datetime) else created_after
+            params["created_after"] = (
+                created_after.isoformat() if isinstance(created_after, datetime) else created_after
+            )
         if created_before is not None:
             params["created_before"] = (
                 created_before.isoformat() if isinstance(created_before, datetime) else created_before
@@ -132,7 +134,9 @@ class AsyncOrders:
         if listing is not None:
             params["listing"] = listing
         if created_after is not None:
-            params["created_after"] = created_after.isoformat() if isinstance(created_after, datetime) else created_after
+            params["created_after"] = (
+                created_after.isoformat() if isinstance(created_after, datetime) else created_after
+            )
         if created_before is not None:
             params["created_before"] = (
                 created_before.isoformat() if isinstance(created_before, datetime) else created_before
