@@ -21,7 +21,7 @@ LISTING_JSON = {
     "tagline": None,
     "highlights": [],
     "cta": None,
-    "price": 2999,
+    "price": 2900,
     "currency": "USD",
     "content_type": "file",
     "has_content": True,
@@ -29,15 +29,15 @@ LISTING_JSON = {
     "compare_at_price": None,
     "badges": [],
     "cover_blur": "auto",
-    "rating": 4.8,
-    "rating_count": 100,
+    "rating": None,
+    "rating_count": None,
     "reviews": [],
     "faqs": [],
     "metadata": None,
     "status": "published",
     "url": "https://buy.listbee.so/seo-playbook",
     "readiness": {"sellable": True, "actions": [], "next": None},
-    "created_at": "2026-03-28T12:00:00Z",
+    "created_at": "2026-03-30T12:00:00Z",
 }
 
 
@@ -62,7 +62,7 @@ class TestCreateListing:
         assert result.id == "lst_abc123"
         assert result.slug == "seo-playbook"
         assert result.name == "SEO Playbook"
-        assert result.price == 2999
+        assert result.price == 2900
         assert result.currency == "USD"
 
     def test_create_listing_with_readiness_actions(self, listings):
@@ -157,6 +157,30 @@ class TestListListings:
             )
             list(listings.list(limit=5))
         assert "limit=5" in str(route.calls[0].request.url)
+
+
+class TestUpdateListing:
+    def test_update_sends_only_provided_fields(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/listings/seo-playbook").mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            listings.update("seo-playbook", name="Updated Name", price=3900)
+        body = json.loads(route.calls[0].request.content)
+        assert body == {"name": "Updated Name", "price": 3900}
+        assert "currency" not in body
+        assert "description" not in body
+
+    def test_update_returns_listing_response(self, listings):
+        updated = {**LISTING_JSON, "name": "Updated Name", "price": 3900}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.put("/v1/listings/seo-playbook").mock(
+                return_value=httpx.Response(200, json=updated)
+            )
+            result = listings.update("seo-playbook", name="Updated Name", price=3900)
+        assert isinstance(result, ListingResponse)
+        assert result.name == "Updated Name"
+        assert result.price == 3900
 
 
 class TestDeleteListing:

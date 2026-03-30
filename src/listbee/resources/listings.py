@@ -143,6 +143,68 @@ class Listings:
             params["cursor"] = cursor
         return self._client.get_page("/v1/listings", params, ListingResponse)
 
+    def update(
+        self,
+        slug: str,
+        *,
+        name: str | None = None,
+        price: int | None = None,
+        currency: str | None = None,
+        description: str | None = None,
+        tagline: str | None = None,
+        highlights: list[str] | None = None,
+        cta: str | None = None,
+        cover_url: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        compare_at_price: int | None = None,
+        badges: list[str] | None = None,
+        cover_blur: str | None = None,
+        rating: float | None = None,
+        rating_count: int | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+        faqs: list[dict[str, Any]] | None = None,
+    ) -> ListingResponse:
+        """Update an existing listing.
+
+        Only the supplied fields are updated; all others remain unchanged.
+
+        Args:
+            slug: The listing's URL slug (e.g. "seo-playbook").
+            name: Product name shown on the product page.
+            price: Price in the smallest currency unit (e.g. 2900 = $29.00).
+            currency: Three-letter ISO currency code, uppercase (e.g. "USD").
+            description: Longer product description, plain text.
+            tagline: Short line shown below the product name.
+            highlights: Bullet-point feature badges shown on the product page.
+            cta: Buy button text.
+            cover_url: URL of a cover image to fetch and store.
+            metadata: Arbitrary key-value pairs forwarded in webhook events.
+            compare_at_price: Strikethrough price in smallest currency unit.
+            badges: Short promotional badges shown on the product page.
+            cover_blur: Cover blur mode — "auto", "true", or "false".
+            rating: Seller-provided aggregate star rating (1–5).
+            rating_count: Seller-provided review or purchase count.
+            reviews: Featured review cards shown on the product page.
+            faqs: FAQ accordion items shown on the product page.
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+        """
+        body: dict[str, Any] = {}
+        fields = {
+            "name": name, "price": price, "currency": currency,
+            "description": description, "tagline": tagline,
+            "highlights": highlights, "cta": cta, "cover_url": cover_url,
+            "metadata": metadata, "compare_at_price": compare_at_price,
+            "badges": badges, "cover_blur": cover_blur, "rating": rating,
+            "rating_count": rating_count, "reviews": reviews, "faqs": faqs,
+        }
+        for key, value in fields.items():
+            if value is not None:
+                body[key] = value
+        response = self._client.put(f"/v1/listings/{slug}", json=body)
+        return ListingResponse.model_validate(response.json())
+
     def delete(self, slug: str) -> None:
         """Delete a listing.
 
@@ -282,6 +344,68 @@ class AsyncListings:
         if cursor is not None:
             params["cursor"] = cursor
         return await self._client.get_page("/v1/listings", params, ListingResponse)
+
+    async def update(
+        self,
+        slug: str,
+        *,
+        name: str | None = None,
+        price: int | None = None,
+        currency: str | None = None,
+        description: str | None = None,
+        tagline: str | None = None,
+        highlights: list[str] | None = None,
+        cta: str | None = None,
+        cover_url: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        compare_at_price: int | None = None,
+        badges: list[str] | None = None,
+        cover_blur: str | None = None,
+        rating: float | None = None,
+        rating_count: int | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+        faqs: list[dict[str, Any]] | None = None,
+    ) -> ListingResponse:
+        """Update an existing listing (async).
+
+        Only the supplied fields are updated; all others remain unchanged.
+
+        Args:
+            slug: The listing's URL slug (e.g. "seo-playbook").
+            name: Product name shown on the product page.
+            price: Price in the smallest currency unit (e.g. 2900 = $29.00).
+            currency: Three-letter ISO currency code, uppercase (e.g. "USD").
+            description: Longer product description, plain text.
+            tagline: Short line shown below the product name.
+            highlights: Bullet-point feature badges shown on the product page.
+            cta: Buy button text.
+            cover_url: URL of a cover image to fetch and store.
+            metadata: Arbitrary key-value pairs forwarded in webhook events.
+            compare_at_price: Strikethrough price in smallest currency unit.
+            badges: Short promotional badges shown on the product page.
+            cover_blur: Cover blur mode — "auto", "true", or "false".
+            rating: Seller-provided aggregate star rating (1–5).
+            rating_count: Seller-provided review or purchase count.
+            reviews: Featured review cards shown on the product page.
+            faqs: FAQ accordion items shown on the product page.
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+        """
+        body: dict[str, Any] = {}
+        fields = {
+            "name": name, "price": price, "currency": currency,
+            "description": description, "tagline": tagline,
+            "highlights": highlights, "cta": cta, "cover_url": cover_url,
+            "metadata": metadata, "compare_at_price": compare_at_price,
+            "badges": badges, "cover_blur": cover_blur, "rating": rating,
+            "rating_count": rating_count, "reviews": reviews, "faqs": faqs,
+        }
+        for key, value in fields.items():
+            if value is not None:
+                body[key] = value
+        response = await self._client.put(f"/v1/listings/{slug}", json=body)
+        return ListingResponse.model_validate(response.json())
 
     async def delete(self, slug: str) -> None:
         """Delete a listing (async).
