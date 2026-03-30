@@ -144,7 +144,14 @@ class TestListWebhookEvents:
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/events").mock(
                 return_value=httpx.Response(
-                    200, json={"object": "list", "data": [WEBHOOK_EVENT_JSON], "has_more": False, "cursor": None}
+                    200,
+                    json={
+                        "object": "list",
+                        "data": [WEBHOOK_EVENT_JSON],
+                        "has_more": False,
+                        "total_count": 1,
+                        "cursor": None,
+                    },
                 )
             )
             page = webhooks.list_events("wh_3mK8nP2qR5tW7xY1")
@@ -153,12 +160,20 @@ class TestListWebhookEvents:
         assert isinstance(page.data[0], WebhookEventResponse)
         assert page.data[0].status == "delivered"
         assert page.has_more is False
+        assert page.total_count == 1
 
     def test_list_events_with_status_filter(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/webhooks/wh_3mK8nP2qR5tW7xY1/events").mock(
                 return_value=httpx.Response(
-                    200, json={"object": "list", "data": [WEBHOOK_EVENT_JSON], "has_more": False, "cursor": None}
+                    200,
+                    json={
+                        "object": "list",
+                        "data": [WEBHOOK_EVENT_JSON],
+                        "has_more": False,
+                        "total_count": 1,
+                        "cursor": None,
+                    },
                 )
             )
             webhooks.list_events("wh_3mK8nP2qR5tW7xY1", status="delivered")

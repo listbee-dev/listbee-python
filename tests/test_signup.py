@@ -25,6 +25,8 @@ VERIFY_RESPONSE = {
         "email": "new@example.com",
         "plan": "free",
         "fee_rate": "0.10",
+        "currency": None,
+        "stats": {"total_revenue": 0, "total_orders": 0, "total_listings": 0},
         "readiness": {"operational": False, "actions": [], "next": None},
         "created_at": "2026-03-30T12:00:00Z",
     },

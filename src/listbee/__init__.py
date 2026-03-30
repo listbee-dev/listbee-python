@@ -7,7 +7,6 @@ Usage:
     listing = client.listings.create(
         name="SEO Playbook",
         price=2999,
-        currency="USD",
         content="https://example.com/ebook.pdf",
     )
     print(listing.url)
@@ -30,6 +29,7 @@ from listbee._exceptions import (
 from listbee.types import (
     AccountReadiness,
     AccountResponse,
+    AccountStats,
     Action,
     ActionCode,
     ActionKind,
@@ -72,6 +72,7 @@ __all__ = [
     "verify_signature",
     "AccountReadiness",
     "AccountResponse",
+    "AccountStats",
     "ApiKeyResponse",
     "Action",
     "ActionCode",

@@ -231,6 +231,7 @@ class SyncClient(BaseClient):
         return SyncCursorPage(
             data=items,
             has_more=body.get("has_more", False),
+            total_count=body.get("total_count", 0),
             cursor=body.get("cursor"),
             client=self,
             path=path,
@@ -369,6 +370,7 @@ class AsyncClient(BaseClient):
         return AsyncCursorPage(
             data=items,
             has_more=body.get("has_more", False),
+            total_count=body.get("total_count", 0),
             cursor=body.get("cursor"),
             client=self,
             path=path,

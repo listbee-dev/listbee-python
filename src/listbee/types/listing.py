@@ -84,10 +84,6 @@ class ListingResponse(BaseModel):
         description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
         examples=[2900],
     )
-    currency: str = Field(
-        description="Three-letter ISO currency code, uppercase.",
-        examples=["USD"],
-    )
     content_type: ContentType = Field(
         description="Auto-detected from the `content` value at creation.",
         examples=["file"],
@@ -139,8 +135,8 @@ class ListingResponse(BaseModel):
         examples=[{"source": "n8n", "campaign": "launch-week"}],
     )
     status: ListingStatus = Field(
-        description="Current listing publication status.",
-        examples=["published"],
+        description="Current listing status.",
+        examples=["active"],
     )
     url: str | None = Field(
         default=None,

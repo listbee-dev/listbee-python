@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
@@ -33,6 +34,9 @@ class Orders:
         self,
         *,
         status: str | None = None,
+        listing: str | None = None,
+        created_after: datetime | str | None = None,
+        created_before: datetime | str | None = None,
         limit: int = 20,
         cursor: str | None = None,
     ) -> SyncCursorPage[OrderResponse]:
@@ -47,6 +51,9 @@ class Orders:
 
         Args:
             status: Filter orders by fulfillment status (e.g. "completed").
+            listing: Filter orders by listing slug (e.g. "seo-playbook").
+            created_after: Only return orders created after this ISO datetime.
+            created_before: Only return orders created before this ISO datetime.
             limit: Maximum number of items per page (default 20).
             cursor: Pagination cursor from a previous response.
 
@@ -57,6 +64,14 @@ class Orders:
         params: dict[str, Any] = {"limit": limit}
         if status is not None:
             params["status"] = status
+        if listing is not None:
+            params["listing"] = listing
+        if created_after is not None:
+            params["created_after"] = created_after.isoformat() if isinstance(created_after, datetime) else created_after
+        if created_before is not None:
+            params["created_before"] = (
+                created_before.isoformat() if isinstance(created_before, datetime) else created_before
+            )
         if cursor is not None:
             params["cursor"] = cursor
         return self._client.get_page("/v1/orders", params, OrderResponse)
@@ -84,6 +99,9 @@ class AsyncOrders:
         self,
         *,
         status: str | None = None,
+        listing: str | None = None,
+        created_after: datetime | str | None = None,
+        created_before: datetime | str | None = None,
         limit: int = 20,
         cursor: str | None = None,
     ) -> AsyncCursorPage[OrderResponse]:
@@ -98,6 +116,9 @@ class AsyncOrders:
 
         Args:
             status: Filter orders by fulfillment status (e.g. "completed").
+            listing: Filter orders by listing slug (e.g. "seo-playbook").
+            created_after: Only return orders created after this ISO datetime.
+            created_before: Only return orders created before this ISO datetime.
             limit: Maximum number of items per page (default 20).
             cursor: Pagination cursor from a previous response.
 
@@ -108,6 +129,14 @@ class AsyncOrders:
         params: dict[str, Any] = {"limit": limit}
         if status is not None:
             params["status"] = status
+        if listing is not None:
+            params["listing"] = listing
+        if created_after is not None:
+            params["created_after"] = created_after.isoformat() if isinstance(created_after, datetime) else created_after
+        if created_before is not None:
+            params["created_before"] = (
+                created_before.isoformat() if isinstance(created_before, datetime) else created_before
+            )
         if cursor is not None:
             params["cursor"] = cursor
         return await self._client.get_page("/v1/orders", params, OrderResponse)

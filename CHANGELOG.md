@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-30
+
+### Breaking
+
+- Removed `currency` parameter from `listings.create()` and `listings.update()` — currency is now on the account
+- Removed `currency` field from `ListingResponse`
+- `ListingStatus` enum: `PUBLISHED` replaced by `ACTIVE` and `PAUSED`
+
+### Added
+
+- `client.listings.pause(slug)` and `client.listings.resume(slug)` — pause/resume listings (sync and async)
+- `AccountStats` model with `total_revenue`, `total_orders`, `total_listings`
+- `currency` and `stats` fields on `AccountResponse`
+- `status` field on `ListingResponse` now supports `"active"` and `"paused"` values
+- `total_count` field on all paginated list responses (`SyncCursorPage`, `AsyncCursorPage`, `CursorPage`)
+- Order filtering: `listing`, `created_after`, `created_before` parameters on `orders.list()`
+- New webhook event types: `listing.updated`, `listing.paused`, `listing.resumed`, `listing.deleted`
+
 ## [0.2.0] - 2026-03-30
 
 ### Breaking

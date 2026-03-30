@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from listbee.types.account import AccountResponse
+from listbee.types.account import AccountResponse, AccountStats
 from listbee.types.api_key import ApiKeyResponse
 from listbee.types.listing import FaqItem, ListingResponse, Review
 from listbee.types.order import OrderResponse
@@ -52,6 +52,7 @@ __all__ = [
     "WebhookTestResponse",
     # Account
     "AccountResponse",
+    "AccountStats",
     # API Key
     "ApiKeyResponse",
     # Signup

@@ -35,7 +35,8 @@ class BlurMode(StrEnum):
 class ListingStatus(StrEnum):
     """Current publication status of a listing."""
 
-    PUBLISHED = "published"
+    ACTIVE = "active"
+    PAUSED = "paused"
 
 
 class OrderStatus(StrEnum):
@@ -52,6 +53,10 @@ class WebhookEventType(StrEnum):
     ORDER_DISPUTED = "order.disputed"
     ORDER_DISPUTE_CLOSED = "order.dispute_closed"
     LISTING_CREATED = "listing.created"
+    LISTING_UPDATED = "listing.updated"
+    LISTING_PAUSED = "listing.paused"
+    LISTING_RESUMED = "listing.resumed"
+    LISTING_DELETED = "listing.deleted"
 
 
 class ActionKind(StrEnum):

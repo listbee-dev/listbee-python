@@ -23,7 +23,6 @@ class Listings:
         *,
         name: str,
         price: int,
-        currency: str,
         content: str,
         description: str | None = None,
         tagline: str | None = None,
@@ -45,10 +44,11 @@ class Listings:
         Builds the request body from non-None params. ``cover_blur`` is only
         included when it differs from the API default of ``"auto"``.
 
+        Currency is inherited from the account, so it is not specified here.
+
         Args:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            currency: Three-letter ISO currency code, uppercase (e.g. "USD").
             content: File URL, redirect URL, or plain text to deliver after purchase.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
@@ -74,7 +74,6 @@ class Listings:
         body: dict[str, Any] = {
             "name": name,
             "price": price,
-            "currency": currency,
             "content": content,
         }
         if description is not None:
@@ -149,7 +148,6 @@ class Listings:
         *,
         name: str | None = None,
         price: int | None = None,
-        currency: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -172,7 +170,6 @@ class Listings:
             slug: The listing's URL slug (e.g. "seo-playbook").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            currency: Three-letter ISO currency code, uppercase (e.g. "USD").
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -194,7 +191,6 @@ class Listings:
         fields = {
             "name": name,
             "price": price,
-            "currency": currency,
             "description": description,
             "tagline": tagline,
             "highlights": highlights,
@@ -213,6 +209,30 @@ class Listings:
             if value is not None:
                 body[key] = value
         response = self._client.put(f"/v1/listings/{slug}", json=body)
+        return ListingResponse.model_validate(response.json())
+
+    def pause(self, slug: str) -> ListingResponse:
+        """Pause a listing, preventing new purchases.
+
+        Args:
+            slug: The listing's URL slug (e.g. "seo-playbook").
+
+        Returns:
+            The paused :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = self._client.post(f"/v1/listings/{slug}/pause")
+        return ListingResponse.model_validate(response.json())
+
+    def resume(self, slug: str) -> ListingResponse:
+        """Resume a paused listing, allowing new purchases.
+
+        Args:
+            slug: The listing's URL slug (e.g. "seo-playbook").
+
+        Returns:
+            The resumed :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = self._client.post(f"/v1/listings/{slug}/resume")
         return ListingResponse.model_validate(response.json())
 
     def delete(self, slug: str) -> None:
@@ -235,7 +255,6 @@ class AsyncListings:
         *,
         name: str,
         price: int,
-        currency: str,
         content: str,
         description: str | None = None,
         tagline: str | None = None,
@@ -257,10 +276,11 @@ class AsyncListings:
         Builds the request body from non-None params. ``cover_blur`` is only
         included when it differs from the API default of ``"auto"``.
 
+        Currency is inherited from the account, so it is not specified here.
+
         Args:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            currency: Three-letter ISO currency code, uppercase (e.g. "USD").
             content: File URL, redirect URL, or plain text to deliver after purchase.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
@@ -286,7 +306,6 @@ class AsyncListings:
         body: dict[str, Any] = {
             "name": name,
             "price": price,
-            "currency": currency,
             "content": content,
         }
         if description is not None:
@@ -361,7 +380,6 @@ class AsyncListings:
         *,
         name: str | None = None,
         price: int | None = None,
-        currency: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -384,7 +402,6 @@ class AsyncListings:
             slug: The listing's URL slug (e.g. "seo-playbook").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            currency: Three-letter ISO currency code, uppercase (e.g. "USD").
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -406,7 +423,6 @@ class AsyncListings:
         fields = {
             "name": name,
             "price": price,
-            "currency": currency,
             "description": description,
             "tagline": tagline,
             "highlights": highlights,
@@ -425,6 +441,30 @@ class AsyncListings:
             if value is not None:
                 body[key] = value
         response = await self._client.put(f"/v1/listings/{slug}", json=body)
+        return ListingResponse.model_validate(response.json())
+
+    async def pause(self, slug: str) -> ListingResponse:
+        """Pause a listing, preventing new purchases (async).
+
+        Args:
+            slug: The listing's URL slug (e.g. "seo-playbook").
+
+        Returns:
+            The paused :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = await self._client.post(f"/v1/listings/{slug}/pause")
+        return ListingResponse.model_validate(response.json())
+
+    async def resume(self, slug: str) -> ListingResponse:
+        """Resume a paused listing, allowing new purchases (async).
+
+        Args:
+            slug: The listing's URL slug (e.g. "seo-playbook").
+
+        Returns:
+            The resumed :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = await self._client.post(f"/v1/listings/{slug}/resume")
         return ListingResponse.model_validate(response.json())
 
     async def delete(self, slug: str) -> None:

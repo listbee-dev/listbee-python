@@ -16,6 +16,8 @@ ACCOUNT_JSON = {
     "email": "seller@example.com",
     "plan": "free",
     "fee_rate": "0.10",
+    "currency": "USD",
+    "stats": {"total_revenue": 125000, "total_orders": 47, "total_listings": 5},
     "readiness": {"operational": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
 }
@@ -41,6 +43,10 @@ class TestGetAccount:
         assert result.email == "seller@example.com"
         assert result.plan == "free"
         assert result.fee_rate == "0.10"
+        assert result.currency == "USD"
+        assert result.stats.total_revenue == 125000
+        assert result.stats.total_orders == 47
+        assert result.stats.total_listings == 5
         assert result.readiness.operational is True
         assert result.readiness.actions == []
 

@@ -10,6 +10,23 @@ from pydantic import BaseModel, Field
 from listbee.types.shared import AccountReadiness
 
 
+class AccountStats(BaseModel):
+    """Aggregate statistics for an account."""
+
+    total_revenue: int = Field(
+        description="Total revenue in the smallest currency unit across all orders.",
+        examples=[125000],
+    )
+    total_orders: int = Field(
+        description="Total number of orders across all listings.",
+        examples=[47],
+    )
+    total_listings: int = Field(
+        description="Total number of listings on the account.",
+        examples=[5],
+    )
+
+
 class AccountResponse(BaseModel):
     """Full account object returned by the ListBee API."""
 
@@ -33,6 +50,14 @@ class AccountResponse(BaseModel):
     fee_rate: str = Field(
         description="Transaction fee rate as a decimal string (e.g. '0.10' = 10%).",
         examples=["0.10", "0.05"],
+    )
+    currency: str | None = Field(
+        default=None,
+        description="Three-letter ISO currency code, uppercase. Set during onboarding.",
+        examples=["USD"],
+    )
+    stats: AccountStats = Field(
+        description="Aggregate statistics for this account.",
     )
     readiness: AccountReadiness = Field(
         description=(
