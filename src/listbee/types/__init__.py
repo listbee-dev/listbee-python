@@ -22,6 +22,7 @@ from listbee.types.shared import (
     WebhookEventType,
 )
 from listbee.types.signup import SignupResponse, VerifyResponse
+from listbee.types.stripe import StripeConnectSessionResponse
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
 __all__ = [
@@ -56,6 +57,8 @@ __all__ = [
     # Signup
     "SignupResponse",
     "VerifyResponse",
+    # Stripe
+    "StripeConnectSessionResponse",
     # Pagination
     "CursorPage",
 ]
