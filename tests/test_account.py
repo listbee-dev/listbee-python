@@ -16,7 +16,7 @@ ACCOUNT_JSON = {
     "email": "seller@example.com",
     "plan": "free",
     "fee_rate": "0.10",
-    "readiness": {"operational": True, "blockers": []},
+    "readiness": {"operational": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
 }
 
@@ -42,30 +42,35 @@ class TestGetAccount:
         assert result.plan == "free"
         assert result.fee_rate == "0.10"
         assert result.readiness.operational is True
-        assert result.readiness.blockers == []
+        assert result.readiness.actions == []
 
-    def test_get_account_with_blockers(self, account):
-        json_with_blockers = {
+    def test_get_account_with_actions(self, account):
+        json_with_actions = {
             **ACCOUNT_JSON,
             "readiness": {
                 "operational": False,
-                "blockers": [
+                "actions": [
                     {
-                        "code": "payments_not_configured",
+                        "code": "connect_stripe",
+                        "kind": "human",
                         "message": "Connect a Stripe account to accept payments",
                         "resolve": {
-                            "action": "connect_stripe",
+                            "method": "GET",
+                            "endpoint": None,
                             "url": "https://listbee.so/connect/stripe",
+                            "params": None,
                         },
                     }
                 ],
+                "next": "connect_stripe",
             },
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/account").mock(return_value=httpx.Response(200, json=json_with_blockers))
+            mock.get("/v1/account").mock(return_value=httpx.Response(200, json=json_with_actions))
             result = account.get()
         assert result.readiness.operational is False
-        assert len(result.readiness.blockers) == 1
-        assert result.readiness.blockers[0].code == "payments_not_configured"
-        assert result.readiness.blockers[0].resolve.action == "connect_stripe"
-        assert result.readiness.blockers[0].resolve.url == "https://listbee.so/connect/stripe"
+        assert len(result.readiness.actions) == 1
+        assert result.readiness.actions[0].code == "connect_stripe"
+        assert result.readiness.actions[0].kind == "human"
+        assert result.readiness.actions[0].resolve.url == "https://listbee.so/connect/stripe"
+        assert result.readiness.next == "connect_stripe"

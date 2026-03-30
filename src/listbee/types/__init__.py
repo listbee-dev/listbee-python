@@ -8,10 +8,10 @@ from listbee.types.order import OrderResponse
 from listbee.types.pagination import CursorPage
 from listbee.types.shared import (
     AccountReadiness,
-    Blocker,
-    BlockerAction,
-    BlockerCode,
-    BlockerResolve,
+    Action,
+    ActionCode,
+    ActionKind,
+    ActionResolve,
     BlurMode,
     ContentType,
     ListingReadiness,
@@ -29,12 +29,12 @@ __all__ = [
     "ListingStatus",
     "OrderStatus",
     "WebhookEventType",
-    "BlockerCode",
-    "BlockerAction",
+    "ActionKind",
+    "ActionCode",
     "StrEnum",
     # Readiness models
-    "BlockerResolve",
-    "Blocker",
+    "ActionResolve",
+    "Action",
     "ListingReadiness",
     "AccountReadiness",
     # Listing

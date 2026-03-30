@@ -36,7 +36,7 @@ LISTING_JSON = {
     "metadata": None,
     "status": "published",
     "url": "https://buy.listbee.so/seo-playbook",
-    "readiness": {"sellable": True, "blockers": []},
+    "readiness": {"sellable": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
 }
 
@@ -65,30 +65,36 @@ class TestCreateListing:
         assert result.price == 2999
         assert result.currency == "USD"
 
-    def test_create_listing_with_readiness_blockers(self, listings):
-        json_with_blockers = {
+    def test_create_listing_with_readiness_actions(self, listings):
+        json_with_actions = {
             **LISTING_JSON,
             "readiness": {
                 "sellable": False,
-                "blockers": [
+                "actions": [
                     {
-                        "code": "payments_not_configured",
-                        "message": "Connect a Stripe account to accept payments",
+                        "code": "set_stripe_key",
+                        "kind": "api",
+                        "message": "Set your Stripe secret key via the API",
                         "resolve": {
-                            "action": "connect_stripe",
-                            "url": "https://listbee.so/connect/stripe",
+                            "method": "PUT",
+                            "endpoint": "/v1/account/stripe",
+                            "url": None,
+                            "params": {"stripe_secret_key": "sk_..."},
                         },
                     }
                 ],
+                "next": "set_stripe_key",
             },
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=json_with_blockers))
+            mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=json_with_actions))
             result = listings.create(name="SEO Playbook", price=2999, currency="USD", content="text content")
         assert result.readiness.sellable is False
-        assert len(result.readiness.blockers) == 1
-        assert result.readiness.blockers[0].code == "payments_not_configured"
-        assert result.readiness.blockers[0].resolve.action == "connect_stripe"
+        assert len(result.readiness.actions) == 1
+        assert result.readiness.actions[0].code == "set_stripe_key"
+        assert result.readiness.actions[0].kind == "api"
+        assert result.readiness.actions[0].resolve.endpoint == "/v1/account/stripe"
+        assert result.readiness.next == "set_stripe_key"
 
     def test_create_listing_optional_fields_omitted_when_none(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
