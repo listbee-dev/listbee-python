@@ -63,13 +63,15 @@ class BaseClient:
             raise ListBeeError("No API key provided. Set api_key= or the LISTBEE_API_KEY environment variable.")
         return self._api_key
 
-    def _build_headers(self) -> dict[str, str]:
-        api_key = self._ensure_api_key()
-        return {
-            "Authorization": f"Bearer {api_key}",
+    def _build_headers(self, *, authenticated: bool = True) -> dict[str, str]:
+        headers: dict[str, str] = {
             "Content-Type": "application/json",
             "User-Agent": f"listbee-python/{_sdk_version}",
         }
+        if authenticated:
+            api_key = self._ensure_api_key()
+            headers["Authorization"] = f"Bearer {api_key}"
+        return headers
 
     def _should_retry(self, status_code: int, attempt: int) -> bool:
         """Return True if the request should be retried."""
@@ -132,8 +134,9 @@ class SyncClient(BaseClient):
         json: Any = None,
         params: dict[str, Any] | None = None,
         timeout: float | None = None,
+        authenticated: bool = True,
     ) -> httpx.Response:
-        headers = self._build_headers()
+        headers = self._build_headers(authenticated=authenticated)
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
 
@@ -181,17 +184,44 @@ class SyncClient(BaseClient):
             body_ = {}
         raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
-    def get(self, path: str, *, params: dict[str, Any] | None = None, timeout: float | None = None) -> httpx.Response:
-        return self._request("GET", path, params=params, timeout=timeout)
+    def get(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return self._request("GET", path, params=params, timeout=timeout, authenticated=authenticated)
 
-    def post(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
-        return self._request("POST", path, json=json, timeout=timeout)
+    def post(
+        self,
+        path: str,
+        *,
+        json: Any = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return self._request("POST", path, json=json, timeout=timeout, authenticated=authenticated)
 
-    def put(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
-        return self._request("PUT", path, json=json, timeout=timeout)
+    def put(
+        self,
+        path: str,
+        *,
+        json: Any = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return self._request("PUT", path, json=json, timeout=timeout, authenticated=authenticated)
 
-    def delete(self, path: str, *, timeout: float | None = None) -> httpx.Response:
-        return self._request("DELETE", path, timeout=timeout)
+    def delete(
+        self,
+        path: str,
+        *,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return self._request("DELETE", path, timeout=timeout, authenticated=authenticated)
 
     def get_page(self, path: str, params: dict[str, Any], model: type[T]) -> SyncCursorPage[T]:
         """Fetch a paginated list response and return a SyncCursorPage."""
@@ -244,8 +274,9 @@ class AsyncClient(BaseClient):
         json: Any = None,
         params: dict[str, Any] | None = None,
         timeout: float | None = None,
+        authenticated: bool = True,
     ) -> httpx.Response:
-        headers = self._build_headers()
+        headers = self._build_headers(authenticated=authenticated)
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
 
@@ -292,18 +323,43 @@ class AsyncClient(BaseClient):
         raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
     async def get(
-        self, path: str, *, params: dict[str, Any] | None = None, timeout: float | None = None
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
     ) -> httpx.Response:
-        return await self._request("GET", path, params=params, timeout=timeout)
+        return await self._request("GET", path, params=params, timeout=timeout, authenticated=authenticated)
 
-    async def post(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
-        return await self._request("POST", path, json=json, timeout=timeout)
+    async def post(
+        self,
+        path: str,
+        *,
+        json: Any = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return await self._request("POST", path, json=json, timeout=timeout, authenticated=authenticated)
 
-    async def put(self, path: str, *, json: Any = None, timeout: float | None = None) -> httpx.Response:
-        return await self._request("PUT", path, json=json, timeout=timeout)
+    async def put(
+        self,
+        path: str,
+        *,
+        json: Any = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return await self._request("PUT", path, json=json, timeout=timeout, authenticated=authenticated)
 
-    async def delete(self, path: str, *, timeout: float | None = None) -> httpx.Response:
-        return await self._request("DELETE", path, timeout=timeout)
+    async def delete(
+        self,
+        path: str,
+        *,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return await self._request("DELETE", path, timeout=timeout, authenticated=authenticated)
 
     async def get_page(self, path: str, params: dict[str, Any], model: type[T]) -> AsyncCursorPage[T]:
         """Fetch a paginated list response and return an AsyncCursorPage."""

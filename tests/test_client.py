@@ -107,6 +107,38 @@ class TestContextManager:
         assert client._http_client is None
 
 
+class TestUnauthenticatedRequests:
+    def test_build_headers_unauthenticated_skips_authorization(self, client):
+        headers = client._build_headers(authenticated=False)
+        assert "Authorization" not in headers
+        assert headers["Content-Type"] == "application/json"
+        assert "listbee-python/" in headers["User-Agent"]
+
+    def test_post_unauthenticated_does_not_send_authorization_header(self, client):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/account/signup").mock(return_value=httpx.Response(200, json={}))
+            client.post("/v1/account/signup", json={"email": "a@b.com"}, authenticated=False)
+        assert route.called
+        sent_headers = route.calls[0].request.headers
+        assert "authorization" not in sent_headers
+
+    def test_client_with_no_api_key_can_make_unauthenticated_requests(self, monkeypatch):
+        monkeypatch.delenv("LISTBEE_API_KEY", raising=False)
+        client = SyncClient()
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/account/signup").mock(return_value=httpx.Response(200, json={}))
+            client.post("/v1/account/signup", json={"email": "a@b.com"}, authenticated=False)
+        assert route.called
+        sent_headers = route.calls[0].request.headers
+        assert "authorization" not in sent_headers
+
+    def test_client_with_no_api_key_raises_on_authenticated_request(self, monkeypatch):
+        monkeypatch.delenv("LISTBEE_API_KEY", raising=False)
+        client = SyncClient()
+        with pytest.raises(ListBeeError, match="No API key"):
+            client.get("/v1/account")
+
+
 class TestTransportErrors:
     def test_timeout_raises_api_timeout_error(self):
         client = SyncClient(api_key="lb_key", max_retries=0)
