@@ -27,10 +27,9 @@ client = ListBee(api_key="lb_...")
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    currency="USD",
     content="https://example.com/seo-playbook.pdf",
 )
-print(listing.url)   # https://buy.listbee.so/seo-playbook
+print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 ```
 
 Using an environment variable instead:
@@ -47,7 +46,6 @@ client = ListBee()  # reads LISTBEE_API_KEY automatically
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    currency="USD",
     content="https://example.com/seo-playbook.pdf",
 )
 print(listing.url)
@@ -87,8 +85,7 @@ client = ListBee(api_key="lb_...")
 # Create — minimal
 listing = client.listings.create(
     name="SEO Playbook",
-    price=2900,       # $29.00 — smallest currency unit
-    currency="USD",
+    price=2900,       # $29.00 in cents
     content="https://example.com/seo-playbook.pdf",  # file URL, redirect URL, or plain text
 )
 
@@ -96,7 +93,6 @@ listing = client.listings.create(
 listing = client.listings.create(
     name="SEO Playbook 2026",
     price=2900,
-    currency="USD",
     content="https://example.com/seo-playbook.pdf",
     description="A comprehensive guide to modern SEO techniques.",
     tagline="Updated for 2026 algorithm changes",
@@ -116,11 +112,11 @@ listing = client.listings.create(
     ],
     metadata={"source": "n8n", "campaign": "launch-week"},
 )
-print(listing.id)    # lst_7kQ2xY9mN3pR5tW1vB8a
-print(listing.url)   # https://buy.listbee.so/seo-playbook-2026
+print(listing.id)    # lst_r7kq2xy9m3pR5tW1
+print(listing.url)   # https://buy.listbee.so/m3pr5tw1
 
 # Get by slug
-listing = client.listings.get("seo-playbook-2026")
+listing = client.listings.get("m3pr5tw1")
 
 # List — auto-paginates
 for listing in client.listings.list():
@@ -128,13 +124,13 @@ for listing in client.listings.list():
 
 # Update — partial updates
 updated = client.listings.update(
-    "seo-playbook",
+    "r7kq2xy9",
     name="SEO Playbook 2026 Updated",
     price=3900,
 )
 
 # Delete
-client.listings.delete("seo-playbook-2026")
+client.listings.delete("m3pr5tw1")
 ```
 
 ### Orders
@@ -278,7 +274,7 @@ if not account.readiness.operational:
 Listing readiness follows the same shape:
 
 ```python
-listing = client.listings.get("seo-playbook")
+listing = client.listings.get("r7kq2xy9")
 if not listing.readiness.sellable:
     for action in listing.readiness.actions:
         print(action.code, action.message)
@@ -397,7 +393,6 @@ async def main():
     listing = await client.listings.create(
         name="SEO Playbook",
         price=2900,
-        currency="USD",
         content="https://example.com/seo-playbook.pdf",
     )
     print(listing.url)
@@ -449,7 +444,6 @@ client = ListBee(
 listing = client.listings.create(
     name="Quick listing",
     price=999,
-    currency="USD",
     content="https://example.com/file.pdf",
     timeout=30.0,  # override the 120s default for this call
 )
