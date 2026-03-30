@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 import respx
@@ -17,6 +19,7 @@ ACCOUNT_JSON = {
     "plan": "free",
     "fee_rate": "0.10",
     "currency": "USD",
+    "ga_measurement_id": None,
     "stats": {"total_revenue": 125000, "total_orders": 47, "total_listings": 5},
     "readiness": {"operational": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
@@ -80,3 +83,37 @@ class TestGetAccount:
         assert result.readiness.actions[0].kind == "human"
         assert result.readiness.actions[0].resolve.url == "https://listbee.so/connect/stripe"
         assert result.readiness.next == "connect_stripe"
+
+
+class TestUpdateAccount:
+    def test_update_account_sets_ga_measurement_id(self, account):
+        updated = {**ACCOUNT_JSON, "ga_measurement_id": "G-ABC123XYZ"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=updated))
+            result = account.update(ga_measurement_id="G-ABC123XYZ")
+        body = json.loads(route.calls[0].request.content)
+        assert body["ga_measurement_id"] == "G-ABC123XYZ"
+        assert isinstance(result, AccountResponse)
+        assert result.ga_measurement_id == "G-ABC123XYZ"
+
+    def test_update_account_clears_ga_measurement_id(self, account):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            result = account.update(ga_measurement_id=None)
+        body = json.loads(route.calls[0].request.content)
+        assert body["ga_measurement_id"] is None
+        assert result.ga_measurement_id is None
+
+    def test_update_account_returns_account_response(self, account):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.put("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            result = account.update()
+        assert isinstance(result, AccountResponse)
+        assert result.id == "acc_7kQ2xY9mN3pR5tW1"
+
+    def test_get_account_includes_ga_measurement_id_field(self, account):
+        with_ga = {**ACCOUNT_JSON, "ga_measurement_id": "G-XXXXXXXXXXX"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/account").mock(return_value=httpx.Response(200, json=with_ga))
+            result = account.get()
+        assert result.ga_measurement_id == "G-XXXXXXXXXXX"

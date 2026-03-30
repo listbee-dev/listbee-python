@@ -33,6 +33,9 @@ LISTING_JSON = {
     "reviews": [],
     "faqs": [],
     "metadata": None,
+    "utm_source": None,
+    "utm_medium": None,
+    "utm_campaign": None,
     "status": "active",
     "url": "https://buy.listbee.so/seo-playbook",
     "readiness": {"sellable": True, "actions": [], "next": None},
@@ -233,3 +236,56 @@ class TestDeleteListing:
             result = listings.delete("seo-playbook")
         assert route.called
         assert result is None
+
+
+class TestUtmFields:
+    def test_create_listing_sends_utm_params(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.create(
+                name="Test",
+                price=2900,
+                content="text",
+                utm_source="twitter",
+                utm_medium="social",
+                utm_campaign="launch-week",
+            )
+        body = json.loads(route.calls[0].request.content)
+        assert body["utm_source"] == "twitter"
+        assert body["utm_medium"] == "social"
+        assert body["utm_campaign"] == "launch-week"
+
+    def test_create_listing_omits_utm_params_when_none(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.create(name="Test", price=2900, content="text")
+        body = json.loads(route.calls[0].request.content)
+        assert "utm_source" not in body
+        assert "utm_medium" not in body
+        assert "utm_campaign" not in body
+
+    def test_update_listing_sends_utm_params(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.update("seo-playbook", utm_source="newsletter", utm_campaign="spring-sale")
+        body = json.loads(route.calls[0].request.content)
+        assert body["utm_source"] == "newsletter"
+        assert body["utm_campaign"] == "spring-sale"
+        assert "utm_medium" not in body
+
+    def test_listing_response_includes_utm_fields(self, listings):
+        listing_with_utm = {**LISTING_JSON, "utm_source": "twitter", "utm_medium": "social", "utm_campaign": "launch"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=listing_with_utm))
+            result = listings.get("seo-playbook")
+        assert result.utm_source == "twitter"
+        assert result.utm_medium == "social"
+        assert result.utm_campaign == "launch"
+
+    def test_listing_response_utm_fields_default_to_none(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            result = listings.get("seo-playbook")
+        assert result.utm_source is None
+        assert result.utm_medium is None
+        assert result.utm_campaign is None

@@ -56,6 +56,11 @@ class AccountResponse(BaseModel):
         description="Three-letter ISO currency code, uppercase. Set during onboarding.",
         examples=["USD"],
     )
+    ga_measurement_id: str | None = Field(
+        default=None,
+        description="Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). Used to track conversions on checkout pages.",
+        examples=["G-XXXXXXXXXX"],
+    )
     stats: AccountStats = Field(
         description="Aggregate statistics for this account.",
     )

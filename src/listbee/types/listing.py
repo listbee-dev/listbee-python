@@ -134,6 +134,21 @@ class ListingResponse(BaseModel):
         description="Arbitrary key-value pairs forwarded in webhook events.",
         examples=[{"source": "n8n", "campaign": "launch-week"}],
     )
+    utm_source: str | None = Field(
+        default=None,
+        description="UTM source tag attached to checkout links (e.g. 'twitter'). Null means use account defaults.",
+        examples=["twitter"],
+    )
+    utm_medium: str | None = Field(
+        default=None,
+        description="UTM medium tag attached to checkout links (e.g. 'social'). Null means use account defaults.",
+        examples=["social"],
+    )
+    utm_campaign: str | None = Field(
+        default=None,
+        description="UTM campaign tag attached to checkout links (e.g. 'launch-week'). Null means use account defaults.",
+        examples=["launch-week"],
+    )
     status: ListingStatus = Field(
         description="Current listing status.",
         examples=["active"],

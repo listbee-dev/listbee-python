@@ -37,6 +37,9 @@ class Listings:
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
         timeout: float | None = None,
     ) -> ListingResponse:
         """Create a new listing.
@@ -64,6 +67,9 @@ class Listings:
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
+            utm_source: UTM source tag attached to checkout links (e.g. "twitter").
+            utm_medium: UTM medium tag attached to checkout links (e.g. "social").
+            utm_campaign: UTM campaign tag attached to checkout links (e.g. "launch-week").
             timeout: Request timeout in seconds. Defaults to
                 ``LISTING_CREATE_TIMEOUT`` (120s) because cover processing can
                 take a while.
@@ -102,6 +108,12 @@ class Listings:
             body["reviews"] = reviews
         if faqs is not None:
             body["faqs"] = faqs
+        if utm_source is not None:
+            body["utm_source"] = utm_source
+        if utm_medium is not None:
+            body["utm_medium"] = utm_medium
+        if utm_campaign is not None:
+            body["utm_campaign"] = utm_campaign
 
         effective_timeout = timeout if timeout is not None else LISTING_CREATE_TIMEOUT
         response = self._client.post("/v1/listings", json=body, timeout=effective_timeout)
@@ -161,6 +173,9 @@ class Listings:
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
     ) -> ListingResponse:
         """Update an existing listing.
 
@@ -183,6 +198,9 @@ class Listings:
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
+            utm_source: UTM source tag attached to checkout links (e.g. "twitter").
+            utm_medium: UTM medium tag attached to checkout links (e.g. "social").
+            utm_campaign: UTM campaign tag attached to checkout links (e.g. "launch-week").
 
         Returns:
             The updated :class:`~listbee.types.listing.ListingResponse`.
@@ -204,6 +222,9 @@ class Listings:
             "rating_count": rating_count,
             "reviews": reviews,
             "faqs": faqs,
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
         }
         for key, value in fields.items():
             if value is not None:
@@ -269,6 +290,9 @@ class AsyncListings:
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
         timeout: float | None = None,
     ) -> ListingResponse:
         """Create a new listing (async).
@@ -296,6 +320,9 @@ class AsyncListings:
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
+            utm_source: UTM source tag attached to checkout links (e.g. "twitter").
+            utm_medium: UTM medium tag attached to checkout links (e.g. "social").
+            utm_campaign: UTM campaign tag attached to checkout links (e.g. "launch-week").
             timeout: Request timeout in seconds. Defaults to
                 ``LISTING_CREATE_TIMEOUT`` (120s) because cover processing can
                 take a while.
@@ -334,6 +361,12 @@ class AsyncListings:
             body["reviews"] = reviews
         if faqs is not None:
             body["faqs"] = faqs
+        if utm_source is not None:
+            body["utm_source"] = utm_source
+        if utm_medium is not None:
+            body["utm_medium"] = utm_medium
+        if utm_campaign is not None:
+            body["utm_campaign"] = utm_campaign
 
         effective_timeout = timeout if timeout is not None else LISTING_CREATE_TIMEOUT
         response = await self._client.post("/v1/listings", json=body, timeout=effective_timeout)
@@ -393,6 +426,9 @@ class AsyncListings:
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
     ) -> ListingResponse:
         """Update an existing listing (async).
 
@@ -415,6 +451,9 @@ class AsyncListings:
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
+            utm_source: UTM source tag attached to checkout links (e.g. "twitter").
+            utm_medium: UTM medium tag attached to checkout links (e.g. "social").
+            utm_campaign: UTM campaign tag attached to checkout links (e.g. "launch-week").
 
         Returns:
             The updated :class:`~listbee.types.listing.ListingResponse`.
@@ -436,6 +475,9 @@ class AsyncListings:
             "rating_count": rating_count,
             "reviews": reviews,
             "faqs": faqs,
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
         }
         for key, value in fields.items():
             if value is not None:
