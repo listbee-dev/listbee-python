@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from listbee.types.account import AccountResponse
+from listbee.types.api_key import ApiKeyResponse
 from listbee.types.listing import FaqItem, ListingResponse, Review
 from listbee.types.order import OrderResponse
 from listbee.types.pagination import CursorPage
@@ -50,6 +51,8 @@ __all__ = [
     "WebhookTestResponse",
     # Account
     "AccountResponse",
+    # API Key
+    "ApiKeyResponse",
     # Signup
     "SignupResponse",
     "VerifyResponse",

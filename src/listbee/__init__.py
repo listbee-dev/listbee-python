@@ -30,6 +30,7 @@ from listbee._exceptions import (
 from listbee.types import (
     AccountReadiness,
     AccountResponse,
+    ApiKeyResponse,
     SignupResponse,
     VerifyResponse,
     Action,
@@ -70,6 +71,7 @@ __all__ = [
     "verify_signature",
     "AccountReadiness",
     "AccountResponse",
+    "ApiKeyResponse",
     "Action",
     "ActionCode",
     "ActionKind",
