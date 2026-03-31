@@ -39,6 +39,14 @@ class ListingStatus(StrEnum):
     PAUSED = "paused"
 
 
+class DomainStatus(StrEnum):
+    """Verification status of a custom domain."""
+
+    PENDING = "pending"
+    VERIFIED = "verified"
+    STALE = "stale"
+
+
 class OrderStatus(StrEnum):
     """Current fulfillment status of an order."""
 
