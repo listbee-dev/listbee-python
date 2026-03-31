@@ -214,6 +214,16 @@ class SyncClient(BaseClient):
     ) -> httpx.Response:
         return self._request("PUT", path, json=json, timeout=timeout, authenticated=authenticated)
 
+    def patch(
+        self,
+        path: str,
+        *,
+        json: Any = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return self._request("PATCH", path, json=json, timeout=timeout, authenticated=authenticated)
+
     def delete(
         self,
         path: str,
@@ -352,6 +362,16 @@ class AsyncClient(BaseClient):
         authenticated: bool = True,
     ) -> httpx.Response:
         return await self._request("PUT", path, json=json, timeout=timeout, authenticated=authenticated)
+
+    async def patch(
+        self,
+        path: str,
+        *,
+        json: Any = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        return await self._request("PATCH", path, json=json, timeout=timeout, authenticated=authenticated)
 
     async def delete(
         self,
