@@ -24,6 +24,7 @@ class Listings:
         name: str,
         price: int,
         content: str,
+        store_id: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -53,6 +54,8 @@ class Listings:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             content: File URL, redirect URL, or plain text to deliver after purchase.
+            store_id: Store to create this listing in. Required when the account
+                has multiple stores. Omit for single-store accounts.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -82,6 +85,8 @@ class Listings:
             "price": price,
             "content": content,
         }
+        if store_id is not None:
+            body["store_id"] = store_id
         if description is not None:
             body["description"] = description
         if tagline is not None:
@@ -277,6 +282,7 @@ class AsyncListings:
         name: str,
         price: int,
         content: str,
+        store_id: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -306,6 +312,8 @@ class AsyncListings:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             content: File URL, redirect URL, or plain text to deliver after purchase.
+            store_id: Store to create this listing in. Required when the account
+                has multiple stores. Omit for single-store accounts.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -335,6 +343,8 @@ class AsyncListings:
             "price": price,
             "content": content,
         }
+        if store_id is not None:
+            body["store_id"] = store_id
         if description is not None:
             body["description"] = description
         if tagline is not None:

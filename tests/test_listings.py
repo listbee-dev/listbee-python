@@ -113,6 +113,18 @@ class TestCreateListing:
         body = json.loads(route.calls[0].request.content)
         assert body["cover_blur"] == "true"
 
+    def test_create_listing_with_store_id(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.create(
+                name="SEO Playbook",
+                price=2999,
+                content="https://example.com/file.pdf",
+                store_id="str_7kQ2xY9mN3pR5tW1vB8a",
+            )
+        body = json.loads(route.calls[0].request.content)
+        assert body["store_id"] == "str_7kQ2xY9mN3pR5tW1vB8a"
+
 
 class TestGetListing:
     def test_get_listing_by_slug(self, listings):
