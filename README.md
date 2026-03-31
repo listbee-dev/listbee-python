@@ -229,6 +229,55 @@ print(new_key.key)  # lb_... (save this immediately)
 client.api_keys.delete("lbk_7kQ2xY9mN3pR5tW1")
 ```
 
+### Stores
+
+```python
+# Create a store
+store = client.stores.create(handle="fitness-brand", name="Fitness Brand")
+print(store.id)      # str_7kQ2xY9mN3pR5tW1vB8a
+print(store.handle)  # fitness-brand
+
+# List all stores
+stores = client.stores.list()
+for s in stores.data:
+    print(s.handle, s.display_name)
+
+# Get a store
+store = client.stores.get("str_7kQ2xY9mN3pR5tW1vB8a")
+
+# Update a store
+store = client.stores.update(
+    "str_7kQ2xY9mN3pR5tW1vB8a",
+    name="Fitness Pro",
+    bio="Premium fitness content",
+    social_links=["https://twitter.com/fitnesspro"],
+)
+
+# Delete a store
+client.stores.delete("str_7kQ2xY9mN3pR5tW1vB8a")
+
+# Connect Stripe — returns a URL to redirect the user to
+session = client.stores.connect_stripe("str_7kQ2xY9mN3pR5tW1vB8a")
+print(session.url)  # redirect seller here
+
+# Custom domains
+domain = client.stores.set_domain("str_7kQ2xY9mN3pR5tW1vB8a", domain="fitness.com")
+print(domain.cname_target)  # buy.listbee.so — point your CNAME here
+
+domain = client.stores.verify_domain("str_7kQ2xY9mN3pR5tW1vB8a")
+print(domain.status)  # "verified" or "pending"
+
+client.stores.remove_domain("str_7kQ2xY9mN3pR5tW1vB8a")
+
+# Create a listing in a specific store
+listing = client.listings.create(
+    name="SEO Playbook",
+    price=2900,
+    content="https://example.com/seo-playbook.pdf",
+    store_id="str_7kQ2xY9mN3pR5tW1vB8a",
+)
+```
+
 ### Stripe
 
 ```python
@@ -459,6 +508,9 @@ from listbee import (
     OrderResponse,
     WebhookResponse,
     AccountResponse,
+    StoreResponse,
+    StoreListResponse,
+    DomainResponse,
     ListingReadiness,
     AccountReadiness,
     Action,
@@ -470,8 +522,9 @@ from listbee import (
     # Enums
     ContentType,        # "file" | "url" | "text"
     BlurMode,           # "auto" | "true" | "false"
-    ListingStatus,      # "published"
+    ListingStatus,      # "active" | "paused"
     OrderStatus,        # "completed"
+    DomainStatus,       # "pending" | "verified" | "stale"
     WebhookEventType,   # "order.completed" | "order.refunded" | ...
     ActionCode,         # "payments_not_configured" | ...
     ActionKind,         # "api" | "human"

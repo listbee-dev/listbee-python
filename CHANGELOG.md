@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-31
+
+### Added
+
+- `client.stores` resource — full Store CRUD: `create()`, `list()`, `get()`, `update()`, `delete()`
+- `client.stores.connect_stripe()` — start Stripe Connect onboarding for a store
+- `client.stores.set_domain()`, `verify_domain()`, `remove_domain()` — custom domain management
+- New types: `StoreResponse`, `StoreListResponse`, `DomainResponse`, `DomainStatus`
+- `store_id` parameter on `client.listings.create()` — assign listings to specific stores
+
 ## [0.3.0] - 2026-03-30
 
 ### Breaking
