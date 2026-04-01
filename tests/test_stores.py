@@ -98,9 +98,7 @@ class TestListStores:
 class TestGetStore:
     def test_get_returns_store_response(self, stores):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a").mock(
-                return_value=httpx.Response(200, json=STORE_JSON)
-            )
+            mock.get("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a").mock(return_value=httpx.Response(200, json=STORE_JSON))
             result = stores.get("str_7kQ2xY9mN3pR5tW1vB8a")
         assert isinstance(result, StoreResponse)
         assert result.id == "str_7kQ2xY9mN3pR5tW1vB8a"
@@ -110,9 +108,7 @@ class TestUpdateStore:
     def test_update_returns_store_response(self, stores):
         updated = {**STORE_JSON, "name": "New Name", "bio": "Great stuff"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.patch("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a").mock(
-                return_value=httpx.Response(200, json=updated)
-            )
+            mock.patch("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a").mock(return_value=httpx.Response(200, json=updated))
             result = stores.update("str_7kQ2xY9mN3pR5tW1vB8a", name="New Name", bio="Great stuff")
         assert isinstance(result, StoreResponse)
         assert result.name == "New Name"
@@ -132,9 +128,7 @@ class TestUpdateStore:
 class TestDeleteStore:
     def test_delete_sends_request(self, stores):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.delete("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a").mock(
-                return_value=httpx.Response(204)
-            )
+            mock.delete("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a").mock(return_value=httpx.Response(204))
             result = stores.delete("str_7kQ2xY9mN3pR5tW1vB8a")
         assert result is None
 
@@ -188,8 +182,6 @@ class TestVerifyDomain:
 class TestRemoveDomain:
     def test_remove_domain_sends_request(self, stores):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.delete("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a/domain").mock(
-                return_value=httpx.Response(204)
-            )
+            mock.delete("/v1/stores/str_7kQ2xY9mN3pR5tW1vB8a/domain").mock(return_value=httpx.Response(204))
             result = stores.remove_domain("str_7kQ2xY9mN3pR5tW1vB8a")
         assert result is None
