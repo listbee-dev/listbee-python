@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import FulfillmentStatus, OrderStatus, ShippingAddress
+from listbee.types.shared import DeliverableResponse, OrderStatus, ShippingAddress
 
 
 class OrderResponse(BaseModel):
@@ -54,10 +54,13 @@ class OrderResponse(BaseModel):
         default=None,
         description="Shipping address collected at checkout, if applicable.",
     )
-    fulfillment_status: FulfillmentStatus | None = Field(
+    deliverable: DeliverableResponse | None = Field(
         default=None,
-        description="Fulfillment progress. Null for orders that don't require fulfillment tracking.",
-        examples=["pending"],
+        description="Deliverable attached to this order. Present when the listing has a managed deliverable.",
+    )
+    shipped_at: datetime | None = Field(
+        default=None,
+        description="ISO 8601 timestamp of when the order was marked as shipped.",
     )
     carrier: str | None = Field(
         default=None,

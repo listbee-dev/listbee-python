@@ -23,7 +23,8 @@ ORDER_JSON = {
     "status": "paid",
     "checkout_data": None,
     "shipping_address": None,
-    "fulfillment_status": "pending",
+    "deliverable": None,
+    "shipped_at": None,
     "carrier": None,
     "tracking_code": None,
     "seller_note": None,
@@ -50,14 +51,14 @@ FULFILLED_ORDER_JSON = {
     **ORDER_JSON,
     "id": "ord_fulfilled123",
     "status": "fulfilled",
-    "fulfillment_status": "fulfilled",
+    "deliverable": {"object": "deliverable", "type": "file", "has_content": True},
     "fulfilled_at": "2026-03-28T13:00:00Z",
 }
 
 SHIPPED_ORDER_JSON = {
     **ORDER_JSON,
     "id": "ord_shipped123",
-    "fulfillment_status": "shipped",
+    "shipped_at": "2026-03-28T12:30:00Z",
     "carrier": "USPS",
     "tracking_code": "9400111899223456789012",
     "seller_note": "Ships within 3 days",
@@ -181,7 +182,9 @@ class TestOrderStatus:
             mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON))
             result = orders.get("ord_1")
         assert result.status == "fulfilled"
-        assert result.fulfillment_status == "fulfilled"
+        assert result.deliverable is not None
+        assert result.deliverable.type == "file"
+        assert result.deliverable.has_content is True
         assert result.fulfilled_at is not None
 
     def test_order_canceled_status(self, orders):
@@ -231,44 +234,44 @@ class TestOrderCheckoutData:
 
 
 class TestFulfillOrder:
-    def test_fulfill_order_with_content(self, orders):
+    def test_fulfill_order_with_text(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            result = orders.fulfill("ord_9xM4kP7nR2qT5wY1", content="Here is your content", content_type="text")
+            result = orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverable="Here is your AI-generated report")
         assert isinstance(result, OrderResponse)
         assert result.status == "fulfilled"
         body = json.loads(route.calls[0].request.content)
-        assert body["content"] == "Here is your content"
-        assert body["content_type"] == "text"
+        assert body["deliverable"] == "Here is your AI-generated report"
 
     def test_fulfill_order_with_url(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_9xM4kP7nR2qT5wY1", content_url="https://example.com/generated.pdf")
+            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverable="https://example.com/generated.pdf")
         body = json.loads(route.calls[0].request.content)
-        assert body["content_url"] == "https://example.com/generated.pdf"
+        assert body["deliverable"] == "https://example.com/generated.pdf"
         assert "content" not in body
         assert "content_type" not in body
+        assert "content_url" not in body
 
-    def test_fulfill_order_empty_body(self, orders):
+    def test_fulfill_order_sends_deliverable_key(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_9xM4kP7nR2qT5wY1")
+            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverable="some content")
         body = json.loads(route.calls[0].request.content)
-        assert body == {}
+        assert "deliverable" in body
 
     def test_fulfill_order_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_abc/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_abc")
+            orders.fulfill("ord_abc", deliverable="some content")
         assert route.called
 
 
@@ -286,7 +289,7 @@ class TestShipOrder:
         assert isinstance(result, OrderResponse)
         assert result.carrier == "USPS"
         assert result.tracking_code == "9400111899223456789012"
-        assert result.fulfillment_status == "shipped"
+        assert result.shipped_at is not None
         body = json.loads(route.calls[0].request.content)
         assert body["carrier"] == "USPS"
         assert body["tracking_code"] == "9400111899223456789012"
@@ -319,4 +322,4 @@ class TestShipOrder:
         assert result.carrier == "USPS"
         assert result.tracking_code == "9400111899223456789012"
         assert result.seller_note == "Ships within 3 days"
-        assert result.fulfillment_status == "shipped"
+        assert result.shipped_at is not None

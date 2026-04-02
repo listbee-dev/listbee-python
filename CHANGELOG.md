@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- `FulfillmentStatus` enum removed entirely — no longer returned by the API
+- `OrderResponse`: `fulfillment_status` field removed; replaced by `deliverable: DeliverableResponse | None` and `shipped_at: datetime | None`
+- `ListingResponse`: `deliverable_type` field removed; replaced by `deliverable: DeliverableResponse | None`
+- `orders.fulfill()`: `content`, `content_type`, `content_url` params removed; replaced by `deliverable: str` (required, auto-detected by API)
+
+### Added
+
+- `DeliverableResponse` model: `object`, `type`, `has_content` — nested on both `ListingResponse` and `OrderResponse`
+- `orders.fulfill()` now accepts a single `deliverable` string — URL, file path, or text auto-detected
+- `OrderResponse.shipped_at` — ISO 8601 timestamp set when order is shipped
+
 ## [0.6.0] - 2026-04-02
 
 ### Breaking

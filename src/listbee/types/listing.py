@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from listbee.types.shared import (
     BlurMode,
     CheckoutField,
-    DeliverableType,
+    DeliverableResponse,
     FulfillmentMode,
     ListingReadiness,
     ListingStatus,
@@ -95,10 +95,9 @@ class ListingResponse(BaseModel):
         description="How orders for this listing are fulfilled. 'managed' = ListBee delivers, 'external' = seller handles via webhook.",
         examples=["managed"],
     )
-    deliverable_type: DeliverableType | None = Field(
+    deliverable: DeliverableResponse | None = Field(
         default=None,
-        description="Type of digital deliverable. None when fulfillment is external with no deliverable.",
-        examples=["file"],
+        description="Digital deliverable attached to this listing. None when fulfillment is external with no deliverable.",
     )
     has_deliverable: bool = Field(
         description="`true` if a deliverable was successfully stored.",

@@ -82,31 +82,27 @@ class Orders:
         self,
         order_id: str,
         *,
-        content: str | None = None,
-        content_type: str | None = None,
-        content_url: str | None = None,
+        deliverable: str,
     ) -> OrderResponse:
-        """Fulfill an order by pushing content to ListBee for delivery.
+        """Fulfill an order by pushing a deliverable to ListBee for delivery.
 
         Used with external fulfillment to deliver AI-generated or dynamically
-        created content through ListBee's managed delivery system.
+        created content through ListBee's managed delivery system. The
+        ``deliverable`` value is auto-detected: a URL triggers URL delivery,
+        a file path or base64 string triggers file delivery, and plain text
+        triggers text delivery.
+
+        Only valid for orders on listings with ``fulfillment="external"``.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            content: Plain text content to deliver.
-            content_type: Type of content being delivered (e.g. "text", "url", "file").
-            content_url: URL of the content to deliver.
+            deliverable: The content to deliver — URL, file path, or plain text.
+                Type is auto-detected by the API.
 
         Returns:
             The fulfilled :class:`~listbee.types.order.OrderResponse`.
         """
-        body: dict[str, Any] = {}
-        if content is not None:
-            body["content"] = content
-        if content_type is not None:
-            body["content_type"] = content_type
-        if content_url is not None:
-            body["content_url"] = content_url
+        body: dict[str, Any] = {"deliverable": deliverable}
         response = self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
         return OrderResponse.model_validate(response.json())
 
@@ -209,31 +205,27 @@ class AsyncOrders:
         self,
         order_id: str,
         *,
-        content: str | None = None,
-        content_type: str | None = None,
-        content_url: str | None = None,
+        deliverable: str,
     ) -> OrderResponse:
-        """Fulfill an order by pushing content to ListBee for delivery (async).
+        """Fulfill an order by pushing a deliverable to ListBee for delivery (async).
 
         Used with external fulfillment to deliver AI-generated or dynamically
-        created content through ListBee's managed delivery system.
+        created content through ListBee's managed delivery system. The
+        ``deliverable`` value is auto-detected: a URL triggers URL delivery,
+        a file path or base64 string triggers file delivery, and plain text
+        triggers text delivery.
+
+        Only valid for orders on listings with ``fulfillment="external"``.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            content: Plain text content to deliver.
-            content_type: Type of content being delivered (e.g. "text", "url", "file").
-            content_url: URL of the content to deliver.
+            deliverable: The content to deliver — URL, file path, or plain text.
+                Type is auto-detected by the API.
 
         Returns:
             The fulfilled :class:`~listbee.types.order.OrderResponse`.
         """
-        body: dict[str, Any] = {}
-        if content is not None:
-            body["content"] = content
-        if content_type is not None:
-            body["content_type"] = content_type
-        if content_url is not None:
-            body["content_url"] = content_url
+        body: dict[str, Any] = {"deliverable": deliverable}
         response = await self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
         return OrderResponse.model_validate(response.json())
 

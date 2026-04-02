@@ -178,18 +178,18 @@ print(order.checkout_data)        # custom fields from checkout
 print(order.shipping_address)     # ShippingAddress or None
 print(order.paid_at)              # when payment was confirmed
 
-# Fulfill an order — push content for delivery (external fulfillment)
+# Fulfill an order — push deliverable for delivery (external fulfillment)
+# deliverable is auto-detected: URL → url delivery, plain text → text delivery
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    content="Here is your personalized report...",
-    content_type="text",
+    deliverable="Here is your personalized report...",
 )
 print(order.status)               # "fulfilled"
 
-# Fulfill with a URL
+# Fulfill with a URL (auto-detected)
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    content_url="https://example.com/generated-report.pdf",
+    deliverable="https://example.com/generated-report.pdf",
 )
 
 # Ship an order — add tracking info
@@ -199,7 +199,7 @@ order = client.orders.ship(
     tracking_code="9400111899223456789012",
     seller_note="Ships within 3 business days",
 )
-print(order.fulfillment_status)   # "shipped"
+print(order.shipped_at)           # datetime when shipped
 print(order.carrier)              # "USPS"
 ```
 
@@ -383,8 +383,7 @@ listing = client.listings.create(
 # When you receive the order.paid webhook, generate and fulfill:
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    content="Your personalized report...",
-    content_type="text",
+    deliverable="Your personalized report...",
 )
 ```
 
@@ -549,8 +548,7 @@ async def main():
     # Fulfill an order (async)
     order = await client.orders.fulfill(
         "ord_9xM4kP7nR2qT5wY1",
-        content="Generated content here",
-        content_type="text",
+        deliverable="Generated content here",
     )
 
 asyncio.run(main())
@@ -625,11 +623,13 @@ from listbee import (
     CheckoutField,
     ShippingAddress,
 
+    # Models
+    DeliverableResponse,  # {object, type, has_content}
+
     # Enums
     DeliverableType,    # "file" | "url" | "text"
     ContentType,        # alias for DeliverableType (backwards compat)
     FulfillmentMode,    # "managed" | "external"
-    FulfillmentStatus,  # "pending" | "shipped" | "fulfilled"
     CheckoutFieldType,  # "text" | "select" | "address" | "date"
     BlurMode,           # "auto" | "true" | "false"
     ListingStatus,      # "active" | "paused"
@@ -659,7 +659,7 @@ Use enums to avoid magic strings:
 from listbee import DeliverableType, FulfillmentMode, ActionCode, ActionKind, WebhookEventType
 
 # Check deliverable type
-if listing.deliverable_type == DeliverableType.FILE:
+if listing.deliverable and listing.deliverable.type == DeliverableType.FILE:
     print("Delivers a file")
 
 # Check fulfillment mode

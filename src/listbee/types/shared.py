@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -86,6 +86,26 @@ class ShippingAddress(BaseModel):
     country: str = Field(description="Two-letter ISO country code.", examples=["US"])
 
 
+class DeliverableResponse(BaseModel):
+    """Digital deliverable attached to a listing or order."""
+
+    model_config = ConfigDict(frozen=True)
+
+    object: Literal["deliverable"] = Field(
+        default="deliverable",
+        description="Object type discriminator. Always `deliverable`.",
+        examples=["deliverable"],
+    )
+    type: str = Field(
+        description="Type of deliverable: `file`, `url`, or `text`.",
+        examples=["file"],
+    )
+    has_content: bool = Field(
+        description="`true` if content has been successfully stored or set.",
+        examples=[True],
+    )
+
+
 class BlurMode(StrEnum):
     """Cover image blur mode for a listing."""
 
@@ -117,14 +137,6 @@ class OrderStatus(StrEnum):
     FULFILLED = "fulfilled"
     CANCELED = "canceled"
     FAILED = "failed"
-
-
-class FulfillmentStatus(StrEnum):
-    """Fulfillment progress for an order."""
-
-    PENDING = "pending"
-    SHIPPED = "shipped"
-    FULFILLED = "fulfilled"
 
 
 class WebhookEventType(StrEnum):

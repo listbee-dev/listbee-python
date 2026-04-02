@@ -17,10 +17,10 @@ from listbee.types.shared import (
     CheckoutField,
     CheckoutFieldType,
     ContentType,
+    DeliverableResponse,
     DeliverableType,
     DomainStatus,
     FulfillmentMode,
-    FulfillmentStatus,
     ListingReadiness,
     ListingStatus,
     OrderStatus,
@@ -41,7 +41,6 @@ __all__ = [
     "DeliverableType",
     "DomainStatus",
     "FulfillmentMode",
-    "FulfillmentStatus",
     "ListingStatus",
     "OrderStatus",
     "WebhookEventType",
@@ -56,6 +55,7 @@ __all__ = [
     # Fulfillment models
     "CheckoutField",
     "ShippingAddress",
+    "DeliverableResponse",
     # Listing
     "Review",
     "FaqItem",

@@ -23,7 +23,7 @@ LISTING_JSON = {
     "cta": None,
     "price": 2900,
     "fulfillment": "managed",
-    "deliverable_type": "file",
+    "deliverable": {"object": "deliverable", "type": "file", "has_content": True},
     "has_deliverable": True,
     "has_cover": True,
     "checkout_schema": None,
@@ -50,7 +50,7 @@ EXTERNAL_LISTING_JSON = {
     "slug": "custom-service",
     "name": "Custom Service",
     "fulfillment": "external",
-    "deliverable_type": None,
+    "deliverable": None,
     "has_deliverable": False,
     "checkout_schema": [
         {
@@ -322,7 +322,9 @@ class TestFulfillmentFields:
             mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.get("seo-playbook")
         assert result.fulfillment == "managed"
-        assert result.deliverable_type == "file"
+        assert result.deliverable is not None
+        assert result.deliverable.type == "file"
+        assert result.deliverable.has_content is True
         assert result.has_deliverable is True
         assert result.checkout_schema is None
 
@@ -331,7 +333,7 @@ class TestFulfillmentFields:
             mock.get("/v1/listings/custom-service").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
             result = listings.get("custom-service")
         assert result.fulfillment == "external"
-        assert result.deliverable_type is None
+        assert result.deliverable is None
         assert result.has_deliverable is False
         assert result.checkout_schema is not None
         assert len(result.checkout_schema) == 1
