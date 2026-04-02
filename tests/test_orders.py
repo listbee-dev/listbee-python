@@ -248,7 +248,7 @@ class TestFulfillOrder:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            result = orders.fulfill("ord_9xM4kP7nR2qT5wY1", content_url="https://example.com/generated.pdf")
+            orders.fulfill("ord_9xM4kP7nR2qT5wY1", content_url="https://example.com/generated.pdf")
         body = json.loads(route.calls[0].request.content)
         assert body["content_url"] == "https://example.com/generated.pdf"
         assert "content" not in body
@@ -308,9 +308,7 @@ class TestShipOrder:
 
     def test_ship_order_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_abc/ship").mock(
-                return_value=httpx.Response(200, json=SHIPPED_ORDER_JSON)
-            )
+            route = mock.post("/v1/orders/ord_abc/ship").mock(return_value=httpx.Response(200, json=SHIPPED_ORDER_JSON))
             orders.ship("ord_abc", carrier="FedEx", tracking_code="ABC123")
         assert route.called
 

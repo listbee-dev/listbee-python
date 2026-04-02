@@ -165,9 +165,7 @@ class TestCreateListing:
     def test_create_listing_with_fulfillment_mode(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.create(
-                name="Test", price=100, deliverable="https://example.com/file.pdf", fulfillment="managed"
-            )
+            listings.create(name="Test", price=100, deliverable="https://example.com/file.pdf", fulfillment="managed")
         body = json.loads(route.calls[0].request.content)
         assert body["fulfillment"] == "managed"
 
