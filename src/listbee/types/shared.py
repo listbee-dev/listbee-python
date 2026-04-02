@@ -16,12 +16,74 @@ else:
         """StrEnum backport for Python 3.10."""
 
 
-class ContentType(StrEnum):
-    """Auto-detected content type of a listing's digital content."""
+class DeliverableType(StrEnum):
+    """Type of digital deliverable attached to a listing."""
 
     FILE = "file"
     URL = "url"
     TEXT = "text"
+
+
+# Backwards-compatible alias
+ContentType = DeliverableType
+
+
+class FulfillmentMode(StrEnum):
+    """How an order is fulfilled after payment."""
+
+    MANAGED = "managed"
+    EXTERNAL = "external"
+
+
+class CheckoutFieldType(StrEnum):
+    """Supported field types for checkout schema fields."""
+
+    TEXT = "text"
+    SELECT = "select"
+    ADDRESS = "address"
+    DATE = "date"
+
+
+class CheckoutField(BaseModel):
+    """A custom field collected from the buyer at checkout."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str = Field(
+        description="Machine-readable field name (unique within the schema).",
+        examples=["shirt_size"],
+    )
+    label: str = Field(
+        description="Human-readable label shown to the buyer.",
+        examples=["Shirt Size"],
+    )
+    type: CheckoutFieldType = Field(
+        description="Field input type.",
+        examples=["select"],
+    )
+    required: bool = Field(
+        default=True,
+        description="Whether the field must be filled before checkout completes.",
+        examples=[True],
+    )
+    options: list[str] | None = Field(
+        default=None,
+        description="Available options when type is 'select'.",
+        examples=[["S", "M", "L", "XL"]],
+    )
+
+
+class ShippingAddress(BaseModel):
+    """Shipping address collected at checkout."""
+
+    model_config = ConfigDict(frozen=True)
+
+    line1: str = Field(description="Street address line 1.", examples=["123 Main St"])
+    line2: str | None = Field(default=None, description="Street address line 2.", examples=["Apt 4B"])
+    city: str = Field(description="City.", examples=["San Francisco"])
+    state: str | None = Field(default=None, description="State or province.", examples=["CA"])
+    postal_code: str = Field(description="Postal or ZIP code.", examples=["94105"])
+    country: str = Field(description="Two-letter ISO country code.", examples=["US"])
 
 
 class BlurMode(StrEnum):
@@ -48,15 +110,29 @@ class DomainStatus(StrEnum):
 
 
 class OrderStatus(StrEnum):
-    """Current fulfillment status of an order."""
+    """Current status of an order."""
 
-    COMPLETED = "completed"
+    PENDING = "pending"
+    PAID = "paid"
+    FULFILLED = "fulfilled"
+    CANCELED = "canceled"
+    FAILED = "failed"
+
+
+class FulfillmentStatus(StrEnum):
+    """Fulfillment progress for an order."""
+
+    PENDING = "pending"
+    SHIPPED = "shipped"
+    FULFILLED = "fulfilled"
 
 
 class WebhookEventType(StrEnum):
     """Event types that can be subscribed to on a webhook endpoint."""
 
-    ORDER_COMPLETED = "order.completed"
+    ORDER_PAID = "order.paid"
+    ORDER_FULFILLED = "order.fulfilled"
+    ORDER_SHIPPED = "order.shipped"
     ORDER_REFUNDED = "order.refunded"
     ORDER_DISPUTED = "order.disputed"
     ORDER_DISPUTE_CLOSED = "order.dispute_closed"
@@ -81,6 +157,7 @@ class ActionCode(StrEnum):
     CONNECT_STRIPE = "connect_stripe"
     ENABLE_CHARGES = "enable_charges"
     UPDATE_BILLING = "update_billing"
+    CONFIGURE_WEBHOOK = "configure_webhook"
 
 
 class ActionResolve(BaseModel):

@@ -1,6 +1,6 @@
 # listbee
 
-Official Python SDK for the [ListBee API](https://listbee.so) — one API call to sell and deliver digital content.
+Official Python SDK for the [ListBee API](https://listbee.so) — sell anything, payment collected, digital delivery handled.
 
 ## Install
 
@@ -19,12 +19,24 @@ from listbee import ListBee
 
 client = ListBee(api_key="lb_...")
 
+# Managed fulfillment — ListBee delivers the file automatically
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    content="https://example.com/seo-playbook.pdf",
+    deliverable="https://example.com/seo-playbook.pdf",
 )
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
+
+# External fulfillment — you handle delivery via webhooks
+listing = client.listings.create(
+    name="Custom T-Shirt",
+    price=3500,
+    fulfillment="external",
+    checkout_schema=[
+        {"name": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"]},
+        {"name": "shipping_address", "label": "Shipping Address", "type": "address"},
+    ],
+)
 ```
 
 Using an environment variable instead:
@@ -41,7 +53,7 @@ client = ListBee()  # reads LISTBEE_API_KEY automatically
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    content="https://example.com/seo-playbook.pdf",
+    deliverable="https://example.com/seo-playbook.pdf",
 )
 print(listing.url)
 ```
@@ -77,18 +89,29 @@ from listbee import ListBee
 
 client = ListBee(api_key="lb_...")
 
-# Create — minimal
+# Create — managed fulfillment (ListBee delivers the file)
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,       # $29.00 in cents
-    content="https://example.com/seo-playbook.pdf",  # file URL, redirect URL, or plain text
+    deliverable="https://example.com/seo-playbook.pdf",  # file URL, redirect URL, or plain text
+)
+
+# Create — external fulfillment (you handle delivery)
+listing = client.listings.create(
+    name="Custom T-Shirt",
+    price=3500,
+    fulfillment="external",
+    checkout_schema=[
+        {"name": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"]},
+        {"name": "color", "label": "Color", "type": "select", "options": ["Black", "White"]},
+    ],
 )
 
 # Create — all optional params
 listing = client.listings.create(
     name="SEO Playbook 2026",
     price=2900,
-    content="https://example.com/seo-playbook.pdf",
+    deliverable="https://example.com/seo-playbook.pdf",
     description="A comprehensive guide to modern SEO techniques.",
     tagline="Updated for 2026 algorithm changes",
     highlights=["50+ pages", "Actionable tips", "Free updates"],
@@ -124,6 +147,15 @@ updated = client.listings.update(
     price=3900,
 )
 
+# Update fulfillment mode and checkout schema
+updated = client.listings.update(
+    "r7kq2xy9",
+    fulfillment="external",
+    checkout_schema=[
+        {"name": "notes", "label": "Special Instructions", "type": "text"},
+    ],
+)
+
 # Delete
 client.listings.delete("m3pr5tw1")
 ```
@@ -136,12 +168,39 @@ for order in client.orders.list():
     print(order.id, order.status)
 
 # Filter by status
-for order in client.orders.list(status="completed"):
-    print(order.id, order.email)
+for order in client.orders.list(status="paid"):
+    print(order.id, order.buyer_email)
 
 # Get by ID
 order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
 print(order.listing_id, order.amount)
+print(order.checkout_data)        # custom fields from checkout
+print(order.shipping_address)     # ShippingAddress or None
+print(order.paid_at)              # when payment was confirmed
+
+# Fulfill an order — push content for delivery (external fulfillment)
+order = client.orders.fulfill(
+    "ord_9xM4kP7nR2qT5wY1",
+    content="Here is your personalized report...",
+    content_type="text",
+)
+print(order.status)               # "fulfilled"
+
+# Fulfill with a URL
+order = client.orders.fulfill(
+    "ord_9xM4kP7nR2qT5wY1",
+    content_url="https://example.com/generated-report.pdf",
+)
+
+# Ship an order — add tracking info
+order = client.orders.ship(
+    "ord_9xM4kP7nR2qT5wY1",
+    carrier="USPS",
+    tracking_code="9400111899223456789012",
+    seller_note="Ships within 3 business days",
+)
+print(order.fulfillment_status)   # "shipped"
+print(order.carrier)              # "USPS"
 ```
 
 ### Webhooks
@@ -154,7 +213,9 @@ webhook = client.webhooks.create(
     name="Production endpoint",
     url="https://example.com/webhooks/listbee",
     events=[
-        WebhookEventType.ORDER_COMPLETED,
+        WebhookEventType.ORDER_PAID,
+        WebhookEventType.ORDER_FULFILLED,
+        WebhookEventType.ORDER_SHIPPED,
         WebhookEventType.ORDER_REFUNDED,
     ],
 )
@@ -179,7 +240,7 @@ webhook = client.webhooks.update("wh_3mK8nP2qR5tW7xY1", enabled=False)
 webhook = client.webhooks.update(
     "wh_3mK8nP2qR5tW7xY1",
     url="https://example.com/webhooks/v2",
-    events=[WebhookEventType.ORDER_COMPLETED],
+    events=[WebhookEventType.ORDER_PAID],
 )
 
 # Delete
@@ -273,7 +334,7 @@ client.stores.remove_domain("str_7kQ2xY9mN3pR5tW1vB8a")
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    content="https://example.com/seo-playbook.pdf",
+    deliverable="https://example.com/seo-playbook.pdf",
     store_id="str_7kQ2xY9mN3pR5tW1vB8a",
 )
 ```
@@ -290,6 +351,41 @@ print(connect.url)  # redirect seller here
 
 # Disconnect Stripe
 client.stripe.disconnect()
+```
+
+## Fulfillment Modes
+
+ListBee supports two fulfillment modes:
+
+**Managed** — ListBee delivers digital content (files, URLs, text) automatically via access grants. Set a `deliverable` on the listing and ListBee handles the rest.
+
+```python
+listing = client.listings.create(
+    name="SEO Playbook",
+    price=2900,
+    deliverable="https://example.com/seo-playbook.pdf",
+    # fulfillment defaults to "managed" when deliverable is provided
+)
+```
+
+**External** — ListBee fires `order.paid` webhook, your app handles delivery. Supports physical goods, AI-generated content, services, anything.
+
+```python
+listing = client.listings.create(
+    name="Custom AI Report",
+    price=4900,
+    fulfillment="external",
+    checkout_schema=[
+        {"name": "topic", "label": "Report Topic", "type": "text", "required": True},
+    ],
+)
+
+# When you receive the order.paid webhook, generate and fulfill:
+order = client.orders.fulfill(
+    "ord_9xM4kP7nR2qT5wY1",
+    content="Your personalized report...",
+    content_type="text",
+)
 ```
 
 ## Readiness System
@@ -333,6 +429,7 @@ if not listing.readiness.sellable:
 | `charges_disabled` | Stripe charges are disabled |
 | `billing_past_due` | ListBee subscription payment failed |
 | `billing_unpaid` | ListBee subscription unpaid |
+| `configure_webhook` | External fulfillment listing needs a webhook endpoint |
 
 ## Pagination
 
@@ -437,7 +534,7 @@ async def main():
     listing = await client.listings.create(
         name="SEO Playbook",
         price=2900,
-        content="https://example.com/seo-playbook.pdf",
+        deliverable="https://example.com/seo-playbook.pdf",
     )
     print(listing.url)
 
@@ -445,9 +542,16 @@ async def main():
     async for listing in await client.listings.list():
         print(listing.slug, listing.name)
 
-    # Filter completed orders
-    async for order in await client.orders.list(status="completed"):
+    # Filter paid orders
+    async for order in await client.orders.list(status="paid"):
         print(order.id)
+
+    # Fulfill an order (async)
+    order = await client.orders.fulfill(
+        "ord_9xM4kP7nR2qT5wY1",
+        content="Generated content here",
+        content_type="text",
+    )
 
 asyncio.run(main())
 ```
@@ -488,7 +592,7 @@ client = ListBee(
 listing = client.listings.create(
     name="Quick listing",
     price=999,
-    content="https://example.com/file.pdf",
+    deliverable="https://example.com/file.pdf",
     timeout=30.0,  # override the 120s default for this call
 )
 ```
@@ -518,15 +622,21 @@ from listbee import (
     Review,
     FaqItem,
     CursorPage,
+    CheckoutField,
+    ShippingAddress,
 
     # Enums
-    ContentType,        # "file" | "url" | "text"
+    DeliverableType,    # "file" | "url" | "text"
+    ContentType,        # alias for DeliverableType (backwards compat)
+    FulfillmentMode,    # "managed" | "external"
+    FulfillmentStatus,  # "pending" | "shipped" | "fulfilled"
+    CheckoutFieldType,  # "text" | "select" | "address" | "date"
     BlurMode,           # "auto" | "true" | "false"
     ListingStatus,      # "active" | "paused"
-    OrderStatus,        # "completed"
+    OrderStatus,        # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
     DomainStatus,       # "pending" | "verified" | "stale"
-    WebhookEventType,   # "order.completed" | "order.refunded" | ...
-    ActionCode,         # "payments_not_configured" | ...
+    WebhookEventType,   # "order.paid" | "order.fulfilled" | "order.shipped" | ...
+    ActionCode,         # "set_stripe_key" | "configure_webhook" | ...
     ActionKind,         # "api" | "human"
 
     # Exceptions
@@ -546,31 +656,35 @@ from listbee import (
 Use enums to avoid magic strings:
 
 ```python
-from listbee import ContentType, ActionCode, ActionKind, WebhookEventType
+from listbee import DeliverableType, FulfillmentMode, ActionCode, ActionKind, WebhookEventType
 
-# Check content type
-if listing.content_type == ContentType.FILE:
+# Check deliverable type
+if listing.deliverable_type == DeliverableType.FILE:
     print("Delivers a file")
+
+# Check fulfillment mode
+if listing.fulfillment == FulfillmentMode.EXTERNAL:
+    print("External fulfillment — handle delivery yourself")
 
 # Subscribe to specific events
 webhook = client.webhooks.create(
     name="Orders only",
     url="https://example.com/hooks",
     events=[
-        WebhookEventType.ORDER_COMPLETED,
+        WebhookEventType.ORDER_PAID,
+        WebhookEventType.ORDER_FULFILLED,
+        WebhookEventType.ORDER_SHIPPED,
         WebhookEventType.ORDER_REFUNDED,
-        WebhookEventType.ORDER_DISPUTED,
-        WebhookEventType.ORDER_DISPUTE_CLOSED,
         WebhookEventType.LISTING_CREATED,
     ],
 )
 
 # Branch on action code
 for action in listing.readiness.actions:
-    if action.code == ActionCode.PAYMENTS_NOT_CONFIGURED:
+    if action.code == ActionCode.CONFIGURE_WEBHOOK:
+        print(f"Create a webhook: {action.resolve.endpoint}")
+    elif action.code == ActionCode.CONNECT_STRIPE:
         print(f"Connect Stripe: {action.resolve.url}")
-    elif action.code == ActionCode.CHARGES_DISABLED:
-        print(f"Enable charges: {action.resolve.url}")
 ```
 
 ## Requirements

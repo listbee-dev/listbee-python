@@ -14,11 +14,17 @@ from listbee.types.shared import (
     ActionKind,
     ActionResolve,
     BlurMode,
+    CheckoutField,
+    CheckoutFieldType,
     ContentType,
+    DeliverableType,
     DomainStatus,
+    FulfillmentMode,
+    FulfillmentStatus,
     ListingReadiness,
     ListingStatus,
     OrderStatus,
+    ShippingAddress,
     StrEnum,
     WebhookEventType,
 )
@@ -30,8 +36,12 @@ from listbee.types.webhook import WebhookEventResponse, WebhookResponse, Webhook
 __all__ = [
     # Enums
     "BlurMode",
+    "CheckoutFieldType",
     "ContentType",
+    "DeliverableType",
     "DomainStatus",
+    "FulfillmentMode",
+    "FulfillmentStatus",
     "ListingStatus",
     "OrderStatus",
     "WebhookEventType",
@@ -43,6 +53,9 @@ __all__ = [
     "Action",
     "ListingReadiness",
     "AccountReadiness",
+    # Fulfillment models
+    "CheckoutField",
+    "ShippingAddress",
     # Listing
     "Review",
     "FaqItem",

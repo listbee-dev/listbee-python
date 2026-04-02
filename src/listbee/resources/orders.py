@@ -50,7 +50,7 @@ class Orders:
                 print(order.id)
 
         Args:
-            status: Filter orders by fulfillment status (e.g. "completed").
+            status: Filter orders by status (e.g. "paid", "fulfilled").
             listing: Filter orders by listing slug (e.g. "seo-playbook").
             created_after: Only return orders created after this ISO datetime.
             created_before: Only return orders created before this ISO datetime.
@@ -77,6 +77,66 @@ class Orders:
         if cursor is not None:
             params["cursor"] = cursor
         return self._client.get_page("/v1/orders", params, OrderResponse)
+
+    def fulfill(
+        self,
+        order_id: str,
+        *,
+        content: str | None = None,
+        content_type: str | None = None,
+        content_url: str | None = None,
+    ) -> OrderResponse:
+        """Fulfill an order by pushing content to ListBee for delivery.
+
+        Used with external fulfillment to deliver AI-generated or dynamically
+        created content through ListBee's managed delivery system.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+            content: Plain text content to deliver.
+            content_type: Type of content being delivered (e.g. "text", "url", "file").
+            content_url: URL of the content to deliver.
+
+        Returns:
+            The fulfilled :class:`~listbee.types.order.OrderResponse`.
+        """
+        body: dict[str, Any] = {}
+        if content is not None:
+            body["content"] = content
+        if content_type is not None:
+            body["content_type"] = content_type
+        if content_url is not None:
+            body["content_url"] = content_url
+        response = self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
+        return OrderResponse.model_validate(response.json())
+
+    def ship(
+        self,
+        order_id: str,
+        *,
+        carrier: str,
+        tracking_code: str,
+        seller_note: str | None = None,
+    ) -> OrderResponse:
+        """Mark an order as shipped with tracking information.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+            carrier: Shipping carrier name (e.g. "USPS", "FedEx").
+            tracking_code: Shipment tracking code.
+            seller_note: Optional note to the buyer.
+
+        Returns:
+            The shipped :class:`~listbee.types.order.OrderResponse`.
+        """
+        body: dict[str, Any] = {
+            "carrier": carrier,
+            "tracking_code": tracking_code,
+        }
+        if seller_note is not None:
+            body["seller_note"] = seller_note
+        response = self._client.post(f"/v1/orders/{order_id}/ship", json=body)
+        return OrderResponse.model_validate(response.json())
 
 
 class AsyncOrders:
@@ -117,7 +177,7 @@ class AsyncOrders:
                 print(order.id)
 
         Args:
-            status: Filter orders by fulfillment status (e.g. "completed").
+            status: Filter orders by status (e.g. "paid", "fulfilled").
             listing: Filter orders by listing slug (e.g. "seo-playbook").
             created_after: Only return orders created after this ISO datetime.
             created_before: Only return orders created before this ISO datetime.
@@ -144,3 +204,63 @@ class AsyncOrders:
         if cursor is not None:
             params["cursor"] = cursor
         return await self._client.get_page("/v1/orders", params, OrderResponse)
+
+    async def fulfill(
+        self,
+        order_id: str,
+        *,
+        content: str | None = None,
+        content_type: str | None = None,
+        content_url: str | None = None,
+    ) -> OrderResponse:
+        """Fulfill an order by pushing content to ListBee for delivery (async).
+
+        Used with external fulfillment to deliver AI-generated or dynamically
+        created content through ListBee's managed delivery system.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+            content: Plain text content to deliver.
+            content_type: Type of content being delivered (e.g. "text", "url", "file").
+            content_url: URL of the content to deliver.
+
+        Returns:
+            The fulfilled :class:`~listbee.types.order.OrderResponse`.
+        """
+        body: dict[str, Any] = {}
+        if content is not None:
+            body["content"] = content
+        if content_type is not None:
+            body["content_type"] = content_type
+        if content_url is not None:
+            body["content_url"] = content_url
+        response = await self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
+        return OrderResponse.model_validate(response.json())
+
+    async def ship(
+        self,
+        order_id: str,
+        *,
+        carrier: str,
+        tracking_code: str,
+        seller_note: str | None = None,
+    ) -> OrderResponse:
+        """Mark an order as shipped with tracking information (async).
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+            carrier: Shipping carrier name (e.g. "USPS", "FedEx").
+            tracking_code: Shipment tracking code.
+            seller_note: Optional note to the buyer.
+
+        Returns:
+            The shipped :class:`~listbee.types.order.OrderResponse`.
+        """
+        body: dict[str, Any] = {
+            "carrier": carrier,
+            "tracking_code": tracking_code,
+        }
+        if seller_note is not None:
+            body["seller_note"] = seller_note
+        response = await self._client.post(f"/v1/orders/{order_id}/ship", json=body)
+        return OrderResponse.model_validate(response.json())

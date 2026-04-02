@@ -20,7 +20,7 @@ class WebhookEventResponse(BaseModel):
     )
     id: str = Field(description="Unique event identifier.", examples=["evt_7kQ2xY9mN3pR5tW1"])
     event_type: WebhookEventType = Field(
-        description="The event type that triggered this delivery.", examples=["order.completed"]
+        description="The event type that triggered this delivery.", examples=["order.paid"]
     )
     status: Literal["pending", "delivered", "failed"] = Field(
         description="Computed delivery status.", examples=["delivered"]
@@ -75,7 +75,7 @@ class WebhookResponse(BaseModel):
     )
     events: list[WebhookEventType] = Field(
         description="Subscribed event types. An empty list means all events are delivered.",
-        examples=[["order.completed"]],
+        examples=[["order.paid"]],
     )
     enabled: bool = Field(
         description="`false` when delivery is paused without deleting the endpoint.",

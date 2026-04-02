@@ -1,4 +1,4 @@
-"""ListBee Python SDK — one API call to sell and deliver digital content.
+"""ListBee Python SDK — sell anything, payment collected, digital delivery handled.
 
 Usage:
     from listbee import ListBee
@@ -7,7 +7,7 @@ Usage:
     listing = client.listings.create(
         name="SEO Playbook",
         price=2999,
-        content="https://example.com/ebook.pdf",
+        deliverable="https://example.com/ebook.pdf",
     )
     print(listing.url)
 """
@@ -36,17 +36,23 @@ from listbee.types import (
     ActionResolve,
     ApiKeyResponse,
     BlurMode,
+    CheckoutField,
+    CheckoutFieldType,
     ContentType,
     CursorPage,
+    DeliverableType,
     DomainResponse,
     DomainStatus,
     FaqItem,
+    FulfillmentMode,
+    FulfillmentStatus,
     ListingReadiness,
     ListingResponse,
     ListingStatus,
     OrderResponse,
     OrderStatus,
     Review,
+    ShippingAddress,
     SignupResponse,
     StoreListResponse,
     StoreResponse,
@@ -83,17 +89,23 @@ __all__ = [
     "ActionKind",
     "ActionResolve",
     "BlurMode",
+    "CheckoutField",
+    "CheckoutFieldType",
     "ContentType",
     "CursorPage",
+    "DeliverableType",
     "DomainResponse",
     "DomainStatus",
     "FaqItem",
+    "FulfillmentMode",
+    "FulfillmentStatus",
     "ListingReadiness",
     "ListingResponse",
     "ListingStatus",
     "OrderResponse",
     "OrderStatus",
     "Review",
+    "ShippingAddress",
     "SignupResponse",
     "StoreListResponse",
     "StoreResponse",

@@ -16,7 +16,7 @@ from listbee.types.webhook import WebhookEventResponse, WebhookResponse, Webhook
 WEBHOOK_EVENT_JSON = {
     "object": "webhook_event",
     "id": "evt_7kQ2xY9mN3pR5tW1",
-    "event_type": "order.completed",
+    "event_type": "order.paid",
     "status": "delivered",
     "attempts": 1,
     "max_retries": 5,
@@ -40,7 +40,7 @@ WEBHOOK_JSON = {
     "name": "Order notifications",
     "url": "https://example.com/webhooks/listbee",
     "secret": "whsec_a1b2c3d4e5f6",
-    "events": ["order.completed"],
+    "events": ["order.paid"],
     "enabled": True,
     "created_at": "2026-03-28T12:00:00Z",
 }
@@ -63,13 +63,13 @@ class TestCreateWebhook:
             result = webhooks.create(
                 name="Order notifications",
                 url="https://example.com/webhooks/listbee",
-                events=["order.completed"],
+                events=["order.paid"],
             )
         assert isinstance(result, WebhookResponse)
         assert result.id == "wh_3mK8nP2qR5tW7xY1"
         assert result.name == "Order notifications"
         assert result.url == "https://example.com/webhooks/listbee"
-        assert result.events == ["order.completed"]
+        assert result.events == ["order.paid"]
         assert result.enabled is True
 
     def test_create_webhook_without_events(self, webhooks):

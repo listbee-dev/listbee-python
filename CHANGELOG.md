@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-02
+
+### Breaking
+
+- Renamed `ContentType` enum to `DeliverableType` (`ContentType` kept as alias for backwards compatibility)
+- Listing model: `content_type` renamed to `deliverable_type`, `has_content` renamed to `has_deliverable`
+- `listings.create()`: `content` parameter renamed to `deliverable`
+- Order model: `stripe_session_id` field removed
+- `OrderStatus` enum: `COMPLETED` replaced by `PENDING`, `PAID`, `FULFILLED`, `CANCELED`, `FAILED`
+- `WebhookEventType` enum: `ORDER_COMPLETED` removed, replaced by `ORDER_PAID`, `ORDER_FULFILLED`, `ORDER_SHIPPED`
+
+### Added
+
+- Fulfillment architecture: two-mode system (managed + external)
+- `FulfillmentMode` enum: `"managed"` | `"external"`
+- `DeliverableType` enum (replaces `ContentType`): `"file"` | `"url"` | `"text"`
+- `CheckoutField` and `CheckoutFieldType` models for custom checkout fields
+- `ShippingAddress` model for shipping address data
+- `FulfillmentStatus` enum: `"pending"` | `"shipped"` | `"fulfilled"`
+- `fulfillment` and `checkout_schema` fields on `ListingResponse`
+- `fulfillment` and `checkout_schema` parameters on `listings.create()` and `listings.update()`
+- New order fields: `checkout_data`, `shipping_address`, `fulfillment_status`, `carrier`, `tracking_code`, `seller_note`, `paid_at`, `fulfilled_at`
+- `orders.fulfill()` method — POST `/v1/orders/{id}/fulfill` for external fulfillment callback
+- `orders.ship()` method — POST `/v1/orders/{id}/ship` with carrier/tracking info
+- New webhook event types: `ORDER_PAID`, `ORDER_FULFILLED`, `ORDER_SHIPPED`
+- `CONFIGURE_WEBHOOK` action code for external fulfillment readiness
+
 ## [0.5.0] - 2026-03-31
 
 ### Added

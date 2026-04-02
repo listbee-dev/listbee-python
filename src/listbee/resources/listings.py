@@ -23,7 +23,9 @@ class Listings:
         *,
         name: str,
         price: int,
-        content: str,
+        deliverable: str | None = None,
+        fulfillment: str | None = None,
+        checkout_schema: list[dict[str, Any]] | None = None,
         store_id: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
@@ -53,7 +55,13 @@ class Listings:
         Args:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            content: File URL, redirect URL, or plain text to deliver after purchase.
+            deliverable: File URL, redirect URL, or plain text to deliver after
+                purchase. Required for managed fulfillment, optional for external.
+            fulfillment: Fulfillment mode — "managed" or "external". Defaults to
+                "managed" when a deliverable is provided, "external" otherwise.
+            checkout_schema: Custom fields collected at checkout. Each dict should
+                have ``name``, ``label``, ``type``, and optionally ``required``
+                and ``options``. Max 10 fields.
             store_id: Store to create this listing in. Required when the account
                 has multiple stores. Omit for single-store accounts.
             description: Longer product description, plain text.
@@ -83,8 +91,13 @@ class Listings:
         body: dict[str, Any] = {
             "name": name,
             "price": price,
-            "content": content,
         }
+        if deliverable is not None:
+            body["deliverable"] = deliverable
+        if fulfillment is not None:
+            body["fulfillment"] = fulfillment
+        if checkout_schema is not None:
+            body["checkout_schema"] = checkout_schema
         if store_id is not None:
             body["store_id"] = store_id
         if description is not None:
@@ -165,6 +178,8 @@ class Listings:
         *,
         name: str | None = None,
         price: int | None = None,
+        fulfillment: str | None = None,
+        checkout_schema: list[dict[str, Any]] | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -190,6 +205,8 @@ class Listings:
             slug: The listing's URL slug (e.g. "seo-playbook").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
+            fulfillment: Fulfillment mode — "managed" or "external".
+            checkout_schema: Custom fields collected at checkout. Max 10 fields.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -214,6 +231,8 @@ class Listings:
         fields = {
             "name": name,
             "price": price,
+            "fulfillment": fulfillment,
+            "checkout_schema": checkout_schema,
             "description": description,
             "tagline": tagline,
             "highlights": highlights,
@@ -281,7 +300,9 @@ class AsyncListings:
         *,
         name: str,
         price: int,
-        content: str,
+        deliverable: str | None = None,
+        fulfillment: str | None = None,
+        checkout_schema: list[dict[str, Any]] | None = None,
         store_id: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
@@ -311,7 +332,13 @@ class AsyncListings:
         Args:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            content: File URL, redirect URL, or plain text to deliver after purchase.
+            deliverable: File URL, redirect URL, or plain text to deliver after
+                purchase. Required for managed fulfillment, optional for external.
+            fulfillment: Fulfillment mode — "managed" or "external". Defaults to
+                "managed" when a deliverable is provided, "external" otherwise.
+            checkout_schema: Custom fields collected at checkout. Each dict should
+                have ``name``, ``label``, ``type``, and optionally ``required``
+                and ``options``. Max 10 fields.
             store_id: Store to create this listing in. Required when the account
                 has multiple stores. Omit for single-store accounts.
             description: Longer product description, plain text.
@@ -341,8 +368,13 @@ class AsyncListings:
         body: dict[str, Any] = {
             "name": name,
             "price": price,
-            "content": content,
         }
+        if deliverable is not None:
+            body["deliverable"] = deliverable
+        if fulfillment is not None:
+            body["fulfillment"] = fulfillment
+        if checkout_schema is not None:
+            body["checkout_schema"] = checkout_schema
         if store_id is not None:
             body["store_id"] = store_id
         if description is not None:
@@ -423,6 +455,8 @@ class AsyncListings:
         *,
         name: str | None = None,
         price: int | None = None,
+        fulfillment: str | None = None,
+        checkout_schema: list[dict[str, Any]] | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -448,6 +482,8 @@ class AsyncListings:
             slug: The listing's URL slug (e.g. "seo-playbook").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
+            fulfillment: Fulfillment mode — "managed" or "external".
+            checkout_schema: Custom fields collected at checkout. Max 10 fields.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -472,6 +508,8 @@ class AsyncListings:
         fields = {
             "name": name,
             "price": price,
+            "fulfillment": fulfillment,
+            "checkout_schema": checkout_schema,
             "description": description,
             "tagline": tagline,
             "highlights": highlights,

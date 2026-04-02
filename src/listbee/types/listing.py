@@ -7,7 +7,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import BlurMode, ContentType, ListingReadiness, ListingStatus
+from listbee.types.shared import (
+    BlurMode,
+    CheckoutField,
+    DeliverableType,
+    FulfillmentMode,
+    ListingReadiness,
+    ListingStatus,
+)
 
 
 class Review(BaseModel):
@@ -84,17 +91,26 @@ class ListingResponse(BaseModel):
         description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
         examples=[2900],
     )
-    content_type: ContentType = Field(
-        description="Auto-detected from the `content` value at creation.",
+    fulfillment: FulfillmentMode = Field(
+        description="How orders for this listing are fulfilled. 'managed' = ListBee delivers, 'external' = seller handles via webhook.",
+        examples=["managed"],
+    )
+    deliverable_type: DeliverableType | None = Field(
+        default=None,
+        description="Type of digital deliverable. None when fulfillment is external with no deliverable.",
         examples=["file"],
     )
-    has_content: bool = Field(
-        description="`true` if content was successfully fetched and stored.",
+    has_deliverable: bool = Field(
+        description="`true` if a deliverable was successfully stored.",
         examples=[True],
     )
     has_cover: bool = Field(
         description="`true` if a cover image exists (uploaded or auto-generated).",
         examples=[True],
+    )
+    checkout_schema: list[CheckoutField] | None = Field(
+        default=None,
+        description="Custom fields collected from the buyer at checkout. Max 10.",
     )
     compare_at_price: int | None = Field(
         default=None,
