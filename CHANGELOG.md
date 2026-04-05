@@ -20,8 +20,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `client.account.delete()` — delete account
 - Multipart upload support in base client
 
+### Added (cont.)
+- `BadRequestError` (400), `ForbiddenError` (403), `PayloadTooLargeError` (413) error types
+- `AccountResponse`: `display_name`, `bio`, `has_avatar`, `billing_status` fields
+- `DeliverableResponse`: `status`, `content`, `filename`, `mime_type`, `size`, `url` fields
+- `WebhookResponse`: `disabled_reason`, `readiness` fields
+- `WebhookEventResponse`: `failed_at`, `next_retry_at` fields
+- `ListingResponse`: `stock`, `embed_url` fields
+- `OrderResponse`: `refund_amount`, `refunded_at`, `dispute_amount`, `dispute_reason`, `dispute_status`, `disputed_at`, `platform_fee` fields
+- `WebhookReadiness` model
+
 ### Changed
-- `client.orders.fulfill()` now takes `deliverables` (list of dicts) instead of `deliverable` (string)
+- `client.orders.fulfill()` renamed to `client.orders.deliver()` with `deliverables` list param
+- `ListingResponse.deliverable` → `deliverables` (array), `has_deliverable` → `has_deliverables`
+- `OrderResponse.deliverable` → `deliverables` (array)
+
+### Fixed
+- `client.signup.create()` now uses correct endpoint `POST /v1/account` (was `/v1/account/signup`)
+- `client.signup.verify()` now uses correct endpoint `POST /v1/account/verify/otp` (was `/v1/account/verify`)
 
 ### Removed
 - `client.stores` resource — stores removed from API
