@@ -5,6 +5,7 @@ from typing import Any
 from listbee._base_client import AsyncClient, SyncClient
 from listbee.resources.account import Account, AsyncAccount
 from listbee.resources.api_keys import ApiKeys, AsyncApiKeys
+from listbee.resources.customers import AsyncCustomers, Customers
 from listbee.resources.files import AsyncFiles, Files
 from listbee.resources.listings import AsyncListings, Listings
 from listbee.resources.orders import AsyncOrders, Orders
@@ -44,6 +45,7 @@ class ListBee(SyncClient):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.api_keys = ApiKeys(self)
+        self.customers = Customers(self)
         self.files = Files(self)
         self.listings = Listings(self)
         self.orders = Orders(self)
@@ -82,6 +84,7 @@ class AsyncListBee(AsyncClient):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.api_keys = AsyncApiKeys(self)
+        self.customers = AsyncCustomers(self)
         self.files = AsyncFiles(self)
         self.listings = AsyncListings(self)
         self.orders = AsyncOrders(self)

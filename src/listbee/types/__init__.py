@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from listbee.types.account import AccountResponse, AccountStats
 from listbee.types.api_key import ApiKeyResponse
+from listbee.types.customer import CustomerResponse
 from listbee.types.file import FileResponse
 from listbee.types.listing import FaqItem, ListingResponse, Review
 from listbee.types.order import OrderResponse
@@ -67,6 +68,8 @@ __all__ = [
     "AccountStats",
     # API Key
     "ApiKeyResponse",
+    # Customer
+    "CustomerResponse",
     # File
     "FileResponse",
     # Signup
