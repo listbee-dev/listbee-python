@@ -21,3 +21,4 @@ htmlcov/
 # Public repo — don't commit Claude context
 CLAUDE.md
 .claude/
+docs/superpowers/
