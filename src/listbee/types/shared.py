@@ -24,9 +24,6 @@ class DeliverableType(StrEnum):
     TEXT = "text"
 
 
-# Backwards-compatible alias
-ContentType = DeliverableType
-
 
 class FulfillmentMode(StrEnum):
     """How an order is fulfilled after payment."""
@@ -117,16 +114,8 @@ class BlurMode(StrEnum):
 class ListingStatus(StrEnum):
     """Current publication status of a listing."""
 
-    ACTIVE = "active"
-    PAUSED = "paused"
-
-
-class DomainStatus(StrEnum):
-    """Verification status of a custom domain."""
-
-    PENDING = "pending"
-    VERIFIED = "verified"
-    STALE = "stale"
+    DRAFT = "draft"
+    PUBLISHED = "published"
 
 
 class OrderStatus(StrEnum):

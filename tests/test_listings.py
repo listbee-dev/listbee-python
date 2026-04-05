@@ -38,7 +38,7 @@ LISTING_JSON = {
     "utm_source": None,
     "utm_medium": None,
     "utm_campaign": None,
-    "status": "active",
+    "status": "published",
     "url": "https://buy.listbee.so/seo-playbook",
     "readiness": {"sellable": True, "actions": [], "next": None},
     "created_at": "2026-03-30T12:00:00Z",
@@ -84,7 +84,7 @@ class TestCreateListing:
         assert result.slug == "seo-playbook"
         assert result.name == "SEO Playbook"
         assert result.price == 2900
-        assert result.status == "active"
+        assert result.status == "published"
 
     def test_create_listing_with_readiness_actions(self, listings):
         json_with_actions = {
@@ -133,18 +133,6 @@ class TestCreateListing:
             listings.create(name="Test", price=100, deliverable="text", cover_blur="true")
         body = json.loads(route.calls[0].request.content)
         assert body["cover_blur"] == "true"
-
-    def test_create_listing_with_store_id(self, listings):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.create(
-                name="SEO Playbook",
-                price=2999,
-                deliverable="https://example.com/file.pdf",
-                store_id="str_7kQ2xY9mN3pR5tW1vB8a",
-            )
-        body = json.loads(route.calls[0].request.content)
-        assert body["store_id"] == "str_7kQ2xY9mN3pR5tW1vB8a"
 
     def test_create_listing_sends_deliverable_in_body(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
@@ -269,42 +257,6 @@ class TestUpdateListing:
             listings.update("seo-playbook", checkout_schema=schema)
         body = json.loads(route.calls[0].request.content)
         assert body["checkout_schema"] == schema
-
-
-class TestPauseListing:
-    def test_pause_listing_returns_paused_response(self, listings):
-        paused_json = {**LISTING_JSON, "status": "paused"}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/seo-playbook/pause").mock(return_value=httpx.Response(200, json=paused_json))
-            result = listings.pause("seo-playbook")
-        assert isinstance(result, ListingResponse)
-        assert result.status == "paused"
-
-    def test_pause_listing_sends_correct_path(self, listings):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/listings/my-listing/pause").mock(
-                return_value=httpx.Response(200, json={**LISTING_JSON, "status": "paused"})
-            )
-            listings.pause("my-listing")
-        assert route.called
-
-
-class TestResumeListing:
-    def test_resume_listing_returns_active_response(self, listings):
-        active_json = {**LISTING_JSON, "status": "active"}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/seo-playbook/resume").mock(return_value=httpx.Response(200, json=active_json))
-            result = listings.resume("seo-playbook")
-        assert isinstance(result, ListingResponse)
-        assert result.status == "active"
-
-    def test_resume_listing_sends_correct_path(self, listings):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/listings/my-listing/resume").mock(
-                return_value=httpx.Response(200, json={**LISTING_JSON, "status": "active"})
-            )
-            listings.resume("my-listing")
-        assert route.called
 
 
 class TestDeleteListing:

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import httpx
 import pytest
 import respx
@@ -40,22 +38,6 @@ def sync_client():
 @pytest.fixture
 def stripe(sync_client):
     return Stripe(sync_client)
-
-
-class TestSetKey:
-    def test_set_key_returns_account_response(self, stripe):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/account/stripe-key").mock(return_value=httpx.Response(200, json=ACCOUNT_RESPONSE))
-            result = stripe.set_key(secret_key="sk_live_abc123")
-        assert isinstance(result, AccountResponse)
-        assert result.id == "acc_7kQ2xY9mN3pR5tW1"
-
-    def test_set_key_sends_correct_body(self, stripe):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/account/stripe-key").mock(return_value=httpx.Response(200, json=ACCOUNT_RESPONSE))
-            stripe.set_key(secret_key="sk_live_abc123")
-        body = json.loads(route.calls[0].request.content)
-        assert body == {"secret_key": "sk_live_abc123"}
 
 
 class TestConnect:

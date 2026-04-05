@@ -17,18 +17,6 @@ class Stripe:
     def __init__(self, client: SyncClient) -> None:
         self._client = client
 
-    def set_key(self, *, secret_key: str) -> AccountResponse:
-        """Set the Stripe secret key for the account.
-
-        Args:
-            secret_key: Your Stripe secret key (e.g. "sk_live_...").
-
-        Returns:
-            The updated :class:`~listbee.types.account.AccountResponse`.
-        """
-        response = self._client.post("/v1/account/stripe-key", json={"secret_key": secret_key})
-        return AccountResponse.model_validate(response.json())
-
     def connect(self) -> StripeConnectSessionResponse:
         """Create a Stripe Connect onboarding session.
 
@@ -54,18 +42,6 @@ class AsyncStripe:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
-
-    async def set_key(self, *, secret_key: str) -> AccountResponse:
-        """Set the Stripe secret key for the account (async).
-
-        Args:
-            secret_key: Your Stripe secret key (e.g. "sk_live_...").
-
-        Returns:
-            The updated :class:`~listbee.types.account.AccountResponse`.
-        """
-        response = await self._client.post("/v1/account/stripe-key", json={"secret_key": secret_key})
-        return AccountResponse.model_validate(response.json())
 
     async def connect(self) -> StripeConnectSessionResponse:
         """Create a Stripe Connect onboarding session (async).

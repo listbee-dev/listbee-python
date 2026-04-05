@@ -26,7 +26,6 @@ class Listings:
         deliverable: str | None = None,
         fulfillment: str | None = None,
         checkout_schema: list[dict[str, Any]] | None = None,
-        store_id: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -62,8 +61,6 @@ class Listings:
             checkout_schema: Custom fields collected at checkout. Each dict should
                 have ``name``, ``label``, ``type``, and optionally ``required``
                 and ``options``. Max 10 fields.
-            store_id: Store to create this listing in. Required when the account
-                has multiple stores. Omit for single-store accounts.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -98,8 +95,6 @@ class Listings:
             body["fulfillment"] = fulfillment
         if checkout_schema is not None:
             body["checkout_schema"] = checkout_schema
-        if store_id is not None:
-            body["store_id"] = store_id
         if description is not None:
             body["description"] = description
         if tagline is not None:
@@ -256,30 +251,6 @@ class Listings:
         response = self._client.put(f"/v1/listings/{slug}", json=body)
         return ListingResponse.model_validate(response.json())
 
-    def pause(self, slug: str) -> ListingResponse:
-        """Pause a listing, preventing new purchases.
-
-        Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
-
-        Returns:
-            The paused :class:`~listbee.types.listing.ListingResponse`.
-        """
-        response = self._client.post(f"/v1/listings/{slug}/pause")
-        return ListingResponse.model_validate(response.json())
-
-    def resume(self, slug: str) -> ListingResponse:
-        """Resume a paused listing, allowing new purchases.
-
-        Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
-
-        Returns:
-            The resumed :class:`~listbee.types.listing.ListingResponse`.
-        """
-        response = self._client.post(f"/v1/listings/{slug}/resume")
-        return ListingResponse.model_validate(response.json())
-
     def delete(self, slug: str) -> None:
         """Delete a listing.
 
@@ -303,7 +274,6 @@ class AsyncListings:
         deliverable: str | None = None,
         fulfillment: str | None = None,
         checkout_schema: list[dict[str, Any]] | None = None,
-        store_id: str | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -339,8 +309,6 @@ class AsyncListings:
             checkout_schema: Custom fields collected at checkout. Each dict should
                 have ``name``, ``label``, ``type``, and optionally ``required``
                 and ``options``. Max 10 fields.
-            store_id: Store to create this listing in. Required when the account
-                has multiple stores. Omit for single-store accounts.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
@@ -375,8 +343,6 @@ class AsyncListings:
             body["fulfillment"] = fulfillment
         if checkout_schema is not None:
             body["checkout_schema"] = checkout_schema
-        if store_id is not None:
-            body["store_id"] = store_id
         if description is not None:
             body["description"] = description
         if tagline is not None:
@@ -531,30 +497,6 @@ class AsyncListings:
             if value is not None:
                 body[key] = value
         response = await self._client.put(f"/v1/listings/{slug}", json=body)
-        return ListingResponse.model_validate(response.json())
-
-    async def pause(self, slug: str) -> ListingResponse:
-        """Pause a listing, preventing new purchases (async).
-
-        Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
-
-        Returns:
-            The paused :class:`~listbee.types.listing.ListingResponse`.
-        """
-        response = await self._client.post(f"/v1/listings/{slug}/pause")
-        return ListingResponse.model_validate(response.json())
-
-    async def resume(self, slug: str) -> ListingResponse:
-        """Resume a paused listing, allowing new purchases (async).
-
-        Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
-
-        Returns:
-            The resumed :class:`~listbee.types.listing.ListingResponse`.
-        """
-        response = await self._client.post(f"/v1/listings/{slug}/resume")
         return ListingResponse.model_validate(response.json())
 
     async def delete(self, slug: str) -> None:
