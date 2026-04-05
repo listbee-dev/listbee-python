@@ -281,17 +281,13 @@ class TestFulfillOrder:
 class TestRefundOrder:
     def test_refund_returns_order_response(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/orders/ord_abc123/refund").mock(
-                return_value=httpx.Response(200, json=ORDER_JSON)
-            )
+            mock.post("/v1/orders/ord_abc123/refund").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             result = orders.refund("ord_abc123")
         assert isinstance(result, OrderResponse)
 
     def test_refund_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_abc/refund").mock(
-                return_value=httpx.Response(200, json=ORDER_JSON)
-            )
+            route = mock.post("/v1/orders/ord_abc/refund").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             orders.refund("ord_abc")
         assert route.called
 

@@ -379,9 +379,7 @@ class TestUtmFields:
 class TestSetDeliverables:
     def test_set_deliverables_returns_listing_response(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.put("/v1/listings/lst_abc123/deliverables").mock(
-                return_value=httpx.Response(200, json=LISTING_JSON)
-            )
+            mock.put("/v1/listings/lst_abc123/deliverables").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.set_deliverables(
                 "lst_abc123",
                 deliverables=[{"type": "url", "value": "https://example.com/ebook.pdf"}],
@@ -419,8 +417,6 @@ class TestRemoveDeliverables:
 class TestPublishListing:
     def test_publish_returns_listing_response(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/lst_abc123/publish").mock(
-                return_value=httpx.Response(200, json=LISTING_JSON)
-            )
+            mock.post("/v1/listings/lst_abc123/publish").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.publish("lst_abc123")
         assert isinstance(result, ListingResponse)

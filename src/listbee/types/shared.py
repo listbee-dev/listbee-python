@@ -24,7 +24,6 @@ class DeliverableType(StrEnum):
     TEXT = "text"
 
 
-
 class FulfillmentMode(StrEnum):
     """How an order is fulfilled after payment."""
 
