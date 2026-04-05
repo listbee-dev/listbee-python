@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import WebhookEventType
+from listbee.types.shared import WebhookEventType, WebhookReadiness
 
 
 class WebhookEventResponse(BaseModel):
@@ -31,6 +31,14 @@ class WebhookEventResponse(BaseModel):
     last_error: str | None = Field(default=None, description="Error from last failed attempt.", examples=[None])
     created_at: datetime = Field(description="ISO 8601 timestamp of event creation.")
     delivered_at: datetime | None = Field(default=None, description="ISO 8601 timestamp of successful delivery.")
+    failed_at: datetime | None = Field(
+        default=None,
+        description="ISO 8601 timestamp of when the event delivery permanently failed.",
+    )
+    next_retry_at: datetime | None = Field(
+        default=None,
+        description="ISO 8601 timestamp of the next scheduled retry. Null if delivered or failed.",
+    )
 
 
 class WebhookTestResponse(BaseModel):
@@ -80,6 +88,13 @@ class WebhookResponse(BaseModel):
     enabled: bool = Field(
         description="`false` when delivery is paused without deleting the endpoint.",
         examples=[True],
+    )
+    disabled_reason: str | None = Field(
+        default=None,
+        description="Reason the webhook was automatically disabled, if applicable.",
+    )
+    readiness: WebhookReadiness = Field(
+        description="Delivery readiness. `ready` is true when events can be sent.",
     )
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the webhook endpoint was created.",

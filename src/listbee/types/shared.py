@@ -96,9 +96,32 @@ class DeliverableResponse(BaseModel):
         description="Type of deliverable: `file`, `url`, or `text`.",
         examples=["file"],
     )
-    has_content: bool = Field(
-        description="`true` if content has been successfully stored or set.",
-        examples=[True],
+    status: str = Field(
+        description="Deliverable status: `pending`, `ready`, or `failed`.",
+        examples=["ready"],
+    )
+    content: str | None = Field(
+        default=None,
+        description="Text content (for text-type deliverables).",
+    )
+    filename: str | None = Field(
+        default=None,
+        description="Original filename (for file-type deliverables).",
+        examples=["ebook.pdf"],
+    )
+    mime_type: str | None = Field(
+        default=None,
+        description="MIME type (for file-type deliverables).",
+        examples=["application/pdf"],
+    )
+    size: int | None = Field(
+        default=None,
+        description="File size in bytes (for file-type deliverables).",
+        examples=[2458631],
+    )
+    url: str | None = Field(
+        default=None,
+        description="URL (for url-type deliverables).",
     )
 
 
@@ -244,4 +267,22 @@ class AccountReadiness(BaseModel):
     next: str | None = Field(
         default=None,
         description="Code of the highest-priority action (prefers kind: api). Null when operational.",
+    )
+
+
+class WebhookReadiness(BaseModel):
+    """Operational readiness state for a webhook endpoint."""
+
+    model_config = ConfigDict(frozen=True)
+
+    ready: bool = Field(
+        description="True when the webhook can receive events.",
+    )
+    actions: list[Action] = Field(
+        default=[],
+        description="Actions needed to reach ready state.",
+    )
+    next: str | None = Field(
+        default=None,
+        description="Code of the highest-priority action.",
     )

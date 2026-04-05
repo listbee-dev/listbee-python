@@ -60,6 +60,7 @@ from listbee.types import (
     VerifyResponse,
     WebhookEventResponse,
     WebhookEventType,
+    WebhookReadiness,
     WebhookResponse,
     WebhookTestResponse,
 )
@@ -113,6 +114,7 @@ __all__ = [
     "VerifyResponse",
     "WebhookEventResponse",
     "WebhookEventType",
+    "WebhookReadiness",
     "WebhookResponse",
     "WebhookTestResponse",
 ]

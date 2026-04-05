@@ -58,7 +58,18 @@ FULFILLED_ORDER_JSON = {
     **ORDER_JSON,
     "id": "ord_fulfilled123",
     "status": "fulfilled",
-    "deliverables": [{"object": "deliverable", "type": "file", "has_content": True}],
+    "deliverables": [
+        {
+            "object": "deliverable",
+            "type": "file",
+            "status": "ready",
+            "content": None,
+            "filename": "ebook.pdf",
+            "mime_type": "application/pdf",
+            "size": 2458631,
+            "url": None,
+        }
+    ],
     "fulfilled_at": "2026-03-28T13:00:00Z",
 }
 
@@ -191,7 +202,7 @@ class TestOrderStatus:
         assert result.status == "fulfilled"
         assert len(result.deliverables) == 1
         assert result.deliverables[0].type == "file"
-        assert result.deliverables[0].has_content is True
+        assert result.deliverables[0].status == "ready"
         assert result.fulfilled_at is not None
 
     def test_order_canceled_status(self, orders):

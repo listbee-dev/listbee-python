@@ -27,6 +27,7 @@ from listbee.types.shared import (
     ShippingAddress,
     StrEnum,
     WebhookEventType,
+    WebhookReadiness,
 )
 from listbee.types.signup import SignupResponse, VerifyResponse
 from listbee.types.stripe import StripeConnectSessionResponse
@@ -49,6 +50,7 @@ __all__ = [
     "Action",
     "ListingReadiness",
     "AccountReadiness",
+    "WebhookReadiness",
     # Fulfillment models
     "CheckoutField",
     "ShippingAddress",

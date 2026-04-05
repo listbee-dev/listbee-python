@@ -24,6 +24,8 @@ WEBHOOK_EVENT_JSON = {
     "last_error": None,
     "created_at": "2026-03-28T12:00:00Z",
     "delivered_at": "2026-03-28T12:00:01Z",
+    "failed_at": None,
+    "next_retry_at": None,
 }
 
 WEBHOOK_TEST_JSON = {
@@ -42,6 +44,8 @@ WEBHOOK_JSON = {
     "secret": "whsec_a1b2c3d4e5f6",
     "events": ["order.paid"],
     "enabled": True,
+    "disabled_reason": None,
+    "readiness": {"ready": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
 }
 

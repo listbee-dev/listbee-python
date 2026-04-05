@@ -23,7 +23,18 @@ LISTING_JSON = {
     "cta": None,
     "price": 2900,
     "fulfillment": "managed",
-    "deliverables": [{"object": "deliverable", "type": "file", "has_content": True}],
+    "deliverables": [
+        {
+            "object": "deliverable",
+            "type": "file",
+            "status": "ready",
+            "content": None,
+            "filename": "ebook.pdf",
+            "mime_type": "application/pdf",
+            "size": 2458631,
+            "url": None,
+        }
+    ],
     "has_deliverables": True,
     "has_cover": True,
     "stock": None,
@@ -278,7 +289,7 @@ class TestFulfillmentFields:
         assert result.fulfillment == "managed"
         assert len(result.deliverables) == 1
         assert result.deliverables[0].type == "file"
-        assert result.deliverables[0].has_content is True
+        assert result.deliverables[0].status == "ready"
         assert result.has_deliverables is True
         assert result.checkout_schema is None
 

@@ -56,6 +56,22 @@ class AccountResponse(BaseModel):
         description="Three-letter ISO currency code, uppercase. Set during onboarding.",
         examples=["USD"],
     )
+    display_name: str | None = Field(
+        default=None,
+        description="Display name shown on the seller's profile.",
+    )
+    bio: str | None = Field(
+        default=None,
+        description="Short bio or description shown on the seller's profile.",
+    )
+    has_avatar: bool = Field(
+        default=False,
+        description="`true` if the account has an uploaded avatar image.",
+    )
+    billing_status: str = Field(
+        description="Current billing/subscription status.",
+        examples=["active"],
+    )
     ga_measurement_id: str | None = Field(
         default=None,
         description="Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). Used to track conversions on checkout pages.",
