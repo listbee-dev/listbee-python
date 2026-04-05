@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-05
+
+### Added
+- `client.customers.list()` and `client.customers.get()` — buyer management
+- `client.files.upload()` — file upload for deliverables (multipart)
+- `client.listings.set_deliverables()` — attach deliverables to draft listings
+- `client.listings.remove_deliverables()` — remove deliverables from draft listings
+- `client.listings.publish()` — publish draft listings
+- `client.orders.refund()` — issue full refund
+- `client.webhooks.retry_event()` — retry failed webhook deliveries
+- `client.account.delete()` — delete account
+- Multipart upload support in base client
+
+### Changed
+- `client.orders.fulfill()` now takes `deliverables` (list of dicts) instead of `deliverable` (string)
+
+### Removed
+- `client.stores` resource — stores removed from API
+- `client.listings.pause()` and `client.listings.resume()` — replaced by draft/published flow
+- `client.stripe.set_key()` — Stripe Connect is the only setup path
+- `ContentType` alias — use `DeliverableType` directly
+- `DomainStatus` enum — was for stores
+
 ## [0.7.0] - 2026-04-02
 
 ### Breaking

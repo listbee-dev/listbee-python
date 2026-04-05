@@ -20,11 +20,13 @@ from listbee import ListBee
 client = ListBee(api_key="lb_...")
 
 # Managed fulfillment — ListBee delivers the file automatically
-listing = client.listings.create(
-    name="SEO Playbook",
-    price=2900,
-    deliverable="https://example.com/seo-playbook.pdf",
+# 1. Create draft, 2. attach deliverable, 3. publish
+listing = client.listings.create(name="SEO Playbook", price=2900)
+client.listings.set_deliverables(
+    listing.slug,
+    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
 )
+listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 
 # External fulfillment — you handle delivery via webhooks
@@ -37,6 +39,7 @@ listing = client.listings.create(
         {"name": "shipping_address", "label": "Shipping Address", "type": "address"},
     ],
 )
+listing = client.listings.publish(listing.slug)
 ```
 
 Using an environment variable instead:
@@ -50,11 +53,12 @@ from listbee import ListBee
 
 client = ListBee()  # reads LISTBEE_API_KEY automatically
 
-listing = client.listings.create(
-    name="SEO Playbook",
-    price=2900,
-    deliverable="https://example.com/seo-playbook.pdf",
+listing = client.listings.create(name="SEO Playbook", price=2900)
+client.listings.set_deliverables(
+    listing.slug,
+    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
 )
+listing = client.listings.publish(listing.slug)
 print(listing.url)
 ```
 
@@ -90,10 +94,10 @@ from listbee import ListBee
 client = ListBee(api_key="lb_...")
 
 # Create — managed fulfillment (ListBee delivers the file)
+# Listings start as drafts. Attach deliverables then publish.
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,       # $29.00 in cents
-    deliverable="https://example.com/seo-playbook.pdf",  # file URL, redirect URL, or plain text
 )
 
 # Create — external fulfillment (you handle delivery)
@@ -111,7 +115,6 @@ listing = client.listings.create(
 listing = client.listings.create(
     name="SEO Playbook 2026",
     price=2900,
-    deliverable="https://example.com/seo-playbook.pdf",
     description="A comprehensive guide to modern SEO techniques.",
     tagline="Updated for 2026 algorithm changes",
     highlights=["50+ pages", "Actionable tips", "Free updates"],
@@ -131,6 +134,12 @@ listing = client.listings.create(
     metadata={"source": "n8n", "campaign": "launch-week"},
 )
 print(listing.id)    # lst_r7kq2xy9m3pR5tW1
+# Attach deliverables and publish when ready
+client.listings.set_deliverables(
+    listing.slug,
+    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
+)
+listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/m3pr5tw1
 
 # Get by slug
@@ -156,6 +165,21 @@ updated = client.listings.update(
     ],
 )
 
+# Set deliverables on a draft listing (one or more)
+client.listings.set_deliverables(
+    "r7kq2xy9",
+    deliverables=[
+        {"type": "url", "value": "https://example.com/seo-playbook.pdf"},
+    ],
+)
+
+# Remove all deliverables from a draft listing
+client.listings.remove_deliverables("r7kq2xy9")
+
+# Publish a draft listing — makes it live and purchasable
+listing = client.listings.publish("r7kq2xy9")
+print(listing.status)    # "active"
+
 # Delete
 client.listings.delete("m3pr5tw1")
 ```
@@ -178,19 +202,26 @@ print(order.checkout_data)        # custom fields from checkout
 print(order.shipping_address)     # ShippingAddress or None
 print(order.paid_at)              # when payment was confirmed
 
-# Fulfill an order — push deliverable for delivery (external fulfillment)
-# deliverable is auto-detected: URL → url delivery, plain text → text delivery
+# Fulfill an order — push deliverables for delivery (external fulfillment)
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    deliverable="Here is your personalized report...",
+    deliverables=[
+        {"type": "text", "value": "Here is your personalized report..."},
+    ],
 )
 print(order.status)               # "fulfilled"
 
-# Fulfill with a URL (auto-detected)
+# Fulfill with a URL
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    deliverable="https://example.com/generated-report.pdf",
+    deliverables=[
+        {"type": "url", "value": "https://example.com/generated-report.pdf"},
+    ],
 )
+
+# Refund an order — issues a full refund
+order = client.orders.refund("ord_9xM4kP7nR2qT5wY1")
+print(order.status)               # "refunded"
 
 # Ship an order — add tracking info
 order = client.orders.ship(
@@ -243,6 +274,9 @@ webhook = client.webhooks.update(
     events=[WebhookEventType.ORDER_PAID],
 )
 
+# Retry a failed webhook event delivery
+client.webhooks.retry_event("wh_3mK8nP2qR5tW7xY1", event_id="evt_2nL9oQ3rS6uX8zV2")
+
 # Delete
 client.webhooks.delete("wh_3mK8nP2qR5tW7xY1")
 ```
@@ -256,6 +290,9 @@ print(account.email)        # seller@example.com
 print(account.plan)         # free | growth | scale
 print(account.fee_rate)     # "0.10" (10%)
 print(account.readiness.operational)
+
+# Delete account — irreversible
+client.account.delete()
 ```
 
 ### Signup
@@ -290,61 +327,39 @@ print(new_key.key)  # lb_... (save this immediately)
 client.api_keys.delete("lbk_7kQ2xY9mN3pR5tW1")
 ```
 
-### Stores
+### Customers
 
 ```python
-# Create a store
-store = client.stores.create(handle="fitness-brand", name="Fitness Brand")
-print(store.id)      # str_7kQ2xY9mN3pR5tW1vB8a
-print(store.handle)  # fitness-brand
+# List all customers (buyers who have placed orders)
+for customer in client.customers.list():
+    print(customer.email, customer.order_count)
 
-# List all stores
-stores = client.stores.list()
-for s in stores.data:
-    print(s.handle, s.display_name)
+# Get a customer by ID
+customer = client.customers.get("acc_4hR9nK2mQ7tV5wX1")
+print(customer.email)
+print(customer.total_spent)    # total amount in cents
+print(customer.order_count)
+```
 
-# Get a store
-store = client.stores.get("str_7kQ2xY9mN3pR5tW1vB8a")
+### Files
 
-# Update a store
-store = client.stores.update(
-    "str_7kQ2xY9mN3pR5tW1vB8a",
-    name="Fitness Pro",
-    bio="Premium fitness content",
-    social_links=["https://twitter.com/fitnesspro"],
-)
+```python
+# Upload a file to use as a deliverable
+with open("playbook.pdf", "rb") as f:
+    file = client.files.upload(file=f, filename="playbook.pdf")
+print(file.id)      # file ID to reference in set_deliverables
+print(file.url)     # CDN URL
 
-# Delete a store
-client.stores.delete("str_7kQ2xY9mN3pR5tW1vB8a")
-
-# Connect Stripe — returns a URL to redirect the user to
-session = client.stores.connect_stripe("str_7kQ2xY9mN3pR5tW1vB8a")
-print(session.url)  # redirect seller here
-
-# Custom domains
-domain = client.stores.set_domain("str_7kQ2xY9mN3pR5tW1vB8a", domain="fitness.com")
-print(domain.cname_target)  # buy.listbee.so — point your CNAME here
-
-domain = client.stores.verify_domain("str_7kQ2xY9mN3pR5tW1vB8a")
-print(domain.status)  # "verified" or "pending"
-
-client.stores.remove_domain("str_7kQ2xY9mN3pR5tW1vB8a")
-
-# Create a listing in a specific store
-listing = client.listings.create(
-    name="SEO Playbook",
-    price=2900,
-    deliverable="https://example.com/seo-playbook.pdf",
-    store_id="str_7kQ2xY9mN3pR5tW1vB8a",
+# Then attach to a listing
+client.listings.set_deliverables(
+    "r7kq2xy9",
+    deliverables=[{"type": "file", "file_id": file.id}],
 )
 ```
 
 ### Stripe
 
 ```python
-# Set your Stripe secret key
-client.stripe.set_key(key="sk_live_...")
-
 # Generate a Stripe Connect onboarding link
 connect = client.stripe.connect()
 print(connect.url)  # redirect seller here
@@ -357,14 +372,26 @@ client.stripe.disconnect()
 
 ListBee supports two fulfillment modes:
 
-**Managed** — ListBee delivers digital content (files, URLs, text) automatically via access grants. Set a `deliverable` on the listing and ListBee handles the rest.
+**Managed** — ListBee delivers digital content (files, URLs, text) automatically via access grants. Attach deliverables to the listing and ListBee handles the rest.
 
 ```python
-listing = client.listings.create(
-    name="SEO Playbook",
-    price=2900,
-    deliverable="https://example.com/seo-playbook.pdf",
-    # fulfillment defaults to "managed" when deliverable is provided
+# Create draft → attach deliverable → publish
+listing = client.listings.create(name="SEO Playbook", price=2900)
+client.listings.set_deliverables(
+    listing.slug,
+    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
+)
+listing = client.listings.publish(listing.slug)
+```
+
+Upload a file and use it as a deliverable:
+
+```python
+with open("playbook.pdf", "rb") as f:
+    file = client.files.upload(file=f, filename="playbook.pdf")
+client.listings.set_deliverables(
+    listing.slug,
+    deliverables=[{"type": "file", "file_id": file.id}],
 )
 ```
 
@@ -379,11 +406,14 @@ listing = client.listings.create(
         {"name": "topic", "label": "Report Topic", "type": "text", "required": True},
     ],
 )
+listing = client.listings.publish(listing.slug)
 
 # When you receive the order.paid webhook, generate and fulfill:
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    deliverable="Your personalized report...",
+    deliverables=[
+        {"type": "text", "value": "Your personalized report..."},
+    ],
 )
 ```
 
@@ -529,12 +559,13 @@ from listbee import AsyncListBee
 async def main():
     client = AsyncListBee(api_key="lb_...")
 
-    # Create a listing
-    listing = await client.listings.create(
-        name="SEO Playbook",
-        price=2900,
-        deliverable="https://example.com/seo-playbook.pdf",
+    # Create a listing, attach deliverable, publish
+    listing = await client.listings.create(name="SEO Playbook", price=2900)
+    await client.listings.set_deliverables(
+        listing.slug,
+        deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
     )
+    listing = await client.listings.publish(listing.slug)
     print(listing.url)
 
     # Iterate all listings
@@ -548,7 +579,7 @@ async def main():
     # Fulfill an order (async)
     order = await client.orders.fulfill(
         "ord_9xM4kP7nR2qT5wY1",
-        deliverable="Generated content here",
+        deliverables=[{"type": "text", "value": "Generated content here"}],
     )
 
 asyncio.run(main())
@@ -590,7 +621,6 @@ client = ListBee(
 listing = client.listings.create(
     name="Quick listing",
     price=999,
-    deliverable="https://example.com/file.pdf",
     timeout=30.0,  # override the 120s default for this call
 )
 ```
@@ -610,9 +640,8 @@ from listbee import (
     OrderResponse,
     WebhookResponse,
     AccountResponse,
-    StoreResponse,
-    StoreListResponse,
-    DomainResponse,
+    CustomerResponse,
+    FileResponse,
     ListingReadiness,
     AccountReadiness,
     Action,
@@ -627,17 +656,15 @@ from listbee import (
     DeliverableResponse,  # {object, type, has_content}
 
     # Enums
-    DeliverableType,    # "file" | "url" | "text"
-    ContentType,        # alias for DeliverableType (backwards compat)
-    FulfillmentMode,    # "managed" | "external"
-    CheckoutFieldType,  # "text" | "select" | "address" | "date"
-    BlurMode,           # "auto" | "true" | "false"
-    ListingStatus,      # "active" | "paused"
-    OrderStatus,        # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
-    DomainStatus,       # "pending" | "verified" | "stale"
-    WebhookEventType,   # "order.paid" | "order.fulfilled" | "order.shipped" | ...
-    ActionCode,         # "set_stripe_key" | "configure_webhook" | ...
-    ActionKind,         # "api" | "human"
+    DeliverableType,     # "file" | "url" | "text"
+    FulfillmentMode,     # "managed" | "external"
+    CheckoutFieldType,   # "text" | "select" | "address" | "date"
+    BlurMode,            # "auto" | "true" | "false"
+    ListingStatus,       # "draft" | "active"
+    OrderStatus,         # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
+    WebhookEventType,    # "order.paid" | "order.fulfilled" | "order.shipped" | ...
+    ActionCode,          # "connect_stripe" | "configure_webhook" | ...
+    ActionKind,          # "api" | "human"
 
     # Exceptions
     ListBeeError,
