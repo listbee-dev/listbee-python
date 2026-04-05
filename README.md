@@ -1,5 +1,10 @@
 # listbee
 
+[![PyPI](https://img.shields.io/pypi/v/listbee)](https://pypi.org/project/listbee/)
+[![Python](https://img.shields.io/pypi/pyversions/listbee)](https://pypi.org/project/listbee/)
+[![CI](https://github.com/listbee-dev/listbee-python/actions/workflows/ci.yml/badge.svg)](https://github.com/listbee-dev/listbee-python/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 Official Python SDK for the [ListBee API](https://listbee.so) — sell anything, payment collected, digital delivery handled.
 
 ## Install
@@ -13,6 +18,26 @@ uv add listbee
 ```
 
 ## Quick Start
+
+```python
+from listbee import ListBee
+
+client = ListBee(api_key="lb_...")
+```
+
+## Resources
+
+| Resource | Methods |
+|----------|---------|
+| Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, publish |
+| Orders | get, list, deliver, refund, ship |
+| Customers | get, list |
+| Files | upload |
+| Webhooks | create, list, update, delete, list_events, retry_event, test |
+| Account | get, update, delete |
+| Stripe | connect, disconnect |
+| Signup | create, verify |
+| API Keys | create, list, delete |
 
 ```python
 from listbee import ListBee
@@ -178,7 +203,7 @@ client.listings.remove_deliverables("r7kq2xy9")
 
 # Publish a draft listing — makes it live and purchasable
 listing = client.listings.publish("r7kq2xy9")
-print(listing.status)    # "active"
+print(listing.status)    # "published"
 
 # Delete
 client.listings.delete("m3pr5tw1")
@@ -202,8 +227,8 @@ print(order.checkout_data)        # custom fields from checkout
 print(order.shipping_address)     # ShippingAddress or None
 print(order.paid_at)              # when payment was confirmed
 
-# Fulfill an order — push deliverables for delivery (external fulfillment)
-order = client.orders.fulfill(
+# Deliver an order — push deliverables for delivery (external fulfillment)
+order = client.orders.deliver(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         {"type": "text", "value": "Here is your personalized report..."},
@@ -211,17 +236,17 @@ order = client.orders.fulfill(
 )
 print(order.status)               # "fulfilled"
 
-# Fulfill with a URL
-order = client.orders.fulfill(
+# Deliver with a URL
+order = client.orders.deliver(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         {"type": "url", "value": "https://example.com/generated-report.pdf"},
     ],
 )
 
-# Refund an order — issues a full refund
+# Refund an order — issues a full refund and marks order canceled
 order = client.orders.refund("ord_9xM4kP7nR2qT5wY1")
-print(order.status)               # "refunded"
+print(order.status)               # "canceled"
 
 # Ship an order — add tracking info
 order = client.orders.ship(
@@ -408,8 +433,8 @@ listing = client.listings.create(
 )
 listing = client.listings.publish(listing.slug)
 
-# When you receive the order.paid webhook, generate and fulfill:
-order = client.orders.fulfill(
+# When you receive the order.paid webhook, generate and deliver:
+order = client.orders.deliver(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         {"type": "text", "value": "Your personalized report..."},
@@ -454,11 +479,36 @@ if not listing.readiness.sellable:
 
 | Code | Meaning |
 |------|---------|
-| `payments_not_configured` | No Stripe account connected |
-| `charges_disabled` | Stripe charges are disabled |
-| `billing_past_due` | ListBee subscription payment failed |
-| `billing_unpaid` | ListBee subscription unpaid |
+| `connect_stripe` | No Stripe account connected — start Connect onboarding |
+| `enable_charges` | Stripe charges are disabled — complete Stripe onboarding |
+| `update_billing` | ListBee subscription payment failed or unpaid |
 | `configure_webhook` | External fulfillment listing needs a webhook endpoint |
+| `publish_listing` | Listing is a draft — publish to make it purchasable |
+| `webhook_disabled` | Webhook endpoint is disabled |
+
+## Webhook Signature Verification
+
+Verify that incoming webhook requests genuinely come from ListBee before processing them.
+
+```python
+from listbee import verify_signature, WebhookVerificationError
+
+# In your webhook handler (e.g. FastAPI, Flask, Django):
+payload = request.body      # raw bytes — do not parse first
+signature = request.headers["listbee-signature"]
+secret = "whsec_..."        # from webhook.secret at creation time
+
+try:
+    verify_signature(payload=payload, signature=signature, secret=secret)
+except WebhookVerificationError:
+    # Signature invalid — reject the request
+    return Response(status_code=401)
+
+# Signature valid — safe to process the event
+event = json.loads(payload)
+```
+
+`verify_signature` raises `WebhookVerificationError` (a subclass of `ListBeeError`) if the signature is missing, malformed, or does not match.
 
 ## Pagination
 
@@ -576,8 +626,8 @@ async def main():
     async for order in await client.orders.list(status="paid"):
         print(order.id)
 
-    # Fulfill an order (async)
-    order = await client.orders.fulfill(
+    # Deliver an order (async)
+    order = await client.orders.deliver(
         "ord_9xM4kP7nR2qT5wY1",
         deliverables=[{"type": "text", "value": "Generated content here"}],
     )
@@ -660,7 +710,7 @@ from listbee import (
     FulfillmentMode,     # "managed" | "external"
     CheckoutFieldType,   # "text" | "select" | "address" | "date"
     BlurMode,            # "auto" | "true" | "false"
-    ListingStatus,       # "draft" | "active"
+    ListingStatus,       # "draft" | "published"
     OrderStatus,         # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
     WebhookEventType,    # "order.paid" | "order.fulfilled" | "order.shipped" | ...
     ActionCode,          # "connect_stripe" | "configure_webhook" | ...
@@ -686,7 +736,7 @@ Use enums to avoid magic strings:
 from listbee import DeliverableType, FulfillmentMode, ActionCode, ActionKind, WebhookEventType
 
 # Check deliverable type
-if listing.deliverable and listing.deliverable.type == DeliverableType.FILE:
+if listing.has_deliverables and listing.deliverables[0].type == DeliverableType.FILE:
     print("Delivers a file")
 
 # Check fulfillment mode

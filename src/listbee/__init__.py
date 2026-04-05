@@ -4,11 +4,12 @@ Usage:
     from listbee import ListBee
 
     client = ListBee(api_key="lb_...")
-    listing = client.listings.create(
-        name="SEO Playbook",
-        price=2999,
-        deliverable="https://example.com/ebook.pdf",
+    listing = client.listings.create(name="SEO Playbook", price=2999)
+    client.listings.set_deliverables(
+        listing.slug,
+        deliverables=[{"type": "url", "value": "https://example.com/ebook.pdf"}],
     )
+    listing = client.listings.publish(listing.slug)
     print(listing.url)
 """
 
