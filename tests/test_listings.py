@@ -23,9 +23,11 @@ LISTING_JSON = {
     "cta": None,
     "price": 2900,
     "fulfillment": "managed",
-    "deliverable": {"object": "deliverable", "type": "file", "has_content": True},
-    "has_deliverable": True,
+    "deliverables": [{"object": "deliverable", "type": "file", "has_content": True}],
+    "has_deliverables": True,
     "has_cover": True,
+    "stock": None,
+    "embed_url": None,
     "checkout_schema": None,
     "compare_at_price": None,
     "badges": [],
@@ -50,8 +52,8 @@ EXTERNAL_LISTING_JSON = {
     "slug": "custom-service",
     "name": "Custom Service",
     "fulfillment": "external",
-    "deliverable": None,
-    "has_deliverable": False,
+    "deliverables": [],
+    "has_deliverables": False,
     "checkout_schema": [
         {
             "name": "shirt_size",
@@ -274,10 +276,10 @@ class TestFulfillmentFields:
             mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.get("seo-playbook")
         assert result.fulfillment == "managed"
-        assert result.deliverable is not None
-        assert result.deliverable.type == "file"
-        assert result.deliverable.has_content is True
-        assert result.has_deliverable is True
+        assert len(result.deliverables) == 1
+        assert result.deliverables[0].type == "file"
+        assert result.deliverables[0].has_content is True
+        assert result.has_deliverables is True
         assert result.checkout_schema is None
 
     def test_listing_response_external_fulfillment(self, listings):
@@ -285,8 +287,8 @@ class TestFulfillmentFields:
             mock.get("/v1/listings/custom-service").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
             result = listings.get("custom-service")
         assert result.fulfillment == "external"
-        assert result.deliverable is None
-        assert result.has_deliverable is False
+        assert result.deliverables == []
+        assert result.has_deliverables is False
         assert result.checkout_schema is not None
         assert len(result.checkout_schema) == 1
         assert result.checkout_schema[0].name == "shirt_size"

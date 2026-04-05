@@ -26,7 +26,7 @@ class Signup:
             A :class:`~listbee.types.signup.SignupResponse` confirming the OTP was sent.
         """
         response = self._client.post(
-            "/v1/account/signup",
+            "/v1/account",
             json={"email": email},
             authenticated=False,
         )
@@ -44,7 +44,7 @@ class Signup:
             account and API key.
         """
         response = self._client.post(
-            "/v1/account/verify",
+            "/v1/account/verify/otp",
             json={"email": email, "code": code},
             authenticated=False,
         )
@@ -67,7 +67,7 @@ class AsyncSignup:
             A :class:`~listbee.types.signup.SignupResponse` confirming the OTP was sent.
         """
         response = await self._client.post(
-            "/v1/account/signup",
+            "/v1/account",
             json={"email": email},
             authenticated=False,
         )
@@ -85,7 +85,7 @@ class AsyncSignup:
             account and API key.
         """
         response = await self._client.post(
-            "/v1/account/verify",
+            "/v1/account/verify/otp",
             json={"email": email, "code": code},
             authenticated=False,
         )

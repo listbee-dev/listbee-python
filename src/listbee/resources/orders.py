@@ -78,13 +78,13 @@ class Orders:
             params["cursor"] = cursor
         return self._client.get_page("/v1/orders", params, OrderResponse)
 
-    def fulfill(
+    def deliver(
         self,
         order_id: str,
         *,
         deliverables: list[dict[str, Any]],
     ) -> OrderResponse:
-        """Fulfill an order by pushing deliverables for ListBee to deliver.
+        """Deliver an order by pushing deliverables for ListBee to deliver.
 
         Each deliverable dict has ``type`` ('file', 'url', 'text') and either
         ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
@@ -94,7 +94,7 @@ class Orders:
             deliverables: Array of deliverable dicts to attach.
 
         Returns:
-            The fulfilled :class:`~listbee.types.order.OrderResponse`.
+            The delivered :class:`~listbee.types.order.OrderResponse`.
         """
         body: dict[str, Any] = {"deliverables": deliverables}
         response = self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
@@ -210,13 +210,13 @@ class AsyncOrders:
             params["cursor"] = cursor
         return await self._client.get_page("/v1/orders", params, OrderResponse)
 
-    async def fulfill(
+    async def deliver(
         self,
         order_id: str,
         *,
         deliverables: list[dict[str, Any]],
     ) -> OrderResponse:
-        """Fulfill an order by pushing deliverables for ListBee to deliver (async).
+        """Deliver an order by pushing deliverables for ListBee to deliver (async).
 
         Each deliverable dict has ``type`` ('file', 'url', 'text') and either
         ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
@@ -226,7 +226,7 @@ class AsyncOrders:
             deliverables: Array of deliverable dicts to attach.
 
         Returns:
-            The fulfilled :class:`~listbee.types.order.OrderResponse`.
+            The delivered :class:`~listbee.types.order.OrderResponse`.
         """
         body: dict[str, Any] = {"deliverables": deliverables}
         response = await self._client.post(f"/v1/orders/{order_id}/deliver", json=body)

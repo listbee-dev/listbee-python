@@ -51,8 +51,16 @@ class APIStatusError(ListBeeError):
         super().__init__(detail)
 
 
+class BadRequestError(APIStatusError):
+    """Raised on 400 responses — malformed request."""
+
+
 class AuthenticationError(APIStatusError):
     """Raised on 401 responses — invalid or missing API key."""
+
+
+class ForbiddenError(APIStatusError):
+    """Raised on 403 responses — insufficient permissions."""
 
 
 class NotFoundError(APIStatusError):
@@ -99,14 +107,21 @@ class InternalServerError(APIStatusError):
     """Raised on 500+ responses — server-side error."""
 
 
+class PayloadTooLargeError(APIStatusError):
+    """Raised on 413 responses — request body too large."""
+
+
 class WebhookVerificationError(ListBeeError):
     """Raised when webhook signature verification fails."""
 
 
 STATUS_CODE_TO_EXCEPTION: dict[int, type[APIStatusError]] = {
+    400: BadRequestError,
     401: AuthenticationError,
+    403: ForbiddenError,
     404: NotFoundError,
     409: ConflictError,
+    413: PayloadTooLargeError,
     422: ValidationError,
     429: RateLimitError,
 }

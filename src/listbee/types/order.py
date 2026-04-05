@@ -54,9 +54,9 @@ class OrderResponse(BaseModel):
         default=None,
         description="Shipping address collected at checkout, if applicable.",
     )
-    deliverable: DeliverableResponse | None = Field(
-        default=None,
-        description="Deliverable attached to this order. Present when the listing has a managed deliverable.",
+    deliverables: list[DeliverableResponse] = Field(
+        default_factory=list,
+        description="Deliverables attached to this order.",
     )
     shipped_at: datetime | None = Field(
         default=None,
@@ -83,6 +83,34 @@ class OrderResponse(BaseModel):
     fulfilled_at: datetime | None = Field(
         default=None,
         description="ISO 8601 timestamp of when the order was fulfilled.",
+    )
+    refund_amount: int = Field(
+        default=0,
+        description="Refund amount in smallest currency unit. 0 if not refunded.",
+    )
+    refunded_at: datetime | None = Field(
+        default=None,
+        description="ISO 8601 timestamp of when the refund was issued.",
+    )
+    dispute_amount: int = Field(
+        default=0,
+        description="Disputed amount in smallest currency unit. 0 if not disputed.",
+    )
+    dispute_reason: str | None = Field(
+        default=None,
+        description="Reason for the dispute, if any.",
+    )
+    dispute_status: str | None = Field(
+        default=None,
+        description="Current dispute status (e.g. 'needs_response', 'won', 'lost').",
+    )
+    disputed_at: datetime | None = Field(
+        default=None,
+        description="ISO 8601 timestamp of when the dispute was opened.",
+    )
+    platform_fee: int = Field(
+        default=0,
+        description="Platform fee in smallest currency unit collected by ListBee.",
     )
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the order was created.",

@@ -95,12 +95,12 @@ class ListingResponse(BaseModel):
         description="How orders for this listing are fulfilled. 'managed' = ListBee delivers, 'external' = seller handles via webhook.",
         examples=["managed"],
     )
-    deliverable: DeliverableResponse | None = Field(
-        default=None,
-        description="Digital deliverable attached to this listing. None when fulfillment is external with no deliverable.",
+    deliverables: list[DeliverableResponse] = Field(
+        default_factory=list,
+        description="Digital deliverables attached to this listing. Empty when fulfillment is external with no deliverable.",
     )
-    has_deliverable: bool = Field(
-        description="`true` if a deliverable was successfully stored.",
+    has_deliverables: bool = Field(
+        description="`true` if at least one deliverable is attached.",
         examples=[True],
     )
     has_cover: bool = Field(
@@ -166,12 +166,20 @@ class ListingResponse(BaseModel):
     )
     status: ListingStatus = Field(
         description="Current listing status.",
-        examples=["active"],
+        examples=["draft"],
     )
     url: str | None = Field(
         default=None,
         description="Full product page URL — share this with buyers.",
         examples=["https://buy.listbee.so/seo-playbook"],
+    )
+    stock: int | None = Field(
+        default=None,
+        description="Available stock quantity. Null means unlimited.",
+    )
+    embed_url: str | None = Field(
+        default=None,
+        description="Embeddable checkout URL for this listing.",
     )
     readiness: ListingReadiness = Field(
         description=(
