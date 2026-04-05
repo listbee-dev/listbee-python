@@ -26,6 +26,13 @@ class Account:
         response = self._client.get("/v1/account")
         return AccountResponse.model_validate(response.json())
 
+    def delete(self) -> None:
+        """Delete the authenticated account.
+
+        This is irreversible. All listings, orders, and webhooks are deleted.
+        """
+        self._client.delete("/v1/account")
+
     def update(self, *, ga_measurement_id: str | None = None) -> AccountResponse:
         """Update account settings.
 
@@ -57,6 +64,13 @@ class AsyncAccount:
         """
         response = await self._client.get("/v1/account")
         return AccountResponse.model_validate(response.json())
+
+    async def delete(self) -> None:
+        """Delete the authenticated account (async).
+
+        This is irreversible. All listings, orders, and webhooks are deleted.
+        """
+        await self._client.delete("/v1/account")
 
     async def update(self, *, ga_measurement_id: str | None = None) -> AccountResponse:
         """Update account settings (async).

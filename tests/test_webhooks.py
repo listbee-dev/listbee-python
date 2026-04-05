@@ -191,3 +191,21 @@ class TestWebhookTest:
         assert isinstance(result, WebhookTestResponse)
         assert result.success is True
         assert result.status_code == 200
+
+
+class TestRetryEvent:
+    def test_retry_event_returns_event_response(self, webhooks):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/webhooks/wh_abc123/events/evt_def456/retry").mock(
+                return_value=httpx.Response(200, json=WEBHOOK_EVENT_JSON)
+            )
+            result = webhooks.retry_event("wh_abc123", "evt_def456")
+        assert isinstance(result, WebhookEventResponse)
+
+    def test_retry_event_sends_correct_path(self, webhooks):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/webhooks/wh_abc123/events/evt_def456/retry").mock(
+                return_value=httpx.Response(200, json=WEBHOOK_EVENT_JSON)
+            )
+            webhooks.retry_event("wh_abc123", "evt_def456")
+        assert route.called

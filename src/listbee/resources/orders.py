@@ -82,28 +82,37 @@ class Orders:
         self,
         order_id: str,
         *,
-        deliverable: str,
+        deliverables: list[dict[str, Any]],
     ) -> OrderResponse:
-        """Fulfill an order by pushing a deliverable to ListBee for delivery.
+        """Fulfill an order by pushing deliverables for ListBee to deliver.
 
-        Used with external fulfillment to deliver AI-generated or dynamically
-        created content through ListBee's managed delivery system. The
-        ``deliverable`` value is auto-detected: a URL triggers URL delivery,
-        a file path or base64 string triggers file delivery, and plain text
-        triggers text delivery.
-
-        Only valid for orders on listings with ``fulfillment="external"``.
+        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
+        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverable: The content to deliver — URL, file path, or plain text.
-                Type is auto-detected by the API.
+            deliverables: Array of deliverable dicts to attach.
 
         Returns:
             The fulfilled :class:`~listbee.types.order.OrderResponse`.
         """
-        body: dict[str, Any] = {"deliverable": deliverable}
-        response = self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
+        body: dict[str, Any] = {"deliverables": deliverables}
+        response = self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
+        return OrderResponse.model_validate(response.json())
+
+    def refund(self, order_id: str) -> OrderResponse:
+        """Issue a full refund for an order.
+
+        Only orders with status 'paid' or 'fulfilled' can be refunded.
+        Idempotent — calling on an already-refunded order returns it as-is.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+
+        Returns:
+            The :class:`~listbee.types.order.OrderResponse`.
+        """
+        response = self._client.post(f"/v1/orders/{order_id}/refund")
         return OrderResponse.model_validate(response.json())
 
     def ship(
@@ -205,28 +214,37 @@ class AsyncOrders:
         self,
         order_id: str,
         *,
-        deliverable: str,
+        deliverables: list[dict[str, Any]],
     ) -> OrderResponse:
-        """Fulfill an order by pushing a deliverable to ListBee for delivery (async).
+        """Fulfill an order by pushing deliverables for ListBee to deliver (async).
 
-        Used with external fulfillment to deliver AI-generated or dynamically
-        created content through ListBee's managed delivery system. The
-        ``deliverable`` value is auto-detected: a URL triggers URL delivery,
-        a file path or base64 string triggers file delivery, and plain text
-        triggers text delivery.
-
-        Only valid for orders on listings with ``fulfillment="external"``.
+        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
+        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverable: The content to deliver — URL, file path, or plain text.
-                Type is auto-detected by the API.
+            deliverables: Array of deliverable dicts to attach.
 
         Returns:
             The fulfilled :class:`~listbee.types.order.OrderResponse`.
         """
-        body: dict[str, Any] = {"deliverable": deliverable}
-        response = await self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
+        body: dict[str, Any] = {"deliverables": deliverables}
+        response = await self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
+        return OrderResponse.model_validate(response.json())
+
+    async def refund(self, order_id: str) -> OrderResponse:
+        """Issue a full refund for an order (async).
+
+        Only orders with status 'paid' or 'fulfilled' can be refunded.
+        Idempotent — calling on an already-refunded order returns it as-is.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+
+        Returns:
+            The :class:`~listbee.types.order.OrderResponse`.
+        """
+        response = await self._client.post(f"/v1/orders/{order_id}/refund")
         return OrderResponse.model_validate(response.json())
 
     async def ship(

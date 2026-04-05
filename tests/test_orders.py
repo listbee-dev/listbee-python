@@ -236,42 +236,63 @@ class TestOrderCheckoutData:
 class TestFulfillOrder:
     def test_fulfill_order_with_text(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/deliver").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            result = orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverable="Here is your AI-generated report")
+            result = orders.fulfill(
+                "ord_9xM4kP7nR2qT5wY1",
+                deliverables=[{"type": "text", "value": "Here is your AI-generated report"}],
+            )
         assert isinstance(result, OrderResponse)
         assert result.status == "fulfilled"
         body = json.loads(route.calls[0].request.content)
-        assert body["deliverable"] == "Here is your AI-generated report"
+        assert body["deliverables"] == [{"type": "text", "value": "Here is your AI-generated report"}]
 
     def test_fulfill_order_with_url(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/deliver").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverable="https://example.com/generated.pdf")
+            orders.fulfill(
+                "ord_9xM4kP7nR2qT5wY1",
+                deliverables=[{"type": "url", "value": "https://example.com/generated.pdf"}],
+            )
         body = json.loads(route.calls[0].request.content)
-        assert body["deliverable"] == "https://example.com/generated.pdf"
-        assert "content" not in body
-        assert "content_type" not in body
-        assert "content_url" not in body
+        assert body["deliverables"][0]["value"] == "https://example.com/generated.pdf"
 
-    def test_fulfill_order_sends_deliverable_key(self, orders):
+    def test_fulfill_order_sends_deliverables_key(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/deliver").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverable="some content")
+            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverables=[{"type": "text", "value": "some content"}])
         body = json.loads(route.calls[0].request.content)
-        assert "deliverable" in body
+        assert "deliverables" in body
 
     def test_fulfill_order_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_abc/fulfill").mock(
+            route = mock.post("/v1/orders/ord_abc/deliver").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_abc", deliverable="some content")
+            orders.fulfill("ord_abc", deliverables=[{"type": "text", "value": "some content"}])
+        assert route.called
+
+
+class TestRefundOrder:
+    def test_refund_returns_order_response(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/orders/ord_abc123/refund").mock(
+                return_value=httpx.Response(200, json=ORDER_JSON)
+            )
+            result = orders.refund("ord_abc123")
+        assert isinstance(result, OrderResponse)
+
+    def test_refund_sends_correct_path(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/orders/ord_abc/refund").mock(
+                return_value=httpx.Response(200, json=ORDER_JSON)
+            )
+            orders.refund("ord_abc")
         assert route.called
 
 

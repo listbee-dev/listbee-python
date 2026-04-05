@@ -136,6 +136,19 @@ class Webhooks:
             model=WebhookEventResponse,
         )
 
+    def retry_event(self, webhook_id: str, event_id: str) -> WebhookEventResponse:
+        """Retry delivery of a failed webhook event.
+
+        Args:
+            webhook_id: The webhook's unique identifier.
+            event_id: The event's unique identifier.
+
+        Returns:
+            The :class:`~listbee.types.webhook.WebhookEventResponse`.
+        """
+        response = self._client.post(f"/v1/webhooks/{webhook_id}/events/{event_id}/retry")
+        return WebhookEventResponse.model_validate(response.json())
+
     def test(self, webhook_id: str) -> WebhookTestResponse:
         """Send a test event to the webhook endpoint.
 
@@ -273,6 +286,19 @@ class AsyncWebhooks:
             params=params,
             model=WebhookEventResponse,
         )
+
+    async def retry_event(self, webhook_id: str, event_id: str) -> WebhookEventResponse:
+        """Retry delivery of a failed webhook event (async).
+
+        Args:
+            webhook_id: The webhook's unique identifier.
+            event_id: The event's unique identifier.
+
+        Returns:
+            The :class:`~listbee.types.webhook.WebhookEventResponse`.
+        """
+        response = await self._client.post(f"/v1/webhooks/{webhook_id}/events/{event_id}/retry")
+        return WebhookEventResponse.model_validate(response.json())
 
     async def test(self, webhook_id: str) -> WebhookTestResponse:
         """Send a test event to the webhook endpoint (async).

@@ -117,3 +117,21 @@ class TestUpdateAccount:
             mock.get("/v1/account").mock(return_value=httpx.Response(200, json=with_ga))
             result = account.get()
         assert result.ga_measurement_id == "G-XXXXXXXXXXX"
+
+
+class TestDeleteAccount:
+    def test_delete_account_returns_none(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        account = Account(client)
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.delete("/v1/account").mock(return_value=httpx.Response(204))
+            result = account.delete()
+        assert result is None
+
+    def test_delete_account_sends_delete_request(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        account = Account(client)
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.delete("/v1/account").mock(return_value=httpx.Response(204))
+            account.delete()
+        assert route.called
