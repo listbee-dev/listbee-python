@@ -259,6 +259,54 @@ class Listings:
         """
         self._client.delete(f"/v1/listings/{slug}")
 
+    def set_deliverables(
+        self,
+        listing_id: str,
+        *,
+        deliverables: list[dict[str, Any]],
+    ) -> ListingResponse:
+        """Replace all deliverables on a draft listing.
+
+        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
+        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            deliverables: Array of deliverable dicts.
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+        """
+        body: dict[str, Any] = {"deliverables": deliverables}
+        response = self._client.put(f"/v1/listings/{listing_id}/deliverables", json=body)
+        return ListingResponse.model_validate(response.json())
+
+    def remove_deliverables(self, listing_id: str) -> ListingResponse:
+        """Remove all deliverables from a draft listing.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = self._client.delete(f"/v1/listings/{listing_id}/deliverables")
+        return ListingResponse.model_validate(response.json())
+
+    def publish(self, listing_id: str) -> ListingResponse:
+        """Publish a draft listing, making it live and buyable.
+
+        Fails with 409 if readiness requirements are not met.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+
+        Returns:
+            The published :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = self._client.post(f"/v1/listings/{listing_id}/publish")
+        return ListingResponse.model_validate(response.json())
+
 
 class AsyncListings:
     """Async resource for the /v1/listings endpoint."""
@@ -506,3 +554,51 @@ class AsyncListings:
             slug: The listing's URL slug (e.g. "seo-playbook").
         """
         await self._client.delete(f"/v1/listings/{slug}")
+
+    async def set_deliverables(
+        self,
+        listing_id: str,
+        *,
+        deliverables: list[dict[str, Any]],
+    ) -> ListingResponse:
+        """Replace all deliverables on a draft listing (async).
+
+        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
+        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            deliverables: Array of deliverable dicts.
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+        """
+        body: dict[str, Any] = {"deliverables": deliverables}
+        response = await self._client.put(f"/v1/listings/{listing_id}/deliverables", json=body)
+        return ListingResponse.model_validate(response.json())
+
+    async def remove_deliverables(self, listing_id: str) -> ListingResponse:
+        """Remove all deliverables from a draft listing (async).
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = await self._client.delete(f"/v1/listings/{listing_id}/deliverables")
+        return ListingResponse.model_validate(response.json())
+
+    async def publish(self, listing_id: str) -> ListingResponse:
+        """Publish a draft listing, making it live and buyable (async).
+
+        Fails with 409 if readiness requirements are not met.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+
+        Returns:
+            The published :class:`~listbee.types.listing.ListingResponse`.
+        """
+        response = await self._client.post(f"/v1/listings/{listing_id}/publish")
+        return ListingResponse.model_validate(response.json())

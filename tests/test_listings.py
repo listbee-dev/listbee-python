@@ -374,3 +374,53 @@ class TestUtmFields:
         assert result.utm_source is None
         assert result.utm_medium is None
         assert result.utm_campaign is None
+
+
+class TestSetDeliverables:
+    def test_set_deliverables_returns_listing_response(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.put("/v1/listings/lst_abc123/deliverables").mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.set_deliverables(
+                "lst_abc123",
+                deliverables=[{"type": "url", "value": "https://example.com/ebook.pdf"}],
+            )
+        assert isinstance(result, ListingResponse)
+
+    def test_set_deliverables_sends_correct_body(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/listings/lst_abc123/deliverables").mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            listings.set_deliverables(
+                "lst_abc123",
+                deliverables=[
+                    {"type": "file", "token": "file_abc"},
+                    {"type": "text", "value": "License key: ABC-123"},
+                ],
+            )
+        body = json.loads(route.calls[0].request.content)
+        assert len(body["deliverables"]) == 2
+        assert body["deliverables"][0]["type"] == "file"
+        assert body["deliverables"][0]["token"] == "file_abc"
+
+
+class TestRemoveDeliverables:
+    def test_remove_deliverables_returns_listing_response(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.delete("/v1/listings/lst_abc123/deliverables").mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.remove_deliverables("lst_abc123")
+        assert isinstance(result, ListingResponse)
+
+
+class TestPublishListing:
+    def test_publish_returns_listing_response(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/listings/lst_abc123/publish").mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.publish("lst_abc123")
+        assert isinstance(result, ListingResponse)
