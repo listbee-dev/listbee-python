@@ -55,7 +55,7 @@ class OrderResponse(BaseModel):
         description="Shipping address collected at checkout, if applicable.",
     )
     deliverables: list[DeliverableResponse] = Field(
-        default_factory=list,
+        default=[],
         description="Deliverables attached to this order.",
     )
     shipped_at: datetime | None = Field(

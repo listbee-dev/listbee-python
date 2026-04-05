@@ -96,7 +96,7 @@ class ListingResponse(BaseModel):
         examples=["managed"],
     )
     deliverables: list[DeliverableResponse] = Field(
-        default_factory=list,
+        default=[],
         description="Digital deliverables attached to this listing. Empty when fulfillment is external with no deliverable.",
     )
     has_deliverables: bool = Field(
