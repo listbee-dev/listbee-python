@@ -73,6 +73,16 @@ class BaseClient:
             headers["Authorization"] = f"Bearer {api_key}"
         return headers
 
+    def _build_multipart_headers(self, *, authenticated: bool = True) -> dict[str, str]:
+        """Headers for multipart requests — no Content-Type (httpx sets it with boundary)."""
+        headers: dict[str, str] = {
+            "User-Agent": f"listbee-python/{_sdk_version}",
+        }
+        if authenticated:
+            api_key = self._ensure_api_key()
+            headers["Authorization"] = f"Bearer {api_key}"
+        return headers
+
     def _should_retry(self, status_code: int, attempt: int) -> bool:
         """Return True if the request should be retried."""
         return status_code in RETRY_STATUS_CODES and attempt < self._max_retries
@@ -233,6 +243,58 @@ class SyncClient(BaseClient):
     ) -> httpx.Response:
         return self._request("DELETE", path, timeout=timeout, authenticated=authenticated)
 
+    def post_multipart(
+        self,
+        path: str,
+        *,
+        files: Any,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        """POST a multipart/form-data request (for file uploads)."""
+        headers = self._build_multipart_headers(authenticated=authenticated)
+        effective_timeout = timeout if timeout is not None else self._timeout
+        client = self._get_http_client()
+
+        attempt = 0
+        last_response: httpx.Response | None = None
+
+        while True:
+            try:
+                response = client.request(
+                    "POST",
+                    path,
+                    headers=headers,
+                    files=files,
+                    timeout=effective_timeout,
+                )
+            except httpx.TimeoutException as exc:
+                raise APITimeoutError(f"Request timed out: {exc}") from exc
+            except httpx.ConnectError as exc:
+                raise APIConnectionError(f"Connection error: {exc}") from exc
+
+            if response.is_error:
+                last_response = response
+                if self._should_retry(response.status_code, attempt):
+                    delay = self._retry_delay(attempt, response.headers)
+                    time.sleep(delay)
+                    attempt += 1
+                    continue
+                try:
+                    body: dict[str, Any] = response.json()
+                except Exception:
+                    body = {}
+                raise_for_status(response.status_code, body, dict(response.headers))
+
+            return response
+
+        assert last_response is not None  # pragma: no cover
+        try:
+            body_: dict[str, Any] = last_response.json()
+        except Exception:
+            body_ = {}
+        raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
+
     def get_page(self, path: str, params: dict[str, Any], model: type[T]) -> SyncCursorPage[T]:
         """Fetch a paginated list response and return a SyncCursorPage."""
         response = self.get(path, params=params)
@@ -381,6 +443,58 @@ class AsyncClient(BaseClient):
         authenticated: bool = True,
     ) -> httpx.Response:
         return await self._request("DELETE", path, timeout=timeout, authenticated=authenticated)
+
+    async def post_multipart(
+        self,
+        path: str,
+        *,
+        files: Any,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        """POST a multipart/form-data request (for file uploads)."""
+        headers = self._build_multipart_headers(authenticated=authenticated)
+        effective_timeout = timeout if timeout is not None else self._timeout
+        client = self._get_http_client()
+
+        attempt = 0
+        last_response: httpx.Response | None = None
+
+        while True:
+            try:
+                response = await client.request(
+                    "POST",
+                    path,
+                    headers=headers,
+                    files=files,
+                    timeout=effective_timeout,
+                )
+            except httpx.TimeoutException as exc:
+                raise APITimeoutError(f"Request timed out: {exc}") from exc
+            except httpx.ConnectError as exc:
+                raise APIConnectionError(f"Connection error: {exc}") from exc
+
+            if response.is_error:
+                last_response = response
+                if self._should_retry(response.status_code, attempt):
+                    delay = self._retry_delay(attempt, response.headers)
+                    await asyncio.sleep(delay)
+                    attempt += 1
+                    continue
+                try:
+                    body: dict[str, Any] = response.json()
+                except Exception:
+                    body = {}
+                raise_for_status(response.status_code, body, dict(response.headers))
+
+            return response
+
+        assert last_response is not None  # pragma: no cover
+        try:
+            body_: dict[str, Any] = last_response.json()
+        except Exception:
+            body_ = {}
+        raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
     async def get_page(self, path: str, params: dict[str, Any], model: type[T]) -> AsyncCursorPage[T]:
         """Fetch a paginated list response and return an AsyncCursorPage."""

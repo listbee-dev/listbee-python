@@ -139,6 +139,35 @@ class TestUnauthenticatedRequests:
             client.get("/v1/account")
 
 
+class TestMultipartUpload:
+    def test_post_multipart_sends_file(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/files").mock(
+                return_value=httpx.Response(201, json={"object": "file", "id": "file_abc123"})
+            )
+            response = client.post_multipart(
+                "/v1/files",
+                files={"file": ("test.pdf", b"fake-pdf-content", "application/pdf")},
+            )
+        assert response.status_code == 201
+        sent_headers = route.calls[0].request.headers
+        assert "multipart/form-data" in sent_headers.get("content-type", "")
+
+    def test_post_multipart_includes_auth_header(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/files").mock(
+                return_value=httpx.Response(201, json={"object": "file", "id": "file_abc123"})
+            )
+            client.post_multipart(
+                "/v1/files",
+                files={"file": ("test.pdf", b"fake-pdf-content", "application/pdf")},
+            )
+        sent_headers = route.calls[0].request.headers
+        assert sent_headers["authorization"] == "Bearer lb_test_key_1234567890abcdef"
+
+
 class TestTransportErrors:
     def test_timeout_raises_api_timeout_error(self):
         client = SyncClient(api_key="lb_key", max_retries=0)
