@@ -2,6 +2,7 @@
 
 from listbee.resources.account import Account, AsyncAccount
 from listbee.resources.api_keys import ApiKeys, AsyncApiKeys
+from listbee.resources.files import AsyncFiles, Files
 from listbee.resources.listings import AsyncListings, Listings
 from listbee.resources.orders import AsyncOrders, Orders
 from listbee.resources.signup import AsyncSignup, Signup
@@ -13,9 +14,11 @@ __all__ = [
     "ApiKeys",
     "AsyncAccount",
     "AsyncApiKeys",
+    "AsyncFiles",
     "AsyncListings",
     "AsyncOrders",
     "AsyncWebhooks",
+    "Files",
     "Listings",
     "Orders",
     "AsyncSignup",
