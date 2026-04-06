@@ -359,3 +359,40 @@ class TestShipOrder:
         assert result.tracking_code == "9400111899223456789012"
         assert result.seller_note == "Ships within 3 days"
         assert result.shipped_at is not None
+
+
+from listbee.deliverable import Deliverable
+
+
+class TestDeliverWithDeliverableClass:
+    @respx.mock
+    def test_deliver_with_file(self, sync_client):
+        respx.post("https://api.listbee.so/v1/files").mock(
+            return_value=httpx.Response(201, json={
+                "object": "file", "id": "file_tok_abc", "filename": "report.pdf",
+                "size": 1024, "mime_type": "application/pdf", "purpose": "deliverable",
+                "expires_at": "2026-04-07T12:00:00Z", "created_at": "2026-04-06T12:00:00Z",
+            })
+        )
+        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/deliver").mock(
+            return_value=httpx.Response(200, json=ORDER_JSON)
+        )
+        result = Orders(sync_client).deliver(
+            "ord_abc",
+            deliverables=[Deliverable.file(b"content", filename="report.pdf")],
+        )
+        assert result.id == ORDER_JSON["id"]
+        sent = json.loads(route.calls[0].request.content)
+        assert sent["deliverables"][0] == {"type": "file", "token": "file_tok_abc"}
+
+    @respx.mock
+    def test_deliver_with_text(self, sync_client):
+        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/deliver").mock(
+            return_value=httpx.Response(200, json=ORDER_JSON)
+        )
+        Orders(sync_client).deliver(
+            "ord_abc",
+            deliverables=[Deliverable.text("Your report")],
+        )
+        sent = json.loads(route.calls[0].request.content)
+        assert sent == {"deliverables": [{"type": "text", "value": "Your report"}]}

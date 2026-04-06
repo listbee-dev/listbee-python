@@ -82,21 +82,36 @@ class Orders:
         self,
         order_id: str,
         *,
-        deliverables: list[dict[str, Any]],
+        deliverables: list[Any],
     ) -> OrderResponse:
         """Deliver an order by pushing deliverables for ListBee to deliver.
 
-        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
-        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
+        Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
+        Files are uploaded transparently before delivering.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverables: Array of deliverable dicts to attach.
+            deliverables: List of Deliverable objects or dicts.
 
         Returns:
             The delivered :class:`~listbee.types.order.OrderResponse`.
         """
-        body: dict[str, Any] = {"deliverables": deliverables}
+        from listbee.deliverable import Deliverable as DeliverableInput
+        from listbee.resources.files import Files
+
+        resolved: list[dict[str, Any]] = []
+        files_resource = Files(self._client)
+        for d in deliverables:
+            if isinstance(d, DeliverableInput):
+                token = None
+                if d.needs_upload:
+                    file_resp = files_resource.upload(file=d._to_upload_tuple())
+                    token = file_resp.id
+                resolved.append(d._to_api_body(token=token))
+            else:
+                resolved.append(d)
+
+        body: dict[str, Any] = {"deliverables": resolved}
         response = self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
         return OrderResponse.model_validate(response.json())
 
@@ -214,21 +229,36 @@ class AsyncOrders:
         self,
         order_id: str,
         *,
-        deliverables: list[dict[str, Any]],
+        deliverables: list[Any],
     ) -> OrderResponse:
         """Deliver an order by pushing deliverables for ListBee to deliver (async).
 
-        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
-        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
+        Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
+        Files are uploaded transparently before delivering.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverables: Array of deliverable dicts to attach.
+            deliverables: List of Deliverable objects or dicts.
 
         Returns:
             The delivered :class:`~listbee.types.order.OrderResponse`.
         """
-        body: dict[str, Any] = {"deliverables": deliverables}
+        from listbee.deliverable import Deliverable as DeliverableInput
+        from listbee.resources.files import AsyncFiles
+
+        resolved: list[dict[str, Any]] = []
+        files_resource = AsyncFiles(self._client)
+        for d in deliverables:
+            if isinstance(d, DeliverableInput):
+                token = None
+                if d.needs_upload:
+                    file_resp = await files_resource.upload(file=d._to_upload_tuple())
+                    token = file_resp.id
+                resolved.append(d._to_api_body(token=token))
+            else:
+                resolved.append(d)
+
+        body: dict[str, Any] = {"deliverables": resolved}
         response = await self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
         return OrderResponse.model_validate(response.json())
 
