@@ -38,6 +38,7 @@ client = ListBee(api_key="lb_...")
 | Stripe | connect, disconnect |
 | Signup | create, verify |
 | API Keys | create, list, delete |
+| Utility | ping |
 
 ```python
 from listbee import ListBee, Deliverable
@@ -543,6 +544,22 @@ event = json.loads(payload)
 ```
 
 `verify_signature` raises `WebhookVerificationError` (a subclass of `ListBeeError`) if the signature is missing, malformed, or does not match.
+
+## Utility
+
+Verify API connectivity and that your API key is valid:
+
+```python
+response = client.utility.ping()
+print(response.status)  # "ok"
+```
+
+For async:
+
+```python
+response = await client.utility.ping()
+print(response.status)  # "ok"
+```
 
 ## Pagination
 
