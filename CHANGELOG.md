@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-05
+
+### Added
+- `client.listings.create_and_publish()` — create, set deliverables, and publish in one call
+- `client.listings.upload_and_set_deliverable()` — upload file and attach to listing
+- `client.orders.upload_and_deliver()` — upload file and deliver to order
+- `client.customers.get_by_email()` — look up customer by email address
+- `client.webhooks.retry_failed_events()` — retry all failed webhook events
+
 ## [0.8.0] - 2026-04-05
 
 ### Added
