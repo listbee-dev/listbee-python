@@ -161,6 +161,23 @@ class Webhooks:
         response = self._client.post(f"/v1/webhooks/{webhook_id}/test")
         return WebhookTestResponse.model_validate(response.json())
 
+    def retry_failed_events(self, webhook_id: str) -> list[WebhookEventResponse]:
+        """Retry all failed events for a webhook endpoint.
+
+        Fetches all events with status ``"failed"`` and retries each one.
+
+        Args:
+            webhook_id: The webhook's unique identifier (e.g. "wh_3mK8nP2qR5tW7xY1").
+
+        Returns:
+            List of retried :class:`~listbee.types.webhook.WebhookEventResponse` objects.
+        """
+        retried: list[WebhookEventResponse] = []
+        for event in self.list_events(webhook_id, status="failed"):
+            result = self.retry_event(webhook_id, event.id)
+            retried.append(result)
+        return retried
+
 
 class AsyncWebhooks:
     """Async resource for the /v1/webhooks endpoint."""
@@ -311,3 +328,20 @@ class AsyncWebhooks:
         """
         response = await self._client.post(f"/v1/webhooks/{webhook_id}/test")
         return WebhookTestResponse.model_validate(response.json())
+
+    async def retry_failed_events(self, webhook_id: str) -> list[WebhookEventResponse]:
+        """Retry all failed events for a webhook endpoint (async).
+
+        Fetches all events with status ``"failed"`` and retries each one.
+
+        Args:
+            webhook_id: The webhook's unique identifier (e.g. "wh_3mK8nP2qR5tW7xY1").
+
+        Returns:
+            List of retried :class:`~listbee.types.webhook.WebhookEventResponse` objects.
+        """
+        retried: list[WebhookEventResponse] = []
+        async for event in await self.list_events(webhook_id, status="failed"):
+            result = await self.retry_event(webhook_id, event.id)
+            retried.append(result)
+        return retried

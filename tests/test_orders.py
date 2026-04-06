@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 import pytest
@@ -358,3 +359,44 @@ class TestShipOrder:
         assert result.tracking_code == "9400111899223456789012"
         assert result.seller_note == "Ships within 3 days"
         assert result.shipped_at is not None
+
+
+FILE_JSON = {
+    "object": "file",
+    "id": "file_7kQ2xY9mN3pR5tW1vB8a01",
+    "filename": "ebook.pdf",
+    "size": 2458631,
+    "mime_type": "application/pdf",
+    "purpose": "deliverable",
+    "expires_at": "2026-04-04T15:00:00Z",
+    "created_at": "2026-04-03T15:00:00Z",
+}
+
+
+class TestUploadAndDeliver:
+    def test_uploads_and_delivers(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            upload_route = mock.post("/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
+            deliver_route = mock.post(re.compile(r"/v1/orders/.+/deliver")).mock(
+                return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
+            )
+            result = orders.upload_and_deliver(
+                "ord_9xM4kP7nR2qT5wY1",
+                file=("report.pdf", b"fake-pdf-content", "application/pdf"),
+            )
+        assert isinstance(result, OrderResponse)
+        assert upload_route.called
+        assert deliver_route.called
+
+    def test_uses_uploaded_file_token(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
+            deliver_route = mock.post(re.compile(r"/v1/orders/.+/deliver")).mock(
+                return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
+            )
+            orders.upload_and_deliver(
+                "ord_9xM4kP7nR2qT5wY1",
+                file=("report.pdf", b"fake-pdf-content", "application/pdf"),
+            )
+        body = json.loads(deliver_route.calls[0].request.content)
+        assert body["deliverables"] == [{"type": "file", "token": "file_7kQ2xY9mN3pR5tW1vB8a01"}]

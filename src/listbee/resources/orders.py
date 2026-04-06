@@ -143,6 +143,35 @@ class Orders:
         response = self._client.post(f"/v1/orders/{order_id}/ship", json=body)
         return OrderResponse.model_validate(response.json())
 
+    def upload_and_deliver(
+        self,
+        order_id: str,
+        *,
+        file: tuple[str, bytes, str],
+        timeout: float | None = None,
+    ) -> OrderResponse:
+        """Upload a file and deliver it to an order in one call.
+
+        Equivalent to ``client.files.upload(file=file)`` then
+        ``client.orders.deliver(order_id, deliverables=[{"type": "file", "token": file_token}])``.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+            file: Tuple of (filename, content_bytes, mime_type).
+            timeout: Timeout for the upload (file uploads may be slow).
+
+        Returns:
+            The delivered :class:`~listbee.types.order.OrderResponse`.
+        """
+        from listbee.resources.files import Files
+
+        files_resource = Files(self._client)
+        uploaded = files_resource.upload(file=file, timeout=timeout)
+        return self.deliver(
+            order_id,
+            deliverables=[{"type": "file", "token": uploaded.id}],
+        )
+
 
 class AsyncOrders:
     """Async resource for the /v1/orders endpoint."""
@@ -274,3 +303,32 @@ class AsyncOrders:
             body["seller_note"] = seller_note
         response = await self._client.post(f"/v1/orders/{order_id}/ship", json=body)
         return OrderResponse.model_validate(response.json())
+
+    async def upload_and_deliver(
+        self,
+        order_id: str,
+        *,
+        file: tuple[str, bytes, str],
+        timeout: float | None = None,
+    ) -> OrderResponse:
+        """Upload a file and deliver it to an order in one call (async).
+
+        Equivalent to ``client.files.upload(file=file)`` then
+        ``client.orders.deliver(order_id, deliverables=[{"type": "file", "token": file_token}])``.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+            file: Tuple of (filename, content_bytes, mime_type).
+            timeout: Timeout for the upload (file uploads may be slow).
+
+        Returns:
+            The delivered :class:`~listbee.types.order.OrderResponse`.
+        """
+        from listbee.resources.files import AsyncFiles
+
+        files_resource = AsyncFiles(self._client)
+        uploaded = await files_resource.upload(file=file, timeout=timeout)
+        return await self.deliver(
+            order_id,
+            deliverables=[{"type": "file", "token": uploaded.id}],
+        )

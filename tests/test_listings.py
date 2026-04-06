@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 import pytest
@@ -433,3 +434,110 @@ class TestPublishListing:
             mock.post("/v1/listings/lst_abc123/publish").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.publish("lst_abc123")
         assert isinstance(result, ListingResponse)
+
+
+FILE_JSON = {
+    "object": "file",
+    "id": "file_7kQ2xY9mN3pR5tW1vB8a01",
+    "filename": "ebook.pdf",
+    "size": 2458631,
+    "mime_type": "application/pdf",
+    "purpose": "deliverable",
+    "expires_at": "2026-04-04T15:00:00Z",
+    "created_at": "2026-04-03T15:00:00Z",
+}
+
+
+class TestCreateAndPublish:
+    def test_creates_sets_deliverables_and_publishes(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            create_route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            deliverables_route = mock.put(re.compile(r"/v1/listings/.+/deliverables")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            publish_route = mock.post(re.compile(r"/v1/listings/.+/publish")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.create_and_publish(
+                name="Test",
+                price=1000,
+                deliverables=[{"type": "url", "value": "https://example.com"}],
+            )
+        assert isinstance(result, ListingResponse)
+        assert create_route.called
+        assert deliverables_route.called
+        assert publish_route.called
+
+    def test_skips_deliverables_when_none(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            create_route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            publish_route = mock.post(re.compile(r"/v1/listings/.+/publish")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.create_and_publish(name="Test", price=1000)
+        assert isinstance(result, ListingResponse)
+        assert create_route.called
+        assert publish_route.called
+
+    def test_skips_deliverables_when_empty_list(self, listings):
+        with respx.mock(base_url="https://api.listbee.so", assert_all_called=False) as mock:
+            create_route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            publish_route = mock.post(re.compile(r"/v1/listings/.+/publish")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            # Register deliverables route but verify it is NOT called
+            deliverables_route = mock.put(re.compile(r"/v1/listings/.+/deliverables")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.create_and_publish(name="Test", price=1000, deliverables=[])
+        assert isinstance(result, ListingResponse)
+        assert create_route.called
+        assert publish_route.called
+        assert not deliverables_route.called
+
+    def test_passes_create_kwargs(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            create_route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            mock.post(re.compile(r"/v1/listings/.+/publish")).mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.create_and_publish(
+                name="My Product",
+                price=4900,
+                description="A great product",
+                tagline="The best one",
+                fulfillment="external",
+            )
+        body = json.loads(create_route.calls[0].request.content)
+        assert body["name"] == "My Product"
+        assert body["price"] == 4900
+        assert body["description"] == "A great product"
+        assert body["tagline"] == "The best one"
+        assert body["fulfillment"] == "external"
+
+
+class TestUploadAndSetDeliverable:
+    def test_uploads_and_sets_deliverable(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            upload_route = mock.post("/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
+            deliverables_route = mock.put(re.compile(r"/v1/listings/.+/deliverables")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            result = listings.upload_and_set_deliverable(
+                "lst_abc123",
+                file=("ebook.pdf", b"fake-pdf-content", "application/pdf"),
+            )
+        assert isinstance(result, ListingResponse)
+        assert upload_route.called
+        assert deliverables_route.called
+
+    def test_uses_uploaded_file_token(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
+            deliverables_route = mock.put(re.compile(r"/v1/listings/.+/deliverables")).mock(
+                return_value=httpx.Response(200, json=LISTING_JSON)
+            )
+            listings.upload_and_set_deliverable(
+                "lst_abc123",
+                file=("ebook.pdf", b"fake-pdf-content", "application/pdf"),
+            )
+        body = json.loads(deliverables_route.calls[0].request.content)
+        assert body["deliverables"] == [{"type": "file", "token": "file_7kQ2xY9mN3pR5tW1vB8a01"}]

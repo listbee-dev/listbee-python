@@ -71,3 +71,33 @@ class TestGetCustomer:
         assert result.email == "alice@example.com"
         assert result.total_orders == 3
         assert result.total_spent == 8700
+
+
+class TestGetByEmail:
+    def test_returns_customer_when_found(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        customers = Customers(client)
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/customers").mock(return_value=httpx.Response(200, json=LIST_RESPONSE_JSON))
+            result = customers.get_by_email("alice@example.com")
+        assert isinstance(result, CustomerResponse)
+        assert result.email == "alice@example.com"
+
+    def test_returns_none_when_not_found(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        customers = Customers(client)
+        empty_page = {**LIST_RESPONSE_JSON, "data": [], "total_count": 0}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/customers").mock(return_value=httpx.Response(200, json=empty_page))
+            result = customers.get_by_email("unknown@example.com")
+        assert result is None
+
+    def test_passes_email_and_limit_1_to_list(self):
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        customers = Customers(client)
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.get("/v1/customers").mock(return_value=httpx.Response(200, json=LIST_RESPONSE_JSON))
+            customers.get_by_email("alice@example.com")
+        url = str(route.calls[0].request.url)
+        assert "email=alice%40example.com" in url
+        assert "limit=1" in url

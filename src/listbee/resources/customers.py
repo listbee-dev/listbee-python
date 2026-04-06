@@ -69,6 +69,21 @@ class Customers:
         response = self._client.get(f"/v1/customers/{customer_id}")
         return CustomerResponse.model_validate(response.json())
 
+    def get_by_email(self, email: str) -> CustomerResponse | None:
+        """Look up a customer by exact email address.
+
+        Returns the customer if found, or ``None`` if no customer exists
+        with that email.
+
+        Args:
+            email: Exact buyer email address.
+
+        Returns:
+            The :class:`~listbee.types.customer.CustomerResponse` or ``None``.
+        """
+        page = self.list(email=email, limit=1)
+        return page.data[0] if page.data else None
+
 
 class AsyncCustomers:
     """Async resource for the /v1/customers endpoint."""
@@ -124,3 +139,18 @@ class AsyncCustomers:
         """
         response = await self._client.get(f"/v1/customers/{customer_id}")
         return CustomerResponse.model_validate(response.json())
+
+    async def get_by_email(self, email: str) -> CustomerResponse | None:
+        """Look up a customer by exact email address (async).
+
+        Returns the customer if found, or ``None`` if no customer exists
+        with that email.
+
+        Args:
+            email: Exact buyer email address.
+
+        Returns:
+            The :class:`~listbee.types.customer.CustomerResponse` or ``None``.
+        """
+        page = await self.list(email=email, limit=1)
+        return page.data[0] if page.data else None
