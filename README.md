@@ -29,7 +29,7 @@ client = ListBee(api_key="lb_...")
 
 | Resource | Methods |
 |----------|---------|
-| Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, publish |
+| Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, add_deliverable, remove_deliverable, create_complete, publish |
 | Orders | get, list, deliver, refund, ship |
 | Customers | get, list |
 | Files | upload |
@@ -200,6 +200,29 @@ client.listings.set_deliverables(
 
 # Remove all deliverables from a draft listing
 client.listings.remove_deliverables("r7kq2xy9")
+
+# Add a single deliverable using the Deliverable class
+from listbee import Deliverable
+
+client.listings.add_deliverable("r7kq2xy9", Deliverable.url("https://example.com/playbook.pdf"))
+client.listings.add_deliverable("r7kq2xy9", Deliverable.text("Your license key: XXXX-XXXX"))
+
+with open("guide.pdf", "rb") as f:
+    file = client.files.upload(file=f, filename="guide.pdf")
+client.listings.add_deliverable("r7kq2xy9", Deliverable.file(file.id))
+
+# Remove a single deliverable by del_ ID
+client.listings.remove_deliverable("r7kq2xy9", "del_4hR9nK2mQ7tV5wX1")
+
+# Create a listing and attach deliverables in one call
+listing = client.listings.create_complete(
+    name="SEO Playbook",
+    price=2900,
+    deliverables=[
+        Deliverable.url("https://example.com/seo-playbook.pdf"),
+    ],
+)
+listing = client.listings.publish(listing.slug)
 
 # Publish a draft listing — makes it live and purchasable
 listing = client.listings.publish("r7kq2xy9")
@@ -409,6 +432,26 @@ client.listings.set_deliverables(
 listing = client.listings.publish(listing.slug)
 ```
 
+Use the `Deliverable` class for cleaner syntax:
+
+```python
+from listbee import Deliverable
+
+# One-shot: create listing + attach deliverables
+listing = client.listings.create_complete(
+    name="SEO Playbook",
+    price=2900,
+    deliverables=[
+        Deliverable.url("https://example.com/seo-playbook.pdf"),
+    ],
+)
+listing = client.listings.publish(listing.slug)
+
+# Add or remove individual deliverables after creation
+client.listings.add_deliverable(listing.slug, Deliverable.text("Bonus: license key XXXX-XXXX"))
+client.listings.remove_deliverable(listing.slug, "del_4hR9nK2mQ7tV5wX1")
+```
+
 Upload a file and use it as a deliverable:
 
 ```python
@@ -418,6 +461,8 @@ client.listings.set_deliverables(
     listing.slug,
     deliverables=[{"type": "file", "file_id": file.id}],
 )
+# Or using the Deliverable class:
+client.listings.add_deliverable(listing.slug, Deliverable.file(file.id))
 ```
 
 **External** — ListBee fires `order.paid` webhook, your app handles delivery. Supports physical goods, AI-generated content, services, anything.
@@ -437,7 +482,7 @@ listing = client.listings.publish(listing.slug)
 order = client.orders.deliver(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
-        {"type": "text", "value": "Your personalized report..."},
+        Deliverable.text("Your personalized report..."),
     ],
 )
 ```
@@ -703,7 +748,8 @@ from listbee import (
     ShippingAddress,
 
     # Models
-    DeliverableResponse,  # {object, type, has_content}
+    DeliverableResponse,  # {id, object, type, has_content}
+    Deliverable,          # input class: .file() | .url() | .text() | .from_token()
 
     # Enums
     DeliverableType,     # "file" | "url" | "text"
@@ -727,6 +773,7 @@ from listbee import (
     ValidationError,
     RateLimitError,
     InternalServerError,
+    PartialCreationError,  # listing created but deliverable attachment failed
 )
 ```
 

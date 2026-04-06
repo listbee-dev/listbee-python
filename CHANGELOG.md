@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `Deliverable` input class with factory methods: `.file()`, `.url()`, `.text()`, `.from_token()`
+- `client.listings.add_deliverable(listing_id, deliverable)` — add a single deliverable (POST `/v1/listings/{id}/deliverables`)
+- `client.listings.remove_deliverable(listing_id, deliverable_id)` — remove a single deliverable by `del_` ID
+- `client.listings.create_complete()` — create a listing and attach deliverables in one call
+- `PartialCreationError` — raised when listing is created but deliverable attachment fails
+- `DeliverableResponse.id` — `del_` prefixed ID on all deliverable responses
+
+### Changed
+- `set_deliverables()` and `orders.deliver()` now accept `Deliverable` objects in addition to raw dicts
+
 ## [0.9.1] - 2026-04-06
 
 ### Removed
