@@ -9,6 +9,7 @@ import pytest
 import respx
 
 from listbee._base_client import SyncClient
+from listbee.deliverable import Deliverable
 from listbee.resources.listings import Listings
 from listbee.types.listing import ListingResponse
 
@@ -436,8 +437,6 @@ class TestPublishListing:
         assert isinstance(result, ListingResponse)
 
 
-from listbee.deliverable import Deliverable
-
 DELIVERABLE_JSON = {
     "object": "deliverable",
     "id": "del_abc123",
@@ -483,15 +482,11 @@ class TestAddDeliverable:
 
     @respx.mock
     def test_add_file_uploads_first(self, sync_client):
-        respx.post("https://api.listbee.so/v1/files").mock(
-            return_value=httpx.Response(201, json=FILE_JSON)
-        )
+        respx.post("https://api.listbee.so/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
         route = respx.post("https://api.listbee.so/v1/listings/lst_abc123/deliverables").mock(
             return_value=httpx.Response(201, json=DELIVERABLE_JSON | {"type": "file"})
         )
-        Listings(sync_client).add_deliverable(
-            "lst_abc123", Deliverable.file(b"pdf-bytes", filename="guide.pdf")
-        )
+        Listings(sync_client).add_deliverable("lst_abc123", Deliverable.file(b"pdf-bytes", filename="guide.pdf"))
         sent = json.loads(route.calls[0].request.content)
         assert sent == {"type": "file", "token": "file_tok_abc"}
 
@@ -517,16 +512,17 @@ class TestRemoveOneDeliverable:
 class TestSetDeliverablesWithClass:
     @respx.mock
     def test_set_with_deliverable_objects(self, sync_client):
-        respx.post("https://api.listbee.so/v1/files").mock(
-            return_value=httpx.Response(201, json=FILE_JSON)
-        )
+        respx.post("https://api.listbee.so/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
         respx.put("https://api.listbee.so/v1/listings/lst_abc123/deliverables").mock(
             return_value=httpx.Response(200, json=LISTING_JSON)
         )
-        Listings(sync_client).set_deliverables("lst_abc123", deliverables=[
-            Deliverable.file(b"content", filename="a.pdf"),
-            Deliverable.url("https://example.com"),
-        ])
+        Listings(sync_client).set_deliverables(
+            "lst_abc123",
+            deliverables=[
+                Deliverable.file(b"content", filename="a.pdf"),
+                Deliverable.url("https://example.com"),
+            ],
+        )
 
 
 class TestCreateComplete:
@@ -535,9 +531,7 @@ class TestCreateComplete:
         respx.post("https://api.listbee.so/v1/listings").mock(
             return_value=httpx.Response(201, json=LISTING_JSON | {"id": "lst_new", "deliverables": []})
         )
-        respx.post("https://api.listbee.so/v1/files").mock(
-            return_value=httpx.Response(201, json=FILE_JSON)
-        )
+        respx.post("https://api.listbee.so/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
         respx.post("https://api.listbee.so/v1/listings/lst_new/deliverables").mock(
             return_value=httpx.Response(201, json=DELIVERABLE_JSON)
         )
@@ -557,7 +551,9 @@ class TestCreateComplete:
     @respx.mock
     def test_create_without_deliverables(self, sync_client):
         respx.post("https://api.listbee.so/v1/listings").mock(
-            return_value=httpx.Response(201, json=LISTING_JSON | {"id": "lst_new", "deliverables": [], "fulfillment": "external"})
+            return_value=httpx.Response(
+                201, json=LISTING_JSON | {"id": "lst_new", "deliverables": [], "fulfillment": "external"}
+            )
         )
         result = Listings(sync_client).create_complete(name="Test", price=999)
         assert result.id == "lst_new"
@@ -570,11 +566,14 @@ class TestCreateComplete:
             return_value=httpx.Response(201, json=LISTING_JSON | {"id": "lst_new", "deliverables": []})
         )
         respx.post("https://api.listbee.so/v1/files").mock(
-            return_value=httpx.Response(500, json={"type": "internal", "title": "Error", "status": 500, "detail": "fail", "code": "internal"})
+            return_value=httpx.Response(
+                500, json={"type": "internal", "title": "Error", "status": 500, "detail": "fail", "code": "internal"}
+            )
         )
         with pytest.raises(PartialCreationError) as exc_info:
             Listings(sync_client).create_complete(
-                name="Test", price=999,
+                name="Test",
+                price=999,
                 deliverables=[Deliverable.file(b"x", filename="f.pdf")],
             )
         assert exc_info.value.listing_id == "lst_new"

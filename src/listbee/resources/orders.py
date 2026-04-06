@@ -105,9 +105,9 @@ class Orders:
             if isinstance(d, DeliverableInput):
                 token = None
                 if d.needs_upload:
-                    file_resp = files_resource.upload(file=d._to_upload_tuple())
+                    file_resp = files_resource.upload(file=d.to_upload_tuple())
                     token = file_resp.id
-                resolved.append(d._to_api_body(token=token))
+                resolved.append(d.to_api_body(token=token))
             else:
                 resolved.append(d)
 
@@ -252,9 +252,9 @@ class AsyncOrders:
             if isinstance(d, DeliverableInput):
                 token = None
                 if d.needs_upload:
-                    file_resp = await files_resource.upload(file=d._to_upload_tuple())
+                    file_resp = await files_resource.upload(file=d.to_upload_tuple())
                     token = file_resp.id
-                resolved.append(d._to_api_body(token=token))
+                resolved.append(d.to_api_body(token=token))
             else:
                 resolved.append(d)
 

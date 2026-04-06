@@ -47,14 +47,14 @@ class TestDeliverableFile:
 
     def test_to_upload_tuple(self):
         d = Deliverable.file(b"content", filename="f.pdf")
-        name, data, mime = d._to_upload_tuple()
+        name, data, mime = d.to_upload_tuple()
         assert name == "f.pdf"
         assert data == b"content"
         assert mime == "application/pdf"
 
     def test_to_api_body_with_token(self):
         d = Deliverable.file(b"x", filename="f.pdf")
-        body = d._to_api_body(token="file_tok_123")
+        body = d.to_api_body(token="file_tok_123")
         assert body == {"type": "file", "token": "file_tok_123"}
 
 
@@ -63,18 +63,18 @@ class TestDeliverableFromToken:
         d = Deliverable.from_token("file_tok_abc")
         assert d.needs_upload is False
         assert d._token == "file_tok_abc"
-        assert d._to_api_body() == {"type": "file", "token": "file_tok_abc"}
+        assert d.to_api_body() == {"type": "file", "token": "file_tok_abc"}
 
 
 class TestDeliverableUrl:
     def test_url(self):
         d = Deliverable.url("https://example.com/secret")
         assert d.needs_upload is False
-        assert d._to_api_body() == {"type": "url", "value": "https://example.com/secret"}
+        assert d.to_api_body() == {"type": "url", "value": "https://example.com/secret"}
 
 
 class TestDeliverableText:
     def test_text(self):
         d = Deliverable.text("License key: ABCD-1234")
         assert d.needs_upload is False
-        assert d._to_api_body() == {"type": "text", "value": "License key: ABCD-1234"}
+        assert d.to_api_body() == {"type": "text", "value": "License key: ABCD-1234"}

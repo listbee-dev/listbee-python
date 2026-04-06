@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import IO
 
-FileSource = str | os.PathLike | IO[bytes] | bytes
+FileSource = str | os.PathLike[str] | IO[bytes] | bytes
 
 
 class Deliverable:
@@ -44,7 +44,7 @@ class Deliverable:
         inst._token = None
         inst._value = None
 
-        if isinstance(source, (str, os.PathLike)):
+        if isinstance(source, str | os.PathLike):
             path = Path(source).expanduser()
             inst._filename = filename or path.name
             inst._mime_type = mime_type or mimetypes.guess_type(str(path))[0] or "application/octet-stream"
@@ -117,11 +117,11 @@ class Deliverable:
         """True if this deliverable has file data that must be uploaded first."""
         return self._type == "file" and self._file_data is not None
 
-    def _to_upload_tuple(self) -> tuple[str, bytes, str]:
+    def to_upload_tuple(self) -> tuple[str, bytes, str]:
         """SDK internal — returns (filename, bytes, mime_type) for files.upload()."""
         return (self._filename, self._file_data, self._mime_type)
 
-    def _to_api_body(self, token: str | None = None) -> dict:
+    def to_api_body(self, token: str | None = None) -> dict[str, str | None]:
         """SDK internal — returns JSON body for POST /deliverables."""
         if self._type == "file":
             return {"type": "file", "token": token or self._token}

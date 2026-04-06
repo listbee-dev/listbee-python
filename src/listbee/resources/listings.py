@@ -381,9 +381,9 @@ class Listings:
             if isinstance(d, DeliverableInput):
                 token = None
                 if d.needs_upload:
-                    file_resp = files_resource.upload(file=d._to_upload_tuple())
+                    file_resp = files_resource.upload(file=d.to_upload_tuple())
                     token = file_resp.id
-                resolved.append(d._to_api_body(token=token))
+                resolved.append(d.to_api_body(token=token))
             else:
                 resolved.append(d)
         body: dict[str, Any] = {"deliverables": resolved}
@@ -421,15 +421,14 @@ class Listings:
         Returns:
             The new :class:`~listbee.types.shared.DeliverableResponse`.
         """
-        from listbee.deliverable import Deliverable as DeliverableInput  # noqa: F401
         from listbee.resources.files import Files
         from listbee.types.shared import DeliverableResponse
 
         token = None
         if deliverable.needs_upload:
-            file_resp = Files(self._client).upload(file=deliverable._to_upload_tuple(), timeout=timeout)
+            file_resp = Files(self._client).upload(file=deliverable.to_upload_tuple(), timeout=timeout)
             token = file_resp.id
-        body = deliverable._to_api_body(token=token)
+        body = deliverable.to_api_body(token=token)
         response = self._client.post(f"/v1/listings/{listing_id}/deliverables", json=body)
         return DeliverableResponse.model_validate(response.json())
 
@@ -824,9 +823,9 @@ class AsyncListings:
             if isinstance(d, DeliverableInput):
                 token = None
                 if d.needs_upload:
-                    file_resp = await files_resource.upload(file=d._to_upload_tuple())
+                    file_resp = await files_resource.upload(file=d.to_upload_tuple())
                     token = file_resp.id
-                resolved.append(d._to_api_body(token=token))
+                resolved.append(d.to_api_body(token=token))
             else:
                 resolved.append(d)
         body: dict[str, Any] = {"deliverables": resolved}
@@ -864,15 +863,14 @@ class AsyncListings:
         Returns:
             The new :class:`~listbee.types.shared.DeliverableResponse`.
         """
-        from listbee.deliverable import Deliverable as DeliverableInput  # noqa: F401
         from listbee.resources.files import AsyncFiles
         from listbee.types.shared import DeliverableResponse
 
         token = None
         if deliverable.needs_upload:
-            file_resp = await AsyncFiles(self._client).upload(file=deliverable._to_upload_tuple(), timeout=timeout)
+            file_resp = await AsyncFiles(self._client).upload(file=deliverable.to_upload_tuple(), timeout=timeout)
             token = file_resp.id
-        body = deliverable._to_api_body(token=token)
+        body = deliverable.to_api_body(token=token)
         response = await self._client.post(f"/v1/listings/{listing_id}/deliverables", json=body)
         return DeliverableResponse.model_validate(response.json())
 
