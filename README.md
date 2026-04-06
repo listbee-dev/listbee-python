@@ -40,16 +40,16 @@ client = ListBee(api_key="lb_...")
 | API Keys | create, list, delete |
 
 ```python
-from listbee import ListBee
+from listbee import ListBee, Deliverable
 
 client = ListBee(api_key="lb_...")
 
 # Managed fulfillment — ListBee delivers the file automatically
-# 1. Create draft, 2. attach deliverable, 3. publish
-listing = client.listings.create(name="SEO Playbook", price=2900)
-client.listings.set_deliverables(
-    listing.slug,
-    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
+# One-shot: create listing + attach deliverable + publish
+listing = client.listings.create_complete(
+    name="SEO Playbook",
+    price=2900,
+    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
 listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
@@ -76,12 +76,14 @@ export LISTBEE_API_KEY="lb_..."
 ```python
 from listbee import ListBee
 
+from listbee import ListBee, Deliverable
+
 client = ListBee()  # reads LISTBEE_API_KEY automatically
 
-listing = client.listings.create(name="SEO Playbook", price=2900)
-client.listings.set_deliverables(
-    listing.slug,
-    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
+listing = client.listings.create_complete(
+    name="SEO Playbook",
+    price=2900,
+    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
 listing = client.listings.publish(listing.slug)
 print(listing.url)
@@ -160,9 +162,11 @@ listing = client.listings.create(
 )
 print(listing.id)    # lst_r7kq2xy9m3pR5tW1
 # Attach deliverables and publish when ready
+from listbee import Deliverable
+
 client.listings.set_deliverables(
     listing.slug,
-    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
+    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
 listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/m3pr5tw1
@@ -194,22 +198,20 @@ updated = client.listings.update(
 client.listings.set_deliverables(
     "r7kq2xy9",
     deliverables=[
-        {"type": "url", "value": "https://example.com/seo-playbook.pdf"},
+        Deliverable.url("https://example.com/seo-playbook.pdf"),
     ],
 )
 
 # Remove all deliverables from a draft listing
 client.listings.remove_deliverables("r7kq2xy9")
 
-# Add a single deliverable using the Deliverable class
-from listbee import Deliverable
-
+# Add a single deliverable
 client.listings.add_deliverable("r7kq2xy9", Deliverable.url("https://example.com/playbook.pdf"))
 client.listings.add_deliverable("r7kq2xy9", Deliverable.text("Your license key: XXXX-XXXX"))
 
 with open("guide.pdf", "rb") as f:
     file = client.files.upload(file=f, filename="guide.pdf")
-client.listings.add_deliverable("r7kq2xy9", Deliverable.file(file.id))
+client.listings.add_deliverable("r7kq2xy9", Deliverable.from_token(file.id))
 
 # Remove a single deliverable by del_ ID
 client.listings.remove_deliverable("r7kq2xy9", "del_4hR9nK2mQ7tV5wX1")
@@ -251,10 +253,12 @@ print(order.shipping_address)     # ShippingAddress or None
 print(order.paid_at)              # when payment was confirmed
 
 # Deliver an order — push deliverables for delivery (external fulfillment)
+from listbee import Deliverable
+
 order = client.orders.deliver(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
-        {"type": "text", "value": "Here is your personalized report..."},
+        Deliverable.text("Here is your personalized report..."),
     ],
 )
 print(order.status)               # "fulfilled"
@@ -263,7 +267,7 @@ print(order.status)               # "fulfilled"
 order = client.orders.deliver(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
-        {"type": "url", "value": "https://example.com/generated-report.pdf"},
+        Deliverable.url("https://example.com/generated-report.pdf"),
     ],
 )
 
@@ -392,16 +396,18 @@ print(customer.order_count)
 ### Files
 
 ```python
+from listbee import Deliverable
+
 # Upload a file to use as a deliverable
 with open("playbook.pdf", "rb") as f:
     file = client.files.upload(file=f, filename="playbook.pdf")
-print(file.id)      # file ID to reference in set_deliverables
+print(file.id)      # file token to pass to Deliverable.from_token()
 print(file.url)     # CDN URL
 
-# Then attach to a listing
+# Then attach to a listing using the uploaded file token
 client.listings.set_deliverables(
     "r7kq2xy9",
-    deliverables=[{"type": "file", "file_id": file.id}],
+    deliverables=[Deliverable.from_token(file.id)],
 )
 ```
 
@@ -423,21 +429,9 @@ ListBee supports two fulfillment modes:
 **Managed** — ListBee delivers digital content (files, URLs, text) automatically via access grants. Attach deliverables to the listing and ListBee handles the rest.
 
 ```python
-# Create draft → attach deliverable → publish
-listing = client.listings.create(name="SEO Playbook", price=2900)
-client.listings.set_deliverables(
-    listing.slug,
-    deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
-)
-listing = client.listings.publish(listing.slug)
-```
-
-Use the `Deliverable` class for cleaner syntax:
-
-```python
 from listbee import Deliverable
 
-# One-shot: create listing + attach deliverables
+# One-shot: create listing + attach deliverables + publish
 listing = client.listings.create_complete(
     name="SEO Playbook",
     price=2900,
@@ -457,12 +451,7 @@ Upload a file and use it as a deliverable:
 ```python
 with open("playbook.pdf", "rb") as f:
     file = client.files.upload(file=f, filename="playbook.pdf")
-client.listings.set_deliverables(
-    listing.slug,
-    deliverables=[{"type": "file", "file_id": file.id}],
-)
-# Or using the Deliverable class:
-client.listings.add_deliverable(listing.slug, Deliverable.file(file.id))
+client.listings.add_deliverable(listing.slug, Deliverable.from_token(file.id))
 ```
 
 **External** — ListBee fires `order.paid` webhook, your app handles delivery. Supports physical goods, AI-generated content, services, anything.
@@ -649,16 +638,16 @@ Use `AsyncListBee` for async frameworks (FastAPI, aiohttp, etc.):
 
 ```python
 import asyncio
-from listbee import AsyncListBee
+from listbee import AsyncListBee, Deliverable
 
 async def main():
     client = AsyncListBee(api_key="lb_...")
 
     # Create a listing, attach deliverable, publish
-    listing = await client.listings.create(name="SEO Playbook", price=2900)
-    await client.listings.set_deliverables(
-        listing.slug,
-        deliverables=[{"type": "url", "value": "https://example.com/seo-playbook.pdf"}],
+    listing = await client.listings.create_complete(
+        name="SEO Playbook",
+        price=2900,
+        deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
     )
     listing = await client.listings.publish(listing.slug)
     print(listing.url)
@@ -674,7 +663,7 @@ async def main():
     # Deliver an order (async)
     order = await client.orders.deliver(
         "ord_9xM4kP7nR2qT5wY1",
-        deliverables=[{"type": "text", "value": "Generated content here"}],
+        deliverables=[Deliverable.text("Generated content here")],
     )
 
 asyncio.run(main())
