@@ -14,6 +14,7 @@ Usage:
 """
 
 from listbee._client import AsyncListBee, ListBee
+from listbee.deliverable import Deliverable
 from listbee._exceptions import (
     APIConnectionError,
     APIStatusError,
@@ -68,6 +69,7 @@ from listbee.types import (
 from listbee.webhooks import verify_signature
 
 __all__ = [
+    "Deliverable",
     "ListBee",
     "AsyncListBee",
     "ListBeeError",
