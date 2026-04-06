@@ -26,6 +26,7 @@ LISTING_JSON = {
     "deliverables": [
         {
             "object": "deliverable",
+            "id": "del_existing_001",
             "type": "file",
             "status": "ready",
             "content": None,
@@ -433,3 +434,81 @@ class TestPublishListing:
             mock.post("/v1/listings/lst_abc123/publish").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.publish("lst_abc123")
         assert isinstance(result, ListingResponse)
+
+
+from listbee.deliverable import Deliverable
+
+DELIVERABLE_JSON = {
+    "object": "deliverable",
+    "id": "del_abc123",
+    "type": "url",
+    "status": "ready",
+    "filename": None,
+    "size": None,
+    "mime_type": None,
+    "url": "https://example.com/secret",
+    "content": None,
+}
+
+FILE_JSON = {
+    "object": "file",
+    "id": "file_tok_abc",
+    "filename": "guide.pdf",
+    "size": 1024,
+    "mime_type": "application/pdf",
+    "purpose": "deliverable",
+    "expires_at": "2026-04-07T12:00:00Z",
+    "created_at": "2026-04-06T12:00:00Z",
+}
+
+
+class TestAddDeliverable:
+    @respx.mock
+    def test_add_url(self, sync_client):
+        respx.post("https://api.listbee.so/v1/listings/lst_abc123/deliverables").mock(
+            return_value=httpx.Response(201, json=DELIVERABLE_JSON)
+        )
+        result = Listings(sync_client).add_deliverable("lst_abc123", Deliverable.url("https://example.com/secret"))
+        assert result.id == "del_abc123"
+        assert result.type == "url"
+
+    @respx.mock
+    def test_add_text(self, sync_client):
+        route = respx.post("https://api.listbee.so/v1/listings/lst_abc123/deliverables").mock(
+            return_value=httpx.Response(201, json=DELIVERABLE_JSON | {"type": "text"})
+        )
+        Listings(sync_client).add_deliverable("lst_abc123", Deliverable.text("License: ABCD"))
+        sent = json.loads(route.calls[0].request.content)
+        assert sent == {"type": "text", "value": "License: ABCD"}
+
+    @respx.mock
+    def test_add_file_uploads_first(self, sync_client):
+        respx.post("https://api.listbee.so/v1/files").mock(
+            return_value=httpx.Response(201, json=FILE_JSON)
+        )
+        route = respx.post("https://api.listbee.so/v1/listings/lst_abc123/deliverables").mock(
+            return_value=httpx.Response(201, json=DELIVERABLE_JSON | {"type": "file"})
+        )
+        Listings(sync_client).add_deliverable(
+            "lst_abc123", Deliverable.file(b"pdf-bytes", filename="guide.pdf")
+        )
+        sent = json.loads(route.calls[0].request.content)
+        assert sent == {"type": "file", "token": "file_tok_abc"}
+
+    @respx.mock
+    def test_add_from_token_no_upload(self, sync_client):
+        route = respx.post("https://api.listbee.so/v1/listings/lst_abc123/deliverables").mock(
+            return_value=httpx.Response(201, json=DELIVERABLE_JSON | {"type": "file"})
+        )
+        Listings(sync_client).add_deliverable("lst_abc123", Deliverable.from_token("file_tok_existing"))
+        sent = json.loads(route.calls[0].request.content)
+        assert sent == {"type": "file", "token": "file_tok_existing"}
+
+
+class TestRemoveOneDeliverable:
+    @respx.mock
+    def test_remove_deliverable(self, sync_client):
+        respx.delete("https://api.listbee.so/v1/listings/lst_abc123/deliverables/del_xyz").mock(
+            return_value=httpx.Response(204)
+        )
+        Listings(sync_client).remove_deliverable("lst_abc123", "del_xyz")

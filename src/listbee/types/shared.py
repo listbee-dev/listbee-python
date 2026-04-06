@@ -92,6 +92,10 @@ class DeliverableResponse(BaseModel):
         description="Object type discriminator. Always `deliverable`.",
         examples=["deliverable"],
     )
+    id: str = Field(
+        description="Unique deliverable identifier (del_ prefixed).",
+        examples=["del_7kQ2xY9mN3pR5tW1vB8a01"],
+    )
     type: str = Field(
         description="Type of deliverable: `file`, `url`, or `text`.",
         examples=["file"],

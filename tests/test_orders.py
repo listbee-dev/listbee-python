@@ -61,6 +61,7 @@ FULFILLED_ORDER_JSON = {
     "deliverables": [
         {
             "object": "deliverable",
+            "id": "del_existing_001",
             "type": "file",
             "status": "ready",
             "content": None,

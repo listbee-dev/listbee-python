@@ -10,6 +10,8 @@ from listbee.types.listing import ListingResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+    from listbee.deliverable import Deliverable
+    from listbee.types.shared import DeliverableResponse
 
 
 class Listings:
@@ -292,6 +294,46 @@ class Listings:
         """
         response = self._client.delete(f"/v1/listings/{listing_id}/deliverables")
         return ListingResponse.model_validate(response.json())
+
+    def add_deliverable(
+        self,
+        listing_id: str,
+        deliverable: "Deliverable",
+        *,
+        timeout: float | None = None,
+    ) -> "DeliverableResponse":
+        """Add a single deliverable to a draft listing.
+
+        Accepts any deliverable type. Files are uploaded transparently.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            deliverable: A :class:`~listbee.deliverable.Deliverable` instance.
+            timeout: Optional timeout for file upload.
+
+        Returns:
+            The new :class:`~listbee.types.shared.DeliverableResponse`.
+        """
+        from listbee.deliverable import Deliverable as DeliverableInput  # noqa: F401
+        from listbee.resources.files import Files
+        from listbee.types.shared import DeliverableResponse
+
+        token = None
+        if deliverable.needs_upload:
+            file_resp = Files(self._client).upload(file=deliverable._to_upload_tuple(), timeout=timeout)
+            token = file_resp.id
+        body = deliverable._to_api_body(token=token)
+        response = self._client.post(f"/v1/listings/{listing_id}/deliverables", json=body)
+        return DeliverableResponse.model_validate(response.json())
+
+    def remove_deliverable(self, listing_id: str, deliverable_id: str) -> None:
+        """Remove a single deliverable by ID from a draft listing.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            deliverable_id: The deliverable's ID (e.g. "del_7kQ2xY9mN3pR5tW1vB8a").
+        """
+        self._client.delete(f"/v1/listings/{listing_id}/deliverables/{deliverable_id}")
 
     def publish(self, listing_id: str) -> ListingResponse:
         """Publish a draft listing, making it live and buyable.
@@ -588,6 +630,46 @@ class AsyncListings:
         """
         response = await self._client.delete(f"/v1/listings/{listing_id}/deliverables")
         return ListingResponse.model_validate(response.json())
+
+    async def add_deliverable(
+        self,
+        listing_id: str,
+        deliverable: "Deliverable",
+        *,
+        timeout: float | None = None,
+    ) -> "DeliverableResponse":
+        """Add a single deliverable to a draft listing (async).
+
+        Accepts any deliverable type. Files are uploaded transparently.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            deliverable: A :class:`~listbee.deliverable.Deliverable` instance.
+            timeout: Optional timeout for file upload.
+
+        Returns:
+            The new :class:`~listbee.types.shared.DeliverableResponse`.
+        """
+        from listbee.deliverable import Deliverable as DeliverableInput  # noqa: F401
+        from listbee.resources.files import AsyncFiles
+        from listbee.types.shared import DeliverableResponse
+
+        token = None
+        if deliverable.needs_upload:
+            file_resp = await AsyncFiles(self._client).upload(file=deliverable._to_upload_tuple(), timeout=timeout)
+            token = file_resp.id
+        body = deliverable._to_api_body(token=token)
+        response = await self._client.post(f"/v1/listings/{listing_id}/deliverables", json=body)
+        return DeliverableResponse.model_validate(response.json())
+
+    async def remove_deliverable(self, listing_id: str, deliverable_id: str) -> None:
+        """Remove a single deliverable by ID from a draft listing (async).
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            deliverable_id: The deliverable's ID (e.g. "del_7kQ2xY9mN3pR5tW1vB8a").
+        """
+        await self._client.delete(f"/v1/listings/{listing_id}/deliverables/{deliverable_id}")
 
     async def publish(self, listing_id: str) -> ListingResponse:
         """Publish a draft listing, making it live and buyable (async).
