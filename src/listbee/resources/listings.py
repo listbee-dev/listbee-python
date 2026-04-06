@@ -134,6 +134,98 @@ class Listings:
         response = self._client.post("/v1/listings", json=body, timeout=effective_timeout)
         return ListingResponse.model_validate(response.json())
 
+    def create_complete(
+        self,
+        *,
+        name: str,
+        price: int,
+        deliverables: list[Any] | None = None,
+        description: str | None = None,
+        tagline: str | None = None,
+        highlights: list[str] | None = None,
+        cta: str | None = None,
+        cover_url: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        compare_at_price: int | None = None,
+        badges: list[str] | None = None,
+        cover_blur: str = "auto",
+        rating: float | None = None,
+        rating_count: int | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+        faqs: list[dict[str, Any]] | None = None,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
+        checkout_schema: list[dict[str, Any]] | None = None,
+        timeout: float | None = None,
+    ) -> ListingResponse:
+        """Create a complete listing with deliverables in one call.
+
+        Orchestrates: create listing, upload files, attach deliverables, return.
+        If any step after listing creation fails, raises
+        :class:`~listbee.PartialCreationError` with the ``listing_id``.
+
+        Args:
+            name: Product name.
+            price: Price in cents.
+            deliverables: List of :class:`~listbee.deliverable.Deliverable` objects.
+            description: Product description.
+            tagline: Short tagline.
+            highlights: Feature bullet points.
+            cta: Call-to-action button text.
+            cover_url: URL of cover image.
+            metadata: Arbitrary metadata forwarded in webhooks.
+            compare_at_price: Strikethrough price in cents.
+            badges: Promotional badges.
+            cover_blur: Cover blur mode.
+            rating: Star rating (1-5).
+            rating_count: Review count.
+            reviews: Featured review cards.
+            faqs: FAQ items.
+            utm_source: UTM source.
+            utm_medium: UTM medium.
+            utm_campaign: UTM campaign.
+            checkout_schema: Custom checkout fields.
+            timeout: Upload timeout.
+
+        Returns:
+            The complete :class:`~listbee.types.listing.ListingResponse`.
+        """
+        from listbee._exceptions import PartialCreationError
+
+        listing = self.create(
+            name=name,
+            price=price,
+            description=description,
+            tagline=tagline,
+            highlights=highlights,
+            cta=cta,
+            cover_url=cover_url,
+            metadata=metadata,
+            compare_at_price=compare_at_price,
+            badges=badges,
+            cover_blur=cover_blur,
+            rating=rating,
+            rating_count=rating_count,
+            reviews=reviews,
+            faqs=faqs,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            checkout_schema=checkout_schema,
+            timeout=timeout,
+        )
+
+        if not deliverables:
+            return listing
+
+        try:
+            for d in deliverables:
+                self.add_deliverable(listing.id, d, timeout=timeout)
+            return self.get(listing.id)
+        except Exception as e:
+            raise PartialCreationError(listing.id, str(e)) from e
+
     def get(self, slug: str) -> ListingResponse:
         """Retrieve a listing by its URL slug.
 
@@ -265,21 +357,36 @@ class Listings:
         self,
         listing_id: str,
         *,
-        deliverables: list[dict[str, Any]],
+        deliverables: list[Any],
     ) -> ListingResponse:
         """Replace all deliverables on a draft listing.
 
-        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
-        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
+        Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
+        Files are uploaded transparently before sending the request.
 
         Args:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
-            deliverables: Array of deliverable dicts.
+            deliverables: List of Deliverable objects or dicts with ``type``
+                and ``token``/``value``.
 
         Returns:
             The updated :class:`~listbee.types.listing.ListingResponse`.
         """
-        body: dict[str, Any] = {"deliverables": deliverables}
+        from listbee.deliverable import Deliverable as DeliverableInput
+        from listbee.resources.files import Files
+
+        resolved: list[dict[str, Any]] = []
+        files_resource = Files(self._client)
+        for d in deliverables:
+            if isinstance(d, DeliverableInput):
+                token = None
+                if d.needs_upload:
+                    file_resp = files_resource.upload(file=d._to_upload_tuple())
+                    token = file_resp.id
+                resolved.append(d._to_api_body(token=token))
+            else:
+                resolved.append(d)
+        body: dict[str, Any] = {"deliverables": resolved}
         response = self._client.put(f"/v1/listings/{listing_id}/deliverables", json=body)
         return ListingResponse.model_validate(response.json())
 
@@ -470,6 +577,98 @@ class AsyncListings:
         response = await self._client.post("/v1/listings", json=body, timeout=effective_timeout)
         return ListingResponse.model_validate(response.json())
 
+    async def create_complete(
+        self,
+        *,
+        name: str,
+        price: int,
+        deliverables: list[Any] | None = None,
+        description: str | None = None,
+        tagline: str | None = None,
+        highlights: list[str] | None = None,
+        cta: str | None = None,
+        cover_url: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        compare_at_price: int | None = None,
+        badges: list[str] | None = None,
+        cover_blur: str = "auto",
+        rating: float | None = None,
+        rating_count: int | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+        faqs: list[dict[str, Any]] | None = None,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
+        checkout_schema: list[dict[str, Any]] | None = None,
+        timeout: float | None = None,
+    ) -> ListingResponse:
+        """Create a complete listing with deliverables in one call (async).
+
+        Orchestrates: create listing, upload files, attach deliverables, return.
+        If any step after listing creation fails, raises
+        :class:`~listbee.PartialCreationError` with the ``listing_id``.
+
+        Args:
+            name: Product name.
+            price: Price in cents.
+            deliverables: List of :class:`~listbee.deliverable.Deliverable` objects.
+            description: Product description.
+            tagline: Short tagline.
+            highlights: Feature bullet points.
+            cta: Call-to-action button text.
+            cover_url: URL of cover image.
+            metadata: Arbitrary metadata forwarded in webhooks.
+            compare_at_price: Strikethrough price in cents.
+            badges: Promotional badges.
+            cover_blur: Cover blur mode.
+            rating: Star rating (1-5).
+            rating_count: Review count.
+            reviews: Featured review cards.
+            faqs: FAQ items.
+            utm_source: UTM source.
+            utm_medium: UTM medium.
+            utm_campaign: UTM campaign.
+            checkout_schema: Custom checkout fields.
+            timeout: Upload timeout.
+
+        Returns:
+            The complete :class:`~listbee.types.listing.ListingResponse`.
+        """
+        from listbee._exceptions import PartialCreationError
+
+        listing = await self.create(
+            name=name,
+            price=price,
+            description=description,
+            tagline=tagline,
+            highlights=highlights,
+            cta=cta,
+            cover_url=cover_url,
+            metadata=metadata,
+            compare_at_price=compare_at_price,
+            badges=badges,
+            cover_blur=cover_blur,
+            rating=rating,
+            rating_count=rating_count,
+            reviews=reviews,
+            faqs=faqs,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            checkout_schema=checkout_schema,
+            timeout=timeout,
+        )
+
+        if not deliverables:
+            return listing
+
+        try:
+            for d in deliverables:
+                await self.add_deliverable(listing.id, d, timeout=timeout)
+            return await self.get(listing.id)
+        except Exception as e:
+            raise PartialCreationError(listing.id, str(e)) from e
+
     async def get(self, slug: str) -> ListingResponse:
         """Retrieve a listing by its URL slug (async).
 
@@ -601,21 +800,36 @@ class AsyncListings:
         self,
         listing_id: str,
         *,
-        deliverables: list[dict[str, Any]],
+        deliverables: list[Any],
     ) -> ListingResponse:
         """Replace all deliverables on a draft listing (async).
 
-        Each deliverable dict has ``type`` ('file', 'url', 'text') and either
-        ``token`` (for files) or ``value`` (for urls/text). Max 3 items.
+        Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
+        Files are uploaded transparently before sending the request.
 
         Args:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
-            deliverables: Array of deliverable dicts.
+            deliverables: List of Deliverable objects or dicts with ``type``
+                and ``token``/``value``.
 
         Returns:
             The updated :class:`~listbee.types.listing.ListingResponse`.
         """
-        body: dict[str, Any] = {"deliverables": deliverables}
+        from listbee.deliverable import Deliverable as DeliverableInput
+        from listbee.resources.files import AsyncFiles
+
+        resolved: list[dict[str, Any]] = []
+        files_resource = AsyncFiles(self._client)
+        for d in deliverables:
+            if isinstance(d, DeliverableInput):
+                token = None
+                if d.needs_upload:
+                    file_resp = await files_resource.upload(file=d._to_upload_tuple())
+                    token = file_resp.id
+                resolved.append(d._to_api_body(token=token))
+            else:
+                resolved.append(d)
+        body: dict[str, Any] = {"deliverables": resolved}
         response = await self._client.put(f"/v1/listings/{listing_id}/deliverables", json=body)
         return ListingResponse.model_validate(response.json())
 

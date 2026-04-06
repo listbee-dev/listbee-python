@@ -115,6 +115,18 @@ class WebhookVerificationError(ListBeeError):
     """Raised when webhook signature verification fails."""
 
 
+class PartialCreationError(ListBeeError):
+    """Raised when create_complete creates the listing but fails during file upload or deliverable attachment.
+
+    The ``listing_id`` attribute contains the draft that was created, so the
+    caller can resume with individual ``add_deliverable`` calls.
+    """
+
+    def __init__(self, listing_id: str, message: str) -> None:
+        super().__init__(message)
+        self.listing_id = listing_id
+
+
 STATUS_CODE_TO_EXCEPTION: dict[int, type[APIStatusError]] = {
     400: BadRequestError,
     401: AuthenticationError,
