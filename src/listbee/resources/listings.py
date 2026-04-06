@@ -405,10 +405,10 @@ class Listings:
     def add_deliverable(
         self,
         listing_id: str,
-        deliverable: "Deliverable",
+        deliverable: Deliverable,
         *,
         timeout: float | None = None,
-    ) -> "DeliverableResponse":
+    ) -> DeliverableResponse:
         """Add a single deliverable to a draft listing.
 
         Accepts any deliverable type. Files are uploaded transparently.
@@ -848,10 +848,10 @@ class AsyncListings:
     async def add_deliverable(
         self,
         listing_id: str,
-        deliverable: "Deliverable",
+        deliverable: Deliverable,
         *,
         timeout: float | None = None,
-    ) -> "DeliverableResponse":
+    ) -> DeliverableResponse:
         """Add a single deliverable to a draft listing (async).
 
         Accepts any deliverable type. Files are uploaded transparently.

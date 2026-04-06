@@ -14,7 +14,6 @@ Usage:
 """
 
 from listbee._client import AsyncListBee, ListBee
-from listbee.deliverable import Deliverable
 from listbee._exceptions import (
     APIConnectionError,
     APIStatusError,
@@ -32,6 +31,7 @@ from listbee._exceptions import (
     ValidationError,
     WebhookVerificationError,
 )
+from listbee.deliverable import Deliverable
 from listbee.types import (
     AccountReadiness,
     AccountResponse,

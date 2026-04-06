@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 from typing import IO
 
-
 FileSource = str | os.PathLike | IO[bytes] | bytes
 
 
