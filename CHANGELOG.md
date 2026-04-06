@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-04-06
+
+### Removed
+- Convenience helpers (`create_and_publish`, `upload_and_set_deliverable`, `upload_and_deliver`, `get_by_email`, `retry_failed_events`) — will be redesigned with better semantics
+
 ## [0.9.0] - 2026-04-05
 
 ### Added

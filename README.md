@@ -442,65 +442,6 @@ order = client.orders.deliver(
 )
 ```
 
-## Convenience Helpers
-
-Composite methods that chain multiple API calls into one.
-
-### Create and Publish
-
-```python
-# Managed fulfillment — create, attach deliverable, publish in one call
-listing = client.listings.create_and_publish(
-    name="SEO Playbook",
-    price=2900,
-    deliverables=[{"type": "url", "value": "https://example.com/ebook.pdf"}],
-)
-
-# External fulfillment — no deliverable needed
-listing = client.listings.create_and_publish(
-    name="Custom Report",
-    price=4900,
-    fulfillment="external",
-    checkout_schema=[{"name": "topic", "label": "Report Topic", "type": "text"}],
-)
-```
-
-### Upload and Set Deliverable
-
-```python
-with open("ebook.pdf", "rb") as f:
-    listing = client.listings.upload_and_set_deliverable(
-        "lst_abc123",
-        file=("ebook.pdf", f.read(), "application/pdf"),
-    )
-```
-
-### Upload and Deliver
-
-```python
-# Generate content and deliver to an order
-content = generate_report(order.checkout_data)
-order = client.orders.upload_and_deliver(
-    "ord_abc123",
-    file=("report.pdf", content, "application/pdf"),
-)
-```
-
-### Get Customer by Email
-
-```python
-customer = client.customers.get_by_email("buyer@example.com")
-if customer:
-    print(f"Total spent: {customer.total_spent}")
-```
-
-### Retry Failed Webhook Events
-
-```python
-retried = client.webhooks.retry_failed_events("wh_abc123")
-print(f"Retried {len(retried)} events")
-```
-
 ## Readiness System
 
 Every listing and account includes a `readiness` field that tells you whether it can currently accept payments.
