@@ -123,7 +123,7 @@ def scan_resource_methods(resources_dir: Path) -> dict[str, list[dict]]:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 for item in node.body:
-                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
                         if item.name.startswith("_"):
                             continue
                         methods.append(
