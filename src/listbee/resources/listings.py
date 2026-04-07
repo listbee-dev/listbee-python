@@ -14,6 +14,19 @@ if TYPE_CHECKING:
     from listbee.types.shared import DeliverableResponse
 
 
+def _resolve_checkout_schema(schema: list[Any] | None) -> list[dict[str, Any]] | None:
+    """Convert CheckoutField builder objects to dicts, pass raw dicts through."""
+    if schema is None:
+        return None
+    resolved = []
+    for item in schema:
+        if hasattr(item, "to_api_body"):
+            resolved.append(item.to_api_body())
+        else:
+            resolved.append(item)
+    return resolved
+
+
 class Listings:
     """Sync resource for the /v1/listings endpoint."""
 
@@ -27,7 +40,7 @@ class Listings:
         price: int,
         deliverable: str | None = None,
         fulfillment: str | None = None,
-        checkout_schema: list[dict[str, Any]] | None = None,
+        checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -96,7 +109,7 @@ class Listings:
         if fulfillment is not None:
             body["fulfillment"] = fulfillment
         if checkout_schema is not None:
-            body["checkout_schema"] = checkout_schema
+            body["checkout_schema"] = _resolve_checkout_schema(checkout_schema)
         if description is not None:
             body["description"] = description
         if tagline is not None:
@@ -156,7 +169,7 @@ class Listings:
         utm_source: str | None = None,
         utm_medium: str | None = None,
         utm_campaign: str | None = None,
-        checkout_schema: list[dict[str, Any]] | None = None,
+        checkout_schema: list[Any] | None = None,
         timeout: float | None = None,
     ) -> ListingResponse:
         """Create a complete listing with deliverables in one call.
@@ -268,7 +281,7 @@ class Listings:
         name: str | None = None,
         price: int | None = None,
         fulfillment: str | None = None,
-        checkout_schema: list[dict[str, Any]] | None = None,
+        checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -321,7 +334,7 @@ class Listings:
             "name": name,
             "price": price,
             "fulfillment": fulfillment,
-            "checkout_schema": checkout_schema,
+            "checkout_schema": _resolve_checkout_schema(checkout_schema),
             "description": description,
             "tagline": tagline,
             "highlights": highlights,
@@ -469,7 +482,7 @@ class AsyncListings:
         price: int,
         deliverable: str | None = None,
         fulfillment: str | None = None,
-        checkout_schema: list[dict[str, Any]] | None = None,
+        checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -538,7 +551,7 @@ class AsyncListings:
         if fulfillment is not None:
             body["fulfillment"] = fulfillment
         if checkout_schema is not None:
-            body["checkout_schema"] = checkout_schema
+            body["checkout_schema"] = _resolve_checkout_schema(checkout_schema)
         if description is not None:
             body["description"] = description
         if tagline is not None:
@@ -598,7 +611,7 @@ class AsyncListings:
         utm_source: str | None = None,
         utm_medium: str | None = None,
         utm_campaign: str | None = None,
-        checkout_schema: list[dict[str, Any]] | None = None,
+        checkout_schema: list[Any] | None = None,
         timeout: float | None = None,
     ) -> ListingResponse:
         """Create a complete listing with deliverables in one call (async).
@@ -710,7 +723,7 @@ class AsyncListings:
         name: str | None = None,
         price: int | None = None,
         fulfillment: str | None = None,
-        checkout_schema: list[dict[str, Any]] | None = None,
+        checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
         highlights: list[str] | None = None,
@@ -763,7 +776,7 @@ class AsyncListings:
             "name": name,
             "price": price,
             "fulfillment": fulfillment,
-            "checkout_schema": checkout_schema,
+            "checkout_schema": _resolve_checkout_schema(checkout_schema),
             "description": description,
             "tagline": tagline,
             "highlights": highlights,

@@ -181,6 +181,26 @@ class TestCreateListing:
         body = json.loads(route.calls[0].request.content)
         assert body["checkout_schema"] == schema
 
+    def test_create_listing_with_checkout_field_builder(self, listings):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
+            from listbee.checkout_field import CheckoutField
+
+            listings.create(
+                name="Sneakers",
+                price=8500,
+                fulfillment="external",
+                checkout_schema=[
+                    CheckoutField.select("size", label="Size", options=["S", "M", "L"], sort_order=0),
+                    CheckoutField.text("notes", label="Notes", required=False, sort_order=1),
+                ],
+            )
+            body = json.loads(route.calls[0].request.content)
+            assert body["checkout_schema"] == [
+                {"key": "size", "type": "select", "label": "Size", "options": ["S", "M", "L"], "required": True, "sort_order": 0},
+                {"key": "notes", "type": "text", "label": "Notes", "required": False, "sort_order": 1},
+            ]
+
 
 class TestGetListing:
     def test_get_listing_by_slug(self, listings):
