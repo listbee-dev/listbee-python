@@ -18,7 +18,7 @@ def _resolve_checkout_schema(schema: list[Any] | None) -> list[dict[str, Any]] |
     """Convert CheckoutField builder objects to dicts, pass raw dicts through."""
     if schema is None:
         return None
-    resolved = []
+    resolved: list[dict[str, Any]] = []
     for item in schema:
         if hasattr(item, "to_api_body"):
             resolved.append(item.to_api_body())

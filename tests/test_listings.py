@@ -197,7 +197,14 @@ class TestCreateListing:
             )
             body = json.loads(route.calls[0].request.content)
             assert body["checkout_schema"] == [
-                {"key": "size", "type": "select", "label": "Size", "options": ["S", "M", "L"], "required": True, "sort_order": 0},
+                {
+                    "key": "size",
+                    "type": "select",
+                    "label": "Size",
+                    "options": ["S", "M", "L"],
+                    "required": True,
+                    "sort_order": 0,
+                },
                 {"key": "notes", "type": "text", "label": "Notes", "required": False, "sort_order": 1},
             ]
 
