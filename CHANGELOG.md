@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-04-07
+
+### Added
+- `sort_order` field on `CheckoutField` for controlling display order (default: `0`, lower values shown first)
+
+### Changed
+- `CheckoutField.name` renamed to `CheckoutField.key` to match API schema
+
 ## [0.11.0] - 2026-04-07
 
 ### Changed

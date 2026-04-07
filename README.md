@@ -61,8 +61,8 @@ listing = client.listings.create(
     price=3500,
     fulfillment="external",
     checkout_schema=[
-        {"name": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"]},
-        {"name": "shipping_address", "label": "Shipping Address", "type": "address"},
+        {"key": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"]},
+        {"key": "shipping_address", "label": "Shipping Address", "type": "address"},
     ],
 )
 listing = client.listings.publish(listing.slug)
@@ -134,8 +134,8 @@ listing = client.listings.create(
     price=3500,
     fulfillment="external",
     checkout_schema=[
-        {"name": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"]},
-        {"name": "color", "label": "Color", "type": "select", "options": ["Black", "White"]},
+        {"key": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"]},
+        {"key": "color", "label": "Color", "type": "select", "options": ["Black", "White"]},
     ],
 )
 
@@ -191,7 +191,7 @@ updated = client.listings.update(
     "r7kq2xy9",
     fulfillment="external",
     checkout_schema=[
-        {"name": "notes", "label": "Special Instructions", "type": "text"},
+        {"key": "notes", "label": "Special Instructions", "type": "text"},
     ],
 )
 
@@ -470,7 +470,7 @@ listing = client.listings.create(
     price=4900,
     fulfillment="external",
     checkout_schema=[
-        {"name": "topic", "label": "Report Topic", "type": "text", "required": True},
+        {"key": "topic", "label": "Report Topic", "type": "text", "required": True},
     ],
 )
 listing = client.listings.publish(listing.slug)

@@ -45,8 +45,8 @@ class CheckoutField(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    name: str = Field(
-        description="Machine-readable field name (unique within the schema).",
+    key: str = Field(
+        description="Machine-readable field key (unique within the schema).",
         examples=["shirt_size"],
     )
     label: str = Field(
@@ -66,6 +66,11 @@ class CheckoutField(BaseModel):
         default=None,
         description="Available options when type is 'select'.",
         examples=[["S", "M", "L", "XL"]],
+    )
+    sort_order: int = Field(
+        default=0,
+        description="Display order. Lower values shown first.",
+        examples=[0],
     )
 
 

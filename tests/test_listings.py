@@ -69,11 +69,12 @@ EXTERNAL_LISTING_JSON = {
     "has_deliverables": False,
     "checkout_schema": [
         {
-            "name": "shirt_size",
+            "key": "shirt_size",
             "label": "Shirt Size",
             "type": "select",
             "required": True,
             "options": ["S", "M", "L", "XL"],
+            "sort_order": 0,
         }
     ],
 }
@@ -304,9 +305,10 @@ class TestFulfillmentFields:
         assert result.has_deliverables is False
         assert result.checkout_schema is not None
         assert len(result.checkout_schema) == 1
-        assert result.checkout_schema[0].name == "shirt_size"
+        assert result.checkout_schema[0].key == "shirt_size"
         assert result.checkout_schema[0].type == "select"
         assert result.checkout_schema[0].options == ["S", "M", "L", "XL"]
+        assert result.checkout_schema[0].sort_order == 0
 
     def test_listing_response_configure_webhook_action(self, listings):
         json_with_webhook_action = {
