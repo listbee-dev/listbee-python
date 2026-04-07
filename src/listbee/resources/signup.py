@@ -1,92 +1,106 @@
-"""Signup resource — sync and async variants."""
+"""Auth resource — send OTP and verify OTP (sync and async variants)."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from listbee.types.signup import SignupResponse, VerifyResponse
+from listbee.types.signup import AuthSessionResponse, OtpRequestResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
 
 
 class Signup:
-    """Sync resource for the account signup endpoints."""
+    """Sync resource for the auth endpoints (OTP-based signup and login)."""
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
 
-    def create(self, *, email: str) -> SignupResponse:
-        """Initiate a signup by sending an OTP to the given email.
+    def send_otp(self, *, email: str) -> OtpRequestResponse:
+        """Send a one-time password to the given email address.
+
+        Works for both new and existing accounts. If no account exists for
+        this email, one will be created when the code is verified.
 
         Args:
-            email: The email address to sign up with.
+            email: The email address to send the verification code to.
 
         Returns:
-            A :class:`~listbee.types.signup.SignupResponse` confirming the OTP was sent.
+            An :class:`~listbee.types.signup.OtpRequestResponse` confirming
+            the OTP was dispatched.
         """
         response = self._client.post(
-            "/v1/account",
+            "/v1/auth/otp",
             json={"email": email},
             authenticated=False,
         )
-        return SignupResponse.model_validate(response.json())
+        return OtpRequestResponse.model_validate(response.json())
 
-    def verify(self, *, email: str, code: str) -> VerifyResponse:
-        """Verify a signup OTP and create the account.
+    def verify_otp(self, *, email: str, code: str) -> AuthSessionResponse:
+        """Verify a one-time password and obtain an access token.
+
+        Returns a short-lived access token (24 hours). Use it as a Bearer
+        token to create a permanent API key via ``POST /v1/api-keys``.
 
         Args:
-            email: The email address used during signup.
-            code: The OTP code received via email.
+            email: The email address the OTP was sent to.
+            code: The 6-digit verification code received via email.
 
         Returns:
-            A :class:`~listbee.types.signup.VerifyResponse` containing the new
-            account and API key.
+            An :class:`~listbee.types.signup.AuthSessionResponse` containing
+            the access token, account details, and whether the account is new.
         """
         response = self._client.post(
-            "/v1/account/verify/otp",
+            "/v1/auth/otp/verify",
             json={"email": email, "code": code},
             authenticated=False,
         )
-        return VerifyResponse.model_validate(response.json())
+        return AuthSessionResponse.model_validate(response.json())
 
 
 class AsyncSignup:
-    """Async resource for the account signup endpoints."""
+    """Async resource for the auth endpoints (OTP-based signup and login)."""
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def create(self, *, email: str) -> SignupResponse:
-        """Initiate a signup by sending an OTP to the given email (async).
+    async def send_otp(self, *, email: str) -> OtpRequestResponse:
+        """Send a one-time password to the given email address (async).
+
+        Works for both new and existing accounts. If no account exists for
+        this email, one will be created when the code is verified.
 
         Args:
-            email: The email address to sign up with.
+            email: The email address to send the verification code to.
 
         Returns:
-            A :class:`~listbee.types.signup.SignupResponse` confirming the OTP was sent.
+            An :class:`~listbee.types.signup.OtpRequestResponse` confirming
+            the OTP was dispatched.
         """
         response = await self._client.post(
-            "/v1/account",
+            "/v1/auth/otp",
             json={"email": email},
             authenticated=False,
         )
-        return SignupResponse.model_validate(response.json())
+        return OtpRequestResponse.model_validate(response.json())
 
-    async def verify(self, *, email: str, code: str) -> VerifyResponse:
-        """Verify a signup OTP and create the account (async).
+    async def verify_otp(self, *, email: str, code: str) -> AuthSessionResponse:
+        """Verify a one-time password and obtain an access token (async).
+
+        Returns a short-lived access token (24 hours). Use it as a Bearer
+        token to create a permanent API key via ``POST /v1/api-keys``.
 
         Args:
-            email: The email address used during signup.
-            code: The OTP code received via email.
+            email: The email address the OTP was sent to.
+            code: The 6-digit verification code received via email.
 
         Returns:
-            A :class:`~listbee.types.signup.VerifyResponse` containing the new
-            account and API key.
+            An :class:`~listbee.types.signup.AuthSessionResponse` containing
+            the access token, account details, and whether the account is new.
         """
         response = await self._client.post(
-            "/v1/account/verify/otp",
+            "/v1/auth/otp/verify",
             json={"email": email, "code": code},
             authenticated=False,
         )
-        return VerifyResponse.model_validate(response.json())
+        return AuthSessionResponse.model_validate(response.json())

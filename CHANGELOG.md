@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renamed `client.signup.create()` to `client.signup.send_otp()` — sends OTP to email, works for both new and existing accounts; path changed from `POST /v1/account` to `POST /v1/auth/otp`
+- Renamed `client.signup.verify()` to `client.signup.verify_otp()` — path changed from `POST /v1/account/verify/otp` to `POST /v1/auth/otp/verify`; response now returns `access_token` (short-lived, 24h) instead of `api_key`, plus `is_new`, `token_type`, and `expires_in` fields
+
+### Removed
+- `CreateAccountResponse` type — replaced by `OtpRequestResponse`
+- `VerifyOtpResponse` / `VerifyResponse` type — replaced by `AuthSessionResponse`
+- `SignupResponse` type — replaced by `OtpRequestResponse`
+
 ### Added
 - `client.utility.ping()` — authenticated connectivity check to verify API key validity (async: `client.utility.ping()`)
 - `Deliverable` input class with factory methods: `.file()`, `.url()`, `.text()`, `.from_token()`

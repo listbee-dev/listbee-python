@@ -36,7 +36,7 @@ client = ListBee(api_key="lb_...")
 | Webhooks | create, list, update, delete, list_events, retry_event, test |
 | Account | get, update, delete |
 | Stripe | connect, disconnect |
-| Signup | create, verify |
+| Signup | send_otp, verify_otp |
 | API Keys | create, list, delete |
 | Utility | ping |
 
@@ -348,21 +348,28 @@ print(account.readiness.operational)
 client.account.delete()
 ```
 
-### Signup
+### Signup / Auth
 
-Agent self-service onboarding — no API key required:
+Agent self-service onboarding — no API key required. Works for both new and existing accounts.
 
 ```python
 from listbee import ListBee
 
 client = ListBee(api_key=None)
 
-# Request a signup code
-client.signup.create(email="seller@example.com")
+# Step 1 — send OTP to the email address
+client.signup.send_otp(email="seller@example.com")
 
-# Verify the code — returns account + API key
-result = client.signup.verify(email="seller@example.com", code="123456")
-print(result.api_key)  # lb_... (one-time display)
+# Step 2 — verify the code — returns short-lived access token + account
+session = client.signup.verify_otp(email="seller@example.com", code="123456")
+print(session.access_token)   # at_... (valid 24 hours)
+print(session.is_new)         # True if a new account was just created
+print(session.account.id)     # acc_...
+
+# Step 3 — create a permanent API key using the access token
+client_with_token = ListBee(api_key=session.access_token)
+new_key = client_with_token.api_keys.create(label="primary")
+print(new_key.key)  # lb_... (save this immediately — shown once)
 ```
 
 ### API Keys
