@@ -110,7 +110,7 @@ client = ListBee(api_key=os.environ["LISTBEE_API_KEY"])
 
 The key is validated lazily — the client constructs successfully even with a missing or invalid key. A `ListBeeError` (specifically `AuthenticationError`) is raised only when you make the first API call.
 
-API keys start with `lb_`. Get yours at [listbee.so](https://listbee.so).
+API keys start with `lb_`. Get yours at [console.listbee.so](https://console.listbee.so), or bootstrap programmatically — see [Signup / Auth](#signup--auth) for the 3-step flow (`send_otp` → `verify_otp` → `create_api_key`).
 
 ## Resources
 
