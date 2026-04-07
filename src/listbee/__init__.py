@@ -31,6 +31,7 @@ from listbee._exceptions import (
     ValidationError,
     WebhookVerificationError,
 )
+from listbee.checkout_field import CheckoutField
 from listbee.deliverable import Deliverable
 from listbee.types import (
     AccountReadiness,
@@ -43,7 +44,7 @@ from listbee.types import (
     ApiKeyResponse,
     AuthSessionResponse,
     BlurMode,
-    CheckoutField,
+    CheckoutFieldResponse,
     CheckoutFieldType,
     CursorPage,
     CustomerResponse,
@@ -99,6 +100,7 @@ __all__ = [
     "ApiKeyResponse",
     "BlurMode",
     "CheckoutField",
+    "CheckoutFieldResponse",
     "CheckoutFieldType",
     "CursorPage",
     "CustomerResponse",

@@ -16,7 +16,7 @@ from listbee.types.shared import (
     ActionKind,
     ActionResolve,
     BlurMode,
-    CheckoutField,
+    CheckoutFieldResponse,
     CheckoutFieldType,
     DeliverableResponse,
     DeliverableType,
@@ -53,7 +53,7 @@ __all__ = [
     "AccountReadiness",
     "WebhookReadiness",
     # Fulfillment models
-    "CheckoutField",
+    "CheckoutFieldResponse",
     "ShippingAddress",
     "DeliverableResponse",
     # Listing

@@ -40,8 +40,8 @@ class CheckoutFieldType(StrEnum):
     DATE = "date"
 
 
-class CheckoutField(BaseModel):
-    """A custom field collected from the buyer at checkout."""
+class CheckoutFieldResponse(BaseModel):
+    """A custom field collected from the buyer at checkout (response model)."""
 
     model_config = ConfigDict(frozen=True)
 

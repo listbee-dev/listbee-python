@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from listbee.types.shared import (
     BlurMode,
-    CheckoutField,
+    CheckoutFieldResponse,
     DeliverableResponse,
     FulfillmentMode,
     ListingReadiness,
@@ -107,7 +107,7 @@ class ListingResponse(BaseModel):
         description="`true` if a cover image exists (uploaded or auto-generated).",
         examples=[True],
     )
-    checkout_schema: list[CheckoutField] | None = Field(
+    checkout_schema: list[CheckoutFieldResponse] | None = Field(
         default=None,
         description="Custom fields collected from the buyer at checkout. Max 10.",
     )
