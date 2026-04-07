@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-07
+
 ### Changed
 - Renamed `orders.deliver()` to `orders.fulfill()` with optional deliverables — call without arguments to close out an external fulfillment order, or pass `deliverables=[...]` to push content for ListBee to deliver
 
