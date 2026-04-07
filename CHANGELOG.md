@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `CheckoutField` builder class with factory methods: `text()`, `select()`, `address()`, `date()`
+- Listings resource now accepts `CheckoutField` objects alongside raw dicts for `checkout_schema`
+
+### Changed
+- Response model `CheckoutField` renamed to `CheckoutFieldResponse` (builder class takes the `CheckoutField` name)
+
 ## [0.11.1] - 2026-04-07
 
 ### Added

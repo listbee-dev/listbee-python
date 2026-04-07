@@ -20,7 +20,7 @@ uv add listbee
 ## Quick Start
 
 ```python
-from listbee import ListBee
+from listbee import ListBee, CheckoutField
 
 client = ListBee(api_key="lb_...")
 ```
@@ -56,13 +56,15 @@ listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 
 # External fulfillment — you handle delivery via webhooks
+from listbee import CheckoutField
+
 listing = client.listings.create(
     name="Custom T-Shirt",
     price=3500,
     fulfillment="external",
     checkout_schema=[
-        {"key": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"], "sort_order": 0},
-        {"key": "shipping_address", "label": "Shipping Address", "type": "address", "sort_order": 1},
+        CheckoutField.select("size", label="Size", options=["S", "M", "L", "XL"], sort_order=0),
+        CheckoutField.address("shipping_address", label="Shipping Address", sort_order=1),
     ],
 )
 listing = client.listings.publish(listing.slug)
@@ -129,13 +131,15 @@ listing = client.listings.create(
 )
 
 # Create — external fulfillment (you handle delivery)
+from listbee import CheckoutField
+
 listing = client.listings.create(
     name="Custom T-Shirt",
     price=3500,
     fulfillment="external",
     checkout_schema=[
-        {"key": "size", "label": "Size", "type": "select", "options": ["S", "M", "L", "XL"], "sort_order": 0},
-        {"key": "color", "label": "Color", "type": "select", "options": ["Black", "White"], "sort_order": 1},
+        CheckoutField.select("size", label="Size", options=["S", "M", "L", "XL"], sort_order=0),
+        CheckoutField.select("color", label="Color", options=["Black", "White"], sort_order=1),
     ],
 )
 
@@ -187,9 +191,19 @@ updated = client.listings.update(
 )
 
 # Update fulfillment mode and checkout schema
+from listbee import CheckoutField
+
 updated = client.listings.update(
     "r7kq2xy9",
     fulfillment="external",
+    checkout_schema=[
+        CheckoutField.text("notes", label="Special Instructions", sort_order=0),
+    ],
+)
+
+# Raw dicts also accepted for backward compatibility:
+updated = client.listings.update(
+    "r7kq2xy9",
     checkout_schema=[
         {"key": "notes", "label": "Special Instructions", "type": "text", "sort_order": 0},
     ],
@@ -465,12 +479,14 @@ client.listings.add_deliverable(listing.slug, Deliverable.from_token(file.id))
 **External** — ListBee fires `order.paid` webhook, your app handles delivery. Supports physical goods, AI-generated content, services, anything.
 
 ```python
+from listbee import CheckoutField
+
 listing = client.listings.create(
     name="Custom AI Report",
     price=4900,
     fulfillment="external",
     checkout_schema=[
-        {"key": "topic", "label": "Report Topic", "type": "text", "required": True, "sort_order": 0},
+        CheckoutField.text("topic", label="Report Topic", sort_order=0),
     ],
 )
 listing = client.listings.publish(listing.slug)
@@ -757,12 +773,12 @@ from listbee import (
     Review,
     FaqItem,
     CursorPage,
-    CheckoutField,
+    CheckoutFieldResponse,
     ShippingAddress,
 
-    # Models
-    DeliverableResponse,  # {id, object, type, has_content}
-    Deliverable,          # input class: .file() | .url() | .text() | .from_token()
+    # Builder classes
+    CheckoutField,       # input class: .text() | .select() | .address() | .date()
+    Deliverable,         # input class: .file() | .url() | .text() | .from_token()
 
     # Enums
     DeliverableType,     # "file" | "url" | "text"
