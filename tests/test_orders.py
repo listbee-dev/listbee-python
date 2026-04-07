@@ -25,10 +25,6 @@ ORDER_JSON = {
     "checkout_data": None,
     "shipping_address": None,
     "deliverables": [],
-    "shipped_at": None,
-    "carrier": None,
-    "tracking_code": None,
-    "seller_note": None,
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
     "refund_amount": 0,
@@ -73,15 +69,6 @@ FULFILLED_ORDER_JSON = {
         }
     ],
     "fulfilled_at": "2026-03-28T13:00:00Z",
-}
-
-SHIPPED_ORDER_JSON = {
-    **ORDER_JSON,
-    "id": "ord_shipped123",
-    "shipped_at": "2026-03-28T12:30:00Z",
-    "carrier": "USPS",
-    "tracking_code": "9400111899223456789012",
-    "seller_note": "Ships within 3 days",
 }
 
 
@@ -253,13 +240,25 @@ class TestOrderCheckoutData:
         assert result.shipping_address is None
 
 
-class TestDeliverOrder:
-    def test_deliver_order_with_text(self, orders):
+class TestFulfillOrder:
+    def test_fulfill_order_without_deliverables(self, orders):
+        """Close out an order without pushing content."""
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/deliver").mock(
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            result = orders.deliver(
+            result = orders.fulfill("ord_9xM4kP7nR2qT5wY1")
+        assert isinstance(result, OrderResponse)
+        assert result.status == "fulfilled"
+        body = json.loads(route.calls[0].request.content)
+        assert "deliverables" not in body
+
+    def test_fulfill_order_with_text(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
+                return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
+            )
+            result = orders.fulfill(
                 "ord_9xM4kP7nR2qT5wY1",
                 deliverables=[{"type": "text", "value": "Here is your AI-generated report"}],
             )
@@ -268,33 +267,33 @@ class TestDeliverOrder:
         body = json.loads(route.calls[0].request.content)
         assert body["deliverables"] == [{"type": "text", "value": "Here is your AI-generated report"}]
 
-    def test_deliver_order_with_url(self, orders):
+    def test_fulfill_order_with_url(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/deliver").mock(
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.deliver(
+            orders.fulfill(
                 "ord_9xM4kP7nR2qT5wY1",
                 deliverables=[{"type": "url", "value": "https://example.com/generated.pdf"}],
             )
         body = json.loads(route.calls[0].request.content)
         assert body["deliverables"][0]["value"] == "https://example.com/generated.pdf"
 
-    def test_deliver_order_sends_deliverables_key(self, orders):
+    def test_fulfill_order_sends_deliverables_key(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/deliver").mock(
+            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.deliver("ord_9xM4kP7nR2qT5wY1", deliverables=[{"type": "text", "value": "some content"}])
+            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverables=[{"type": "text", "value": "some content"}])
         body = json.loads(route.calls[0].request.content)
         assert "deliverables" in body
 
-    def test_deliver_order_sends_correct_path(self, orders):
+    def test_fulfill_order_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_abc/deliver").mock(
+            route = mock.post("/v1/orders/ord_abc/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.deliver("ord_abc", deliverables=[{"type": "text", "value": "some content"}])
+            orders.fulfill("ord_abc", deliverables=[{"type": "text", "value": "some content"}])
         assert route.called
 
 
@@ -312,59 +311,9 @@ class TestRefundOrder:
         assert route.called
 
 
-class TestShipOrder:
-    def test_ship_order_with_tracking(self, orders):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/ship").mock(
-                return_value=httpx.Response(200, json=SHIPPED_ORDER_JSON)
-            )
-            result = orders.ship(
-                "ord_9xM4kP7nR2qT5wY1",
-                carrier="USPS",
-                tracking_code="9400111899223456789012",
-            )
-        assert isinstance(result, OrderResponse)
-        assert result.carrier == "USPS"
-        assert result.tracking_code == "9400111899223456789012"
-        assert result.shipped_at is not None
-        body = json.loads(route.calls[0].request.content)
-        assert body["carrier"] == "USPS"
-        assert body["tracking_code"] == "9400111899223456789012"
-        assert "seller_note" not in body
-
-    def test_ship_order_with_seller_note(self, orders):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/ship").mock(
-                return_value=httpx.Response(200, json=SHIPPED_ORDER_JSON)
-            )
-            orders.ship(
-                "ord_9xM4kP7nR2qT5wY1",
-                carrier="USPS",
-                tracking_code="9400111899223456789012",
-                seller_note="Ships within 3 days",
-            )
-        body = json.loads(route.calls[0].request.content)
-        assert body["seller_note"] == "Ships within 3 days"
-
-    def test_ship_order_sends_correct_path(self, orders):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/orders/ord_abc/ship").mock(return_value=httpx.Response(200, json=SHIPPED_ORDER_JSON))
-            orders.ship("ord_abc", carrier="FedEx", tracking_code="ABC123")
-        assert route.called
-
-    def test_shipped_order_response_fields(self, orders):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_shipped123").mock(return_value=httpx.Response(200, json=SHIPPED_ORDER_JSON))
-            result = orders.get("ord_shipped123")
-        assert result.carrier == "USPS"
-        assert result.tracking_code == "9400111899223456789012"
-        assert result.seller_note == "Ships within 3 days"
-        assert result.shipped_at is not None
-
-
-class TestDeliverWithDeliverableClass:
+class TestFulfillWithDeliverableClass:
     @respx.mock
-    def test_deliver_with_file(self, sync_client):
+    def test_fulfill_with_file(self, sync_client):
         respx.post("https://api.listbee.so/v1/files").mock(
             return_value=httpx.Response(
                 201,
@@ -380,10 +329,10 @@ class TestDeliverWithDeliverableClass:
                 },
             )
         )
-        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/deliver").mock(
+        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/fulfill").mock(
             return_value=httpx.Response(200, json=ORDER_JSON)
         )
-        result = Orders(sync_client).deliver(
+        result = Orders(sync_client).fulfill(
             "ord_abc",
             deliverables=[Deliverable.file(b"content", filename="report.pdf")],
         )
@@ -392,13 +341,22 @@ class TestDeliverWithDeliverableClass:
         assert sent["deliverables"][0] == {"type": "file", "token": "file_tok_abc"}
 
     @respx.mock
-    def test_deliver_with_text(self, sync_client):
-        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/deliver").mock(
+    def test_fulfill_with_text(self, sync_client):
+        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/fulfill").mock(
             return_value=httpx.Response(200, json=ORDER_JSON)
         )
-        Orders(sync_client).deliver(
+        Orders(sync_client).fulfill(
             "ord_abc",
             deliverables=[Deliverable.text("Your report")],
         )
         sent = json.loads(route.calls[0].request.content)
         assert sent == {"deliverables": [{"type": "text", "value": "Your report"}]}
+
+    @respx.mock
+    def test_fulfill_without_deliverables_sends_empty_body(self, sync_client):
+        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/fulfill").mock(
+            return_value=httpx.Response(200, json=ORDER_JSON)
+        )
+        Orders(sync_client).fulfill("ord_abc")
+        sent = json.loads(route.calls[0].request.content)
+        assert sent == {}

@@ -30,7 +30,7 @@ client = ListBee(api_key="lb_...")
 | Resource | Methods |
 |----------|---------|
 | Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, add_deliverable, remove_deliverable, create_complete, publish |
-| Orders | get, list, deliver, refund, ship |
+| Orders | get, list, fulfill, refund |
 | Customers | get, list |
 | Files | upload |
 | Webhooks | create, list, update, delete, list_events, retry_event, test |
@@ -267,10 +267,14 @@ print(order.checkout_data)        # custom fields from checkout
 print(order.shipping_address)     # ShippingAddress or None
 print(order.paid_at)              # when payment was confirmed
 
-# Deliver an order — push deliverables for delivery (external fulfillment)
+# Fulfill an order — close out an external fulfillment order (no content push)
+order = client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
+print(order.status)               # "fulfilled"
+
+# Fulfill with dynamic content — push deliverables for ListBee to deliver
 from listbee import Deliverable
 
-order = client.orders.deliver(
+order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         Deliverable.text("Here is your personalized report..."),
@@ -278,8 +282,8 @@ order = client.orders.deliver(
 )
 print(order.status)               # "fulfilled"
 
-# Deliver with a URL
-order = client.orders.deliver(
+# Fulfill with a URL
+order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         Deliverable.url("https://example.com/generated-report.pdf"),
@@ -289,16 +293,6 @@ order = client.orders.deliver(
 # Refund an order — issues a full refund and marks order canceled
 order = client.orders.refund("ord_9xM4kP7nR2qT5wY1")
 print(order.status)               # "canceled"
-
-# Ship an order — add tracking info
-order = client.orders.ship(
-    "ord_9xM4kP7nR2qT5wY1",
-    carrier="USPS",
-    tracking_code="9400111899223456789012",
-    seller_note="Ships within 3 business days",
-)
-print(order.shipped_at)           # datetime when shipped
-print(order.carrier)              # "USPS"
 ```
 
 ### Webhooks
@@ -491,8 +485,8 @@ listing = client.listings.create(
 )
 listing = client.listings.publish(listing.slug)
 
-# When you receive the order.paid webhook, generate and deliver:
-order = client.orders.deliver(
+# When you receive the order.paid webhook, generate and fulfill:
+order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         Deliverable.text("Your personalized report..."),
@@ -700,8 +694,8 @@ async def main():
     async for order in await client.orders.list(status="paid"):
         print(order.id)
 
-    # Deliver an order (async)
-    order = await client.orders.deliver(
+    # Fulfill an order (async)
+    order = await client.orders.fulfill(
         "ord_9xM4kP7nR2qT5wY1",
         deliverables=[Deliverable.text("Generated content here")],
     )

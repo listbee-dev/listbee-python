@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renamed `orders.deliver()` to `orders.fulfill()` with optional deliverables — call without arguments to close out an external fulfillment order, or pass `deliverables=[...]` to push content for ListBee to deliver
+
+### Removed
+- Removed `orders.ship()` — physical delivery tracking is now handled externally
+- Removed shipping fields from `OrderResponse`: `carrier`, `tracking_code`, `seller_note`, `shipped_at`
+
+### Added
+- Added `notify_orders: bool` to `AccountResponse` and `account.update()` — controls email notifications for new orders
+
 ## [0.12.0] - 2026-04-07
 
 ### Added

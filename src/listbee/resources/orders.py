@@ -78,41 +78,61 @@ class Orders:
             params["cursor"] = cursor
         return self._client.get_page("/v1/orders", params, OrderResponse)
 
-    def deliver(
+    def fulfill(
         self,
         order_id: str,
         *,
-        deliverables: list[Any],
+        deliverables: list[Any] | None = None,
     ) -> OrderResponse:
-        """Deliver an order by pushing deliverables for ListBee to deliver.
+        """Fulfill an order, optionally pushing deliverables for ListBee to deliver.
+
+        Call without ``deliverables`` to close out an external fulfillment order.
+        Pass ``deliverables`` to push content for ListBee to deliver (dynamic fulfillment).
 
         Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
-        Files are uploaded transparently before delivering.
+        Files are uploaded transparently before fulfilling.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverables: List of Deliverable objects or dicts.
+            deliverables: Optional list of Deliverable objects or dicts. Omit to close
+                out the order without pushing additional content.
 
         Returns:
-            The delivered :class:`~listbee.types.order.OrderResponse`.
+            The fulfilled :class:`~listbee.types.order.OrderResponse`.
+
+        Examples:
+            Close out an external fulfillment order::
+
+                order = client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
+
+            Push AI-generated content::
+
+                from listbee import Deliverable
+
+                order = client.orders.fulfill(
+                    "ord_9xM4kP7nR2qT5wY1",
+                    deliverables=[Deliverable.text("Your personalized report...")],
+                )
         """
         from listbee.deliverable import Deliverable as DeliverableInput
         from listbee.resources.files import Files
 
-        resolved: list[dict[str, Any]] = []
-        files_resource = Files(self._client)
-        for d in deliverables:
-            if isinstance(d, DeliverableInput):
-                token = None
-                if d.needs_upload:
-                    file_resp = files_resource.upload(file=d.to_upload_tuple())
-                    token = file_resp.id
-                resolved.append(d.to_api_body(token=token))
-            else:
-                resolved.append(d)
+        body: dict[str, Any] = {}
+        if deliverables is not None:
+            resolved: list[dict[str, Any]] = []
+            files_resource = Files(self._client)
+            for d in deliverables:
+                if isinstance(d, DeliverableInput):
+                    token = None
+                    if d.needs_upload:
+                        file_resp = files_resource.upload(file=d.to_upload_tuple())
+                        token = file_resp.id
+                    resolved.append(d.to_api_body(token=token))
+                else:
+                    resolved.append(d)
+            body["deliverables"] = resolved
 
-        body: dict[str, Any] = {"deliverables": resolved}
-        response = self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
+        response = self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
         return OrderResponse.model_validate(response.json())
 
     def refund(self, order_id: str) -> OrderResponse:
@@ -128,34 +148,6 @@ class Orders:
             The :class:`~listbee.types.order.OrderResponse`.
         """
         response = self._client.post(f"/v1/orders/{order_id}/refund")
-        return OrderResponse.model_validate(response.json())
-
-    def ship(
-        self,
-        order_id: str,
-        *,
-        carrier: str,
-        tracking_code: str,
-        seller_note: str | None = None,
-    ) -> OrderResponse:
-        """Mark an order as shipped with tracking information.
-
-        Args:
-            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            carrier: Shipping carrier name (e.g. "USPS", "FedEx").
-            tracking_code: Shipment tracking code.
-            seller_note: Optional note to the buyer.
-
-        Returns:
-            The shipped :class:`~listbee.types.order.OrderResponse`.
-        """
-        body: dict[str, Any] = {
-            "carrier": carrier,
-            "tracking_code": tracking_code,
-        }
-        if seller_note is not None:
-            body["seller_note"] = seller_note
-        response = self._client.post(f"/v1/orders/{order_id}/ship", json=body)
         return OrderResponse.model_validate(response.json())
 
 
@@ -225,41 +217,61 @@ class AsyncOrders:
             params["cursor"] = cursor
         return await self._client.get_page("/v1/orders", params, OrderResponse)
 
-    async def deliver(
+    async def fulfill(
         self,
         order_id: str,
         *,
-        deliverables: list[Any],
+        deliverables: list[Any] | None = None,
     ) -> OrderResponse:
-        """Deliver an order by pushing deliverables for ListBee to deliver (async).
+        """Fulfill an order, optionally pushing deliverables for ListBee to deliver (async).
+
+        Call without ``deliverables`` to close out an external fulfillment order.
+        Pass ``deliverables`` to push content for ListBee to deliver (dynamic fulfillment).
 
         Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
-        Files are uploaded transparently before delivering.
+        Files are uploaded transparently before fulfilling.
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverables: List of Deliverable objects or dicts.
+            deliverables: Optional list of Deliverable objects or dicts. Omit to close
+                out the order without pushing additional content.
 
         Returns:
-            The delivered :class:`~listbee.types.order.OrderResponse`.
+            The fulfilled :class:`~listbee.types.order.OrderResponse`.
+
+        Examples:
+            Close out an external fulfillment order::
+
+                order = await client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
+
+            Push AI-generated content::
+
+                from listbee import Deliverable
+
+                order = await client.orders.fulfill(
+                    "ord_9xM4kP7nR2qT5wY1",
+                    deliverables=[Deliverable.text("Your personalized report...")],
+                )
         """
         from listbee.deliverable import Deliverable as DeliverableInput
         from listbee.resources.files import AsyncFiles
 
-        resolved: list[dict[str, Any]] = []
-        files_resource = AsyncFiles(self._client)
-        for d in deliverables:
-            if isinstance(d, DeliverableInput):
-                token = None
-                if d.needs_upload:
-                    file_resp = await files_resource.upload(file=d.to_upload_tuple())
-                    token = file_resp.id
-                resolved.append(d.to_api_body(token=token))
-            else:
-                resolved.append(d)
+        body: dict[str, Any] = {}
+        if deliverables is not None:
+            resolved: list[dict[str, Any]] = []
+            files_resource = AsyncFiles(self._client)
+            for d in deliverables:
+                if isinstance(d, DeliverableInput):
+                    token = None
+                    if d.needs_upload:
+                        file_resp = await files_resource.upload(file=d.to_upload_tuple())
+                        token = file_resp.id
+                    resolved.append(d.to_api_body(token=token))
+                else:
+                    resolved.append(d)
+            body["deliverables"] = resolved
 
-        body: dict[str, Any] = {"deliverables": resolved}
-        response = await self._client.post(f"/v1/orders/{order_id}/deliver", json=body)
+        response = await self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
         return OrderResponse.model_validate(response.json())
 
     async def refund(self, order_id: str) -> OrderResponse:
@@ -275,32 +287,4 @@ class AsyncOrders:
             The :class:`~listbee.types.order.OrderResponse`.
         """
         response = await self._client.post(f"/v1/orders/{order_id}/refund")
-        return OrderResponse.model_validate(response.json())
-
-    async def ship(
-        self,
-        order_id: str,
-        *,
-        carrier: str,
-        tracking_code: str,
-        seller_note: str | None = None,
-    ) -> OrderResponse:
-        """Mark an order as shipped with tracking information (async).
-
-        Args:
-            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            carrier: Shipping carrier name (e.g. "USPS", "FedEx").
-            tracking_code: Shipment tracking code.
-            seller_note: Optional note to the buyer.
-
-        Returns:
-            The shipped :class:`~listbee.types.order.OrderResponse`.
-        """
-        body: dict[str, Any] = {
-            "carrier": carrier,
-            "tracking_code": tracking_code,
-        }
-        if seller_note is not None:
-            body["seller_note"] = seller_note
-        response = await self._client.post(f"/v1/orders/{order_id}/ship", json=body)
         return OrderResponse.model_validate(response.json())

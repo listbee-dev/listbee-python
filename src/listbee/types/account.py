@@ -77,6 +77,10 @@ class AccountResponse(BaseModel):
         description="Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). Used to track conversions on checkout pages.",
         examples=["G-XXXXXXXXXX"],
     )
+    notify_orders: bool = Field(
+        default=True,
+        description="Whether the account receives email notifications for new orders.",
+    )
     stats: AccountStats = Field(
         description="Aggregate statistics for this account.",
     )

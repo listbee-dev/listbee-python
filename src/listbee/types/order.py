@@ -58,24 +58,6 @@ class OrderResponse(BaseModel):
         default=[],
         description="Deliverables attached to this order.",
     )
-    shipped_at: datetime | None = Field(
-        default=None,
-        description="ISO 8601 timestamp of when the order was marked as shipped.",
-    )
-    carrier: str | None = Field(
-        default=None,
-        description="Shipping carrier name (set via ship endpoint).",
-        examples=["USPS"],
-    )
-    tracking_code: str | None = Field(
-        default=None,
-        description="Shipment tracking code (set via ship endpoint).",
-        examples=["9400111899223456789012"],
-    )
-    seller_note: str | None = Field(
-        default=None,
-        description="Seller note to buyer (set via ship or fulfill endpoint).",
-    )
     paid_at: datetime | None = Field(
         default=None,
         description="ISO 8601 timestamp of when payment was confirmed.",

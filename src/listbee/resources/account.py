@@ -33,18 +33,26 @@ class Account:
         """
         self._client.delete("/v1/account")
 
-    def update(self, *, ga_measurement_id: str | None = None) -> AccountResponse:
+    def update(
+        self,
+        *,
+        ga_measurement_id: str | None = None,
+        notify_orders: bool | None = None,
+    ) -> AccountResponse:
         """Update account settings.
 
         Args:
             ga_measurement_id: Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX').
                 Pass ``None`` to clear the existing value.
+            notify_orders: Whether to receive email notifications for new orders.
 
         Returns:
             The updated :class:`~listbee.types.account.AccountResponse`.
         """
         body: dict[str, Any] = {}
         body["ga_measurement_id"] = ga_measurement_id
+        if notify_orders is not None:
+            body["notify_orders"] = notify_orders
         response = self._client.put("/v1/account", json=body)
         return AccountResponse.model_validate(response.json())
 
@@ -72,17 +80,25 @@ class AsyncAccount:
         """
         await self._client.delete("/v1/account")
 
-    async def update(self, *, ga_measurement_id: str | None = None) -> AccountResponse:
+    async def update(
+        self,
+        *,
+        ga_measurement_id: str | None = None,
+        notify_orders: bool | None = None,
+    ) -> AccountResponse:
         """Update account settings (async).
 
         Args:
             ga_measurement_id: Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX').
                 Pass ``None`` to clear the existing value.
+            notify_orders: Whether to receive email notifications for new orders.
 
         Returns:
             The updated :class:`~listbee.types.account.AccountResponse`.
         """
         body: dict[str, Any] = {}
         body["ga_measurement_id"] = ga_measurement_id
+        if notify_orders is not None:
+            body["notify_orders"] = notify_orders
         response = await self._client.put("/v1/account", json=body)
         return AccountResponse.model_validate(response.json())

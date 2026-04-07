@@ -24,6 +24,7 @@ ACCOUNT_JSON = {
     "has_avatar": False,
     "billing_status": "active",
     "ga_measurement_id": None,
+    "notify_orders": True,
     "stats": {"total_revenue": 125000, "total_orders": 47, "total_listings": 5},
     "readiness": {"operational": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
@@ -121,6 +122,29 @@ class TestUpdateAccount:
             mock.get("/v1/account").mock(return_value=httpx.Response(200, json=with_ga))
             result = account.get()
         assert result.ga_measurement_id == "G-XXXXXXXXXXX"
+
+    def test_update_account_sets_notify_orders(self, account):
+        updated = {**ACCOUNT_JSON, "notify_orders": False}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=updated))
+            result = account.update(notify_orders=False)
+        body = json.loads(route.calls[0].request.content)
+        assert body["notify_orders"] is False
+        assert isinstance(result, AccountResponse)
+        assert result.notify_orders is False
+
+    def test_update_account_omits_notify_orders_when_not_passed(self, account):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            account.update(ga_measurement_id="G-TEST")
+        body = json.loads(route.calls[0].request.content)
+        assert "notify_orders" not in body
+
+    def test_get_account_includes_notify_orders_field(self, account):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            result = account.get()
+        assert result.notify_orders is True
 
 
 class TestDeleteAccount:
