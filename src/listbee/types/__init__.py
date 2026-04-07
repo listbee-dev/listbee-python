@@ -29,7 +29,6 @@ from listbee.types.shared import (
     WebhookEventType,
     WebhookReadiness,
 )
-from listbee.types.signup import AuthSessionResponse, OtpRequestResponse
 from listbee.types.stripe import StripeConnectSessionResponse
 from listbee.types.utility import PingResponse
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
@@ -75,9 +74,6 @@ __all__ = [
     "CustomerResponse",
     # File
     "FileResponse",
-    # Auth/Signup
-    "OtpRequestResponse",
-    "AuthSessionResponse",
     # Stripe
     "StripeConnectSessionResponse",
     # Utility

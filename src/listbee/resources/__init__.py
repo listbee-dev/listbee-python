@@ -6,7 +6,6 @@ from listbee.resources.customers import AsyncCustomers, Customers
 from listbee.resources.files import AsyncFiles, Files
 from listbee.resources.listings import AsyncListings, Listings
 from listbee.resources.orders import AsyncOrders, Orders
-from listbee.resources.signup import AsyncSignup, Signup
 from listbee.resources.stripe import AsyncStripe, Stripe
 from listbee.resources.webhooks import AsyncWebhooks, Webhooks
 
@@ -24,9 +23,7 @@ __all__ = [
     "Files",
     "Listings",
     "Orders",
-    "AsyncSignup",
     "AsyncStripe",
-    "Signup",
     "Stripe",
     "Webhooks",
 ]

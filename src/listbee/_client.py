@@ -9,7 +9,6 @@ from listbee.resources.customers import AsyncCustomers, Customers
 from listbee.resources.files import AsyncFiles, Files
 from listbee.resources.listings import AsyncListings, Listings
 from listbee.resources.orders import AsyncOrders, Orders
-from listbee.resources.signup import AsyncSignup, Signup
 from listbee.resources.stripe import AsyncStripe, Stripe
 from listbee.resources.utility import AsyncUtility, Utility
 from listbee.resources.webhooks import AsyncWebhooks, Webhooks
@@ -52,7 +51,6 @@ class ListBee(SyncClient):
         self.orders = Orders(self)
         self.webhooks = Webhooks(self)
         self.account = Account(self)
-        self.signup = Signup(self)
         self.stripe = Stripe(self)
         self.utility = Utility(self)
 
@@ -92,6 +90,5 @@ class AsyncListBee(AsyncClient):
         self.orders = AsyncOrders(self)
         self.webhooks = AsyncWebhooks(self)
         self.account = AsyncAccount(self)
-        self.signup = AsyncSignup(self)
         self.stripe = AsyncStripe(self)
         self.utility = AsyncUtility(self)
