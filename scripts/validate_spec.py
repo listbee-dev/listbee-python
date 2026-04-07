@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import ast
 import json
-import re
 import sys
 import tempfile
 import urllib.request
@@ -66,11 +65,10 @@ def fetch_spec_to_tempfile(url: str) -> Path:
     print(f"Fetching spec from {url} ...")
     with urllib.request.urlopen(url) as response:  # noqa: S310
         data = response.read()
-    tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-    tmp.write(data)
-    tmp.flush()
-    tmp.close()
-    return Path(tmp.name)
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+        tmp.write(data)
+        tmp.flush()
+        return Path(tmp.name)
 
 
 def load_spec(spec_path: Path) -> dict:
@@ -128,12 +126,14 @@ def scan_resource_methods(resources_dir: Path) -> dict[str, list[dict]]:
                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         if item.name.startswith("_"):
                             continue
-                        methods.append({
-                            "name": item.name,
-                            "class": node.name,
-                            "is_async": isinstance(item, ast.AsyncFunctionDef),
-                            "line": item.lineno,
-                        })
+                        methods.append(
+                            {
+                                "name": item.name,
+                                "class": node.name,
+                                "is_async": isinstance(item, ast.AsyncFunctionDef),
+                                "line": item.lineno,
+                            }
+                        )
         if methods:
             results[py_file.stem] = methods
     return results
@@ -239,20 +239,24 @@ def compare_fields(
         model_props = model_fields[schema_name]
 
         for field in sorted(spec_props - model_props):
-            issues.append({
-                "kind": "MISSING FIELD",
-                "schema": schema_name,
-                "field": field,
-                "message": f'Schema "{schema_name}" has field "{field}" not found in Python model.',
-            })
+            issues.append(
+                {
+                    "kind": "MISSING FIELD",
+                    "schema": schema_name,
+                    "field": field,
+                    "message": f'Schema "{schema_name}" has field "{field}" not found in Python model.',
+                }
+            )
 
         for field in sorted(model_props - spec_props):
-            issues.append({
-                "kind": "EXTRA FIELD",
-                "schema": schema_name,
-                "field": field,
-                "message": f'Python model "{schema_name}" has field "{field}" not in OpenAPI schema.',
-            })
+            issues.append(
+                {
+                    "kind": "EXTRA FIELD",
+                    "schema": schema_name,
+                    "field": field,
+                    "message": f'Python model "{schema_name}" has field "{field}" not in OpenAPI schema.',
+                }
+            )
 
     return issues
 
@@ -313,10 +317,7 @@ def main() -> None:
 
     # Default: try local openapi.json, else fetch from live API
     if spec_path is None:
-        if DEFAULT_SPEC.exists():
-            spec_path = DEFAULT_SPEC
-        else:
-            spec_path = fetch_spec_to_tempfile(LIVE_SPEC_URL)
+        spec_path = DEFAULT_SPEC if DEFAULT_SPEC.exists() else fetch_spec_to_tempfile(LIVE_SPEC_URL)
 
     spec = load_spec(spec_path)
     spec_ops = extract_spec_operations(spec)
@@ -356,10 +357,12 @@ def main() -> None:
                 break
 
         if not found:
-            issues.append({
-                "kind": "MISSING METHOD",
-                "message": f'Operation "{op_id}" ({op_info["method"]} {op_info["path"]}) has no matching SDK method.',
-            })
+            issues.append(
+                {
+                    "kind": "MISSING METHOD",
+                    "message": f'Operation "{op_id}" ({op_info["method"]} {op_info["path"]}) has no matching SDK method.',
+                }
+            )
 
     # Field-level drift: compare OpenAPI schema properties against Pydantic models
     issues.extend(compare_fields(spec, model_fields))
