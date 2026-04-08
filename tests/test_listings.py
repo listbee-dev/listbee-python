@@ -110,18 +110,18 @@ class TestCreateListing:
                 "sellable": False,
                 "actions": [
                     {
-                        "code": "set_stripe_key",
+                        "code": "connect_stripe",
                         "kind": "api",
-                        "message": "Set your Stripe secret key via the API",
+                        "message": "Connect your Stripe account via the API",
                         "resolve": {
-                            "method": "PUT",
-                            "endpoint": "/v1/account/stripe",
+                            "method": "POST",
+                            "endpoint": "/v1/account/stripe-connect-session",
                             "url": None,
-                            "params": {"stripe_secret_key": "sk_..."},
+                            "params": {"return_url": "https://example.com"},
                         },
                     }
                 ],
-                "next": "set_stripe_key",
+                "next": "connect_stripe",
             },
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
@@ -129,10 +129,10 @@ class TestCreateListing:
             result = listings.create(name="SEO Playbook", price=2999, deliverable="text content")
         assert result.readiness.sellable is False
         assert len(result.readiness.actions) == 1
-        assert result.readiness.actions[0].code == "set_stripe_key"
+        assert result.readiness.actions[0].code == "connect_stripe"
         assert result.readiness.actions[0].kind == "api"
-        assert result.readiness.actions[0].resolve.endpoint == "/v1/account/stripe"
-        assert result.readiness.next == "set_stripe_key"
+        assert result.readiness.actions[0].resolve.endpoint == "/v1/account/stripe-connect-session"
+        assert result.readiness.next == "connect_stripe"
 
     def test_create_listing_optional_fields_omitted_when_none(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:

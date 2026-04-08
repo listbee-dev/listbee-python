@@ -24,6 +24,14 @@ class DeliverableType(StrEnum):
     TEXT = "text"
 
 
+class DeliverableStatus(StrEnum):
+    """Status of a digital deliverable."""
+
+    PROCESSING = "processing"
+    READY = "ready"
+    FAILED = "failed"
+
+
 class ContentType(StrEnum):
     """Content type of a listing — determines the delivery model."""
 
@@ -97,12 +105,12 @@ class DeliverableResponse(BaseModel):
         description="Unique deliverable identifier (del_ prefixed).",
         examples=["del_7kQ2xY9mN3pR5tW1vB8a01"],
     )
-    type: str = Field(
+    type: DeliverableType = Field(
         description="Type of deliverable: `file`, `url`, or `text`.",
         examples=["file"],
     )
-    status: str = Field(
-        description="Deliverable status: `pending`, `ready`, or `failed`.",
+    status: DeliverableStatus = Field(
+        description="Deliverable status: `processing`, `ready`, or `failed`.",
         examples=["ready"],
     )
     content: str | None = Field(
@@ -162,15 +170,16 @@ class WebhookEventType(StrEnum):
 
     ORDER_PAID = "order.paid"
     ORDER_FULFILLED = "order.fulfilled"
-    ORDER_SHIPPED = "order.shipped"
     ORDER_REFUNDED = "order.refunded"
     ORDER_DISPUTED = "order.disputed"
     ORDER_DISPUTE_CLOSED = "order.dispute_closed"
+    ORDER_CANCELED = "order.canceled"
     LISTING_CREATED = "listing.created"
     LISTING_UPDATED = "listing.updated"
-    LISTING_PAUSED = "listing.paused"
-    LISTING_RESUMED = "listing.resumed"
+    LISTING_PUBLISHED = "listing.published"
+    LISTING_OUT_OF_STOCK = "listing.out_of_stock"
     LISTING_DELETED = "listing.deleted"
+    CUSTOMER_CREATED = "customer.created"
 
 
 class ActionKind(StrEnum):
@@ -183,11 +192,13 @@ class ActionKind(StrEnum):
 class ActionCode(StrEnum):
     """Machine-readable code identifying what action is needed."""
 
-    SET_STRIPE_KEY = "set_stripe_key"
     CONNECT_STRIPE = "connect_stripe"
     ENABLE_CHARGES = "enable_charges"
     UPDATE_BILLING = "update_billing"
+    ATTACH_DELIVERABLE = "attach_deliverable"
     CONFIGURE_WEBHOOK = "configure_webhook"
+    PUBLISH_LISTING = "publish_listing"
+    WEBHOOK_DISABLED = "webhook_disabled"
 
 
 class ActionResolve(BaseModel):

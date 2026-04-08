@@ -24,9 +24,6 @@ class TestActionKind:
 
 
 class TestActionCode:
-    def test_set_stripe_key(self):
-        assert ActionCode.SET_STRIPE_KEY == "set_stripe_key"
-
     def test_connect_stripe(self):
         assert ActionCode.CONNECT_STRIPE == "connect_stripe"
 
@@ -35,6 +32,9 @@ class TestActionCode:
 
     def test_update_billing(self):
         assert ActionCode.UPDATE_BILLING == "update_billing"
+
+    def test_attach_deliverable(self):
+        assert ActionCode.ATTACH_DELIVERABLE == "attach_deliverable"
 
 
 class TestActionResolve:
@@ -71,19 +71,19 @@ class TestActionResolve:
 class TestAction:
     def test_api_action(self):
         action = Action(
-            code=ActionCode.SET_STRIPE_KEY,
+            code=ActionCode.CONNECT_STRIPE,
             kind=ActionKind.API,
-            message="Set your Stripe secret key via the API",
+            message="Connect your Stripe account via the API",
             resolve=ActionResolve(
-                method="PUT",
-                endpoint="/v1/account/stripe",
+                method="POST",
+                endpoint="/v1/account/stripe-connect-session",
                 url=None,
-                params={"stripe_secret_key": "sk_..."},
+                params={"return_url": "https://example.com"},
             ),
         )
-        assert action.code == ActionCode.SET_STRIPE_KEY
+        assert action.code == ActionCode.CONNECT_STRIPE
         assert action.kind == ActionKind.API
-        assert action.resolve.endpoint == "/v1/account/stripe"
+        assert action.resolve.endpoint == "/v1/account/stripe-connect-session"
 
     def test_human_action(self):
         action = Action(
@@ -103,13 +103,13 @@ class TestAction:
 
     def test_frozen(self):
         action = Action(
-            code=ActionCode.SET_STRIPE_KEY,
+            code=ActionCode.CONNECT_STRIPE,
             kind=ActionKind.API,
             message="test",
-            resolve=ActionResolve(method="GET", endpoint=None, url=None, params=None),
+            resolve=ActionResolve(method="POST", endpoint="/v1/account/stripe-connect-session", url=None, params=None),
         )
         with pytest.raises(ValidationError):
-            action.code = ActionCode.CONNECT_STRIPE  # type: ignore[misc]
+            action.code = ActionCode.ENABLE_CHARGES  # type: ignore[misc]
 
 
 class TestListingReadiness:
@@ -121,15 +121,15 @@ class TestListingReadiness:
 
     def test_not_sellable_with_actions_and_next(self):
         action = Action(
-            code=ActionCode.SET_STRIPE_KEY,
+            code=ActionCode.ATTACH_DELIVERABLE,
             kind=ActionKind.API,
-            message="Set your Stripe key",
-            resolve=ActionResolve(method="PUT", endpoint="/v1/account/stripe", url=None, params=None),
+            message="Attach a deliverable to your listing",
+            resolve=ActionResolve(method="POST", endpoint="/v1/listings/slug/deliverables", url=None, params=None),
         )
-        readiness = ListingReadiness(sellable=False, actions=[action], next="set_stripe_key")
+        readiness = ListingReadiness(sellable=False, actions=[action], next="attach_deliverable")
         assert readiness.sellable is False
         assert len(readiness.actions) == 1
-        assert readiness.next == "set_stripe_key"
+        assert readiness.next == "attach_deliverable"
 
 
 class TestAccountReadiness:
