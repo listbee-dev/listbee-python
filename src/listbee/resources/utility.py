@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from listbee.types import PingResponse
+from listbee.types import PingResponse, PlanListResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -36,6 +36,24 @@ class Utility:
         response = self._client.get("/v1/ping")
         return PingResponse.model_validate(response.json())
 
+    def plans(self) -> PlanListResponse:
+        """List all available pricing plans.
+
+        This is a public endpoint — no authentication required.
+
+        Returns:
+            A :class:`~listbee.types.plan.PlanListResponse` with all available plans.
+
+        Example:
+            ```python
+            plans = client.utility.plans()
+            for plan in plans.data:
+                print(f"{plan.name}: ${plan.price_monthly / 100}")
+            ```
+        """
+        response = self._client.get("/v1/plans")
+        return PlanListResponse.model_validate(response.json())
+
 
 class AsyncUtility:
     """Asynchronous Utility resource for API connectivity and diagnostics."""
@@ -62,3 +80,21 @@ class AsyncUtility:
         """
         response = await self._client.get("/v1/ping")
         return PingResponse.model_validate(response.json())
+
+    async def plans(self) -> PlanListResponse:
+        """List all available pricing plans (async).
+
+        This is a public endpoint — no authentication required.
+
+        Returns:
+            A :class:`~listbee.types.plan.PlanListResponse` with all available plans.
+
+        Example:
+            ```python
+            plans = await client.utility.plans()
+            for plan in plans.data:
+                print(f"{plan.name}: ${plan.price_monthly / 100}")
+            ```
+        """
+        response = await self._client.get("/v1/plans")
+        return PlanListResponse.model_validate(response.json())

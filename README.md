@@ -37,7 +37,7 @@ client = ListBee(api_key="lb_...")
 | Account | get, update, delete |
 | Stripe | connect, disconnect |
 | API Keys | create, list, delete |
-| Utility | ping |
+| Utility | ping, plans |
 
 ```python
 from listbee import ListBee, Deliverable
@@ -421,6 +421,19 @@ print(connect.url)  # redirect seller here
 
 # Disconnect Stripe
 client.stripe.disconnect()
+```
+
+### Utility
+
+```python
+# Check API connectivity
+response = client.utility.ping()
+print(response.status)  # "ok"
+
+# List available pricing plans (no authentication required)
+plans = client.utility.plans()
+for plan in plans.data:
+    print(f"{plan.name}: ${plan.price_monthly / 100}/month (fee: {plan.fee_rate})")
 ```
 
 ## Content Types

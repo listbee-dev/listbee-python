@@ -8,11 +8,34 @@ import respx
 
 from listbee._base_client import AsyncClient, SyncClient
 from listbee.resources.utility import AsyncUtility, Utility
+from listbee.types.plan import PlanListResponse
 from listbee.types.utility import PingResponse
 
 PING_JSON = {
     "object": "ping",
     "status": "ok",
+}
+
+PLANS_JSON = {
+    "object": "list",
+    "data": [
+        {
+            "object": "plan",
+            "id": "free",
+            "name": "Free",
+            "tagline": "Start instantly",
+            "price_monthly": 0,
+            "fee_rate": "0.10",
+        },
+        {
+            "object": "plan",
+            "id": "pro",
+            "name": "Pro",
+            "tagline": "Scale your sales",
+            "price_monthly": 2999,
+            "fee_rate": "0.05",
+        },
+    ],
 }
 
 
@@ -55,3 +78,34 @@ class TestAsyncPing:
         assert isinstance(result, PingResponse)
         assert result.object == "ping"
         assert result.status == "ok"
+
+
+class TestPlans:
+    def test_plans_returns_plan_list_response(self, utility):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/plans").mock(return_value=httpx.Response(200, json=PLANS_JSON))
+            result = utility.plans()
+        assert isinstance(result, PlanListResponse)
+        assert result.object == "list"
+        assert len(result.data) == 2
+        assert result.data[0].id == "free"
+        assert result.data[0].name == "Free"
+        assert result.data[0].price_monthly == 0
+        assert result.data[1].id == "pro"
+        assert result.data[1].price_monthly == 2999
+
+
+class TestAsyncPlans:
+    @pytest.mark.asyncio
+    async def test_async_plans_returns_plan_list_response(self, async_utility):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/plans").mock(return_value=httpx.Response(200, json=PLANS_JSON))
+            result = await async_utility.plans()
+        assert isinstance(result, PlanListResponse)
+        assert result.object == "list"
+        assert len(result.data) == 2
+        assert result.data[0].id == "free"
+        assert result.data[0].name == "Free"
+        assert result.data[0].price_monthly == 0
+        assert result.data[1].id == "pro"
+        assert result.data[1].price_monthly == 2999

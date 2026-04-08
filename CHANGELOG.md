@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `plans.list()` method for fetching available pricing plans
+
 ## [0.14.0] - 2026-04-08
 
 ### Changed
