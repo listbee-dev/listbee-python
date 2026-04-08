@@ -1,4 +1,5 @@
 """Tests that SDK enums match the canonical spec exactly."""
+
 from listbee import (
     ActionCode,
     DeliverableStatus,

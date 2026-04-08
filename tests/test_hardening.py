@@ -10,13 +10,12 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
-from listbee import ListBee, DefaultHttpxClient, DefaultAsyncHttpxClient
+from listbee import DefaultAsyncHttpxClient, DefaultHttpxClient, ListBee
 from listbee._base_client import AsyncClient, SyncClient
 from listbee._exceptions import APIStatusError, NotFoundError, RateLimitError, raise_for_status
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee._raw_response import RawResponse
 from listbee.types.account import AccountResponse
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -111,7 +110,9 @@ class TestRequestIdOnErrors:
 
 
 class TestToList:
-    def _make_page(self, names: list[str], has_more: bool = False, cursor: str | None = None) -> SyncCursorPage[FakeItem]:
+    def _make_page(
+        self, names: list[str], has_more: bool = False, cursor: str | None = None
+    ) -> SyncCursorPage[FakeItem]:
         return SyncCursorPage(
             data=[FakeItem(name=n) for n in names],
             has_more=has_more,
@@ -450,7 +451,7 @@ class TestWithRawResponse:
         assert raw.headers["content-type"] == "application/json"
 
     def test_account_with_raw_response_proxy(self):
-        """with_raw_response property on Account resource calls _request_raw."""
+        """with_raw_response property on Account resource calls request_raw."""
         client = ListBee(api_key="lb_test")
 
         mock_raw = MagicMock()
@@ -458,7 +459,7 @@ class TestWithRawResponse:
         mock_raw.headers = {"x-request-id": "req_account"}
         mock_raw.json.return_value = _make_account_dict()
 
-        with patch.object(client, "_request_raw", return_value=mock_raw):
+        with patch.object(client, "request_raw", return_value=mock_raw):
             raw = client.account.with_raw_response.get()
 
         assert isinstance(raw, RawResponse)

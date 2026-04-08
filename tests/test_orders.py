@@ -168,7 +168,9 @@ class TestListOrders:
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list(buyer_email="buyer@example.com"))
-        assert "buyer_email=buyer%40example.com" in str(route.calls[0].request.url) or "buyer_email=buyer@example.com" in str(route.calls[0].request.url)
+        assert "buyer_email=buyer%40example.com" in str(
+            route.calls[0].request.url
+        ) or "buyer_email=buyer@example.com" in str(route.calls[0].request.url)
 
     def test_list_orders_without_buyer_email_omits_param(self, orders):
         page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}

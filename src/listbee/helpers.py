@@ -10,18 +10,33 @@ if TYPE_CHECKING:
     from listbee._client import AsyncListBee, ListBee
     from listbee.types.shared import Action
 
-from listbee.webhooks import verify_signature
 from listbee.types.shared import WebhookEventType
-
+from listbee.webhooks import verify_signature
 
 # ---------------------------------------------------------------------------
 # Currency helpers
 # ---------------------------------------------------------------------------
 
-ZERO_DECIMAL_CURRENCIES = frozenset({
-    "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga",
-    "pyg", "rwf", "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
-})
+ZERO_DECIMAL_CURRENCIES = frozenset(
+    {
+        "bif",
+        "clp",
+        "djf",
+        "gnf",
+        "jpy",
+        "kmf",
+        "krw",
+        "mga",
+        "pyg",
+        "rwf",
+        "ugx",
+        "vnd",
+        "vuv",
+        "xaf",
+        "xof",
+        "xpf",
+    }
+)
 
 CURRENCY_SYMBOLS: dict[str, str] = {
     "usd": "$",

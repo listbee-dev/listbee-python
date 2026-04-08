@@ -253,7 +253,9 @@ class Listings:
         response = self._client.get(f"/v1/listings/{listing_id}")
         return ListingResponse.model_validate(response.json())
 
-    def list(self, *, limit: int = 20, cursor: str | None = None, status: str | None = None) -> SyncCursorPage[ListingResponse]:
+    def list(
+        self, *, limit: int = 20, cursor: str | None = None, status: str | None = None
+    ) -> SyncCursorPage[ListingResponse]:
         """Return a paginated list of listings.
 
         Iterating the returned page automatically fetches subsequent pages:
@@ -700,7 +702,9 @@ class AsyncListings:
         response = await self._client.get(f"/v1/listings/{listing_id}")
         return ListingResponse.model_validate(response.json())
 
-    async def list(self, *, limit: int = 20, cursor: str | None = None, status: str | None = None) -> AsyncCursorPage[ListingResponse]:
+    async def list(
+        self, *, limit: int = 20, cursor: str | None = None, status: str | None = None
+    ) -> AsyncCursorPage[ListingResponse]:
         """Return a paginated list of listings (async).
 
         Async-iterate the returned page to transparently fetch subsequent pages:

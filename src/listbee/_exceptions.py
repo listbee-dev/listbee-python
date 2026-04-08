@@ -100,7 +100,9 @@ class RateLimitError(APIStatusError):
         remaining: int | None = None,
         reset: datetime | None = None,
     ) -> None:
-        super().__init__(type=type, title=title, status=status, detail=detail, code=code, param=param, request_id=request_id)
+        super().__init__(
+            type=type, title=title, status=status, detail=detail, code=code, param=param, request_id=request_id
+        )
         self.limit = limit
         self.remaining = remaining
         self.reset = reset

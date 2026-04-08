@@ -121,7 +121,9 @@ class SyncClient(BaseClient):
 
     def _get_http_client(self) -> httpx.Client:
         if self._custom_http_client is not None:
-            assert isinstance(self._custom_http_client, httpx.Client), "http_client must be an httpx.Client for the sync client"
+            assert isinstance(self._custom_http_client, httpx.Client), (
+                "http_client must be an httpx.Client for the sync client"
+            )
             return self._custom_http_client
         if self._http_client is None:
             self._http_client = httpx.Client(
@@ -157,9 +159,8 @@ class SyncClient(BaseClient):
         client = self._get_http_client()
 
         # Auto-generate idempotency key for mutating requests when retries are enabled
-        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
-            if "Idempotency-Key" not in headers:
-                headers["Idempotency-Key"] = str(uuid.uuid4())
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0 and "Idempotency-Key" not in headers:
+            headers["Idempotency-Key"] = str(uuid.uuid4())
 
         attempt = 0
         last_response: httpx.Response | None = None
@@ -205,7 +206,7 @@ class SyncClient(BaseClient):
             body_ = {}
         raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
-    def _request_raw(
+    def request_raw(
         self,
         method: str,
         path: str,
@@ -220,9 +221,8 @@ class SyncClient(BaseClient):
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
 
-        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
-            if "Idempotency-Key" not in headers:
-                headers["Idempotency-Key"] = str(uuid.uuid4())
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0 and "Idempotency-Key" not in headers:
+            headers["Idempotency-Key"] = str(uuid.uuid4())
 
         try:
             response = client.request(
@@ -367,7 +367,9 @@ class AsyncClient(BaseClient):
 
     def _get_http_client(self) -> httpx.AsyncClient:
         if self._custom_http_client is not None:
-            assert isinstance(self._custom_http_client, httpx.AsyncClient), "http_client must be an httpx.AsyncClient for the async client"
+            assert isinstance(self._custom_http_client, httpx.AsyncClient), (
+                "http_client must be an httpx.AsyncClient for the async client"
+            )
             return self._custom_http_client
         if self._http_client is None:
             self._http_client = httpx.AsyncClient(
@@ -403,9 +405,8 @@ class AsyncClient(BaseClient):
         client = self._get_http_client()
 
         # Auto-generate idempotency key for mutating requests when retries are enabled
-        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
-            if "Idempotency-Key" not in headers:
-                headers["Idempotency-Key"] = str(uuid.uuid4())
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0 and "Idempotency-Key" not in headers:
+            headers["Idempotency-Key"] = str(uuid.uuid4())
 
         attempt = 0
         last_response: httpx.Response | None = None
@@ -449,7 +450,7 @@ class AsyncClient(BaseClient):
             body_ = {}
         raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
 
-    async def _request_raw(
+    async def request_raw(
         self,
         method: str,
         path: str,
@@ -464,9 +465,8 @@ class AsyncClient(BaseClient):
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
 
-        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
-            if "Idempotency-Key" not in headers:
-                headers["Idempotency-Key"] = str(uuid.uuid4())
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0 and "Idempotency-Key" not in headers:
+            headers["Idempotency-Key"] = str(uuid.uuid4())
 
         try:
             response = await client.request(

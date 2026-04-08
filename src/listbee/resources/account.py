@@ -22,7 +22,7 @@ class _RawAccountProxy:
 
     def get(self) -> RawResponse[AccountResponse]:
         """Retrieve the current account and return the raw response."""
-        response = self._client._request_raw("GET", "/v1/account")
+        response = self._client.request_raw("GET", "/v1/account")
         return RawResponse(response, AccountResponse)
 
 
@@ -37,7 +37,7 @@ class _AsyncRawAccountProxy:
 
     async def get(self) -> RawResponse[AccountResponse]:
         """Retrieve the current account and return the raw response (async)."""
-        response = await self._client._request_raw("GET", "/v1/account")
+        response = await self._client.request_raw("GET", "/v1/account")
         return RawResponse(response, AccountResponse)
 
 
