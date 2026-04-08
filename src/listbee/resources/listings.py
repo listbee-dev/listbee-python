@@ -241,19 +241,19 @@ class Listings:
         except Exception as e:
             raise PartialCreationError(listing.id, str(e)) from e
 
-    def get(self, slug: str) -> ListingResponse:
-        """Retrieve a listing by its URL slug.
+    def get(self, listing_id: str) -> ListingResponse:
+        """Retrieve a listing by its ID.
 
         Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
+            listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The :class:`~listbee.types.listing.ListingResponse` for that slug.
+            The :class:`~listbee.types.listing.ListingResponse` for that listing.
         """
-        response = self._client.get(f"/v1/listings/{slug}")
+        response = self._client.get(f"/v1/listings/{listing_id}")
         return ListingResponse.model_validate(response.json())
 
-    def list(self, *, limit: int = 20, cursor: str | None = None) -> SyncCursorPage[ListingResponse]:
+    def list(self, *, limit: int = 20, cursor: str | None = None, status: str | None = None) -> SyncCursorPage[ListingResponse]:
         """Return a paginated list of listings.
 
         Iterating the returned page automatically fetches subsequent pages:
@@ -266,6 +266,7 @@ class Listings:
         Args:
             limit: Maximum number of items per page (default 20).
             cursor: Pagination cursor from a previous response.
+            status: Filter listings by status (e.g. "published", "draft").
 
         Returns:
             A :class:`~listbee._pagination.SyncCursorPage` of
@@ -274,11 +275,13 @@ class Listings:
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
             params["cursor"] = cursor
+        if status is not None:
+            params["status"] = status
         return self._client.get_page("/v1/listings", params, ListingResponse)
 
     def update(
         self,
-        slug: str,
+        listing_id: str,
         *,
         name: str | None = None,
         price: int | None = None,
@@ -306,7 +309,7 @@ class Listings:
         Only the supplied fields are updated; all others remain unchanged.
 
         Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
+            listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             content_type: Content type — "static", "generated", or "webhook".
@@ -357,16 +360,16 @@ class Listings:
         for key, value in fields.items():
             if value is not None:
                 body[key] = value
-        response = self._client.put(f"/v1/listings/{slug}", json=body)
+        response = self._client.put(f"/v1/listings/{listing_id}", json=body)
         return ListingResponse.model_validate(response.json())
 
-    def delete(self, slug: str) -> None:
+    def delete(self, listing_id: str) -> None:
         """Delete a listing.
 
         Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
+            listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
         """
-        self._client.delete(f"/v1/listings/{slug}")
+        self._client.delete(f"/v1/listings/{listing_id}")
 
     def set_deliverables(
         self,
@@ -685,19 +688,19 @@ class AsyncListings:
         except Exception as e:
             raise PartialCreationError(listing.id, str(e)) from e
 
-    async def get(self, slug: str) -> ListingResponse:
-        """Retrieve a listing by its URL slug (async).
+    async def get(self, listing_id: str) -> ListingResponse:
+        """Retrieve a listing by its ID (async).
 
         Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
+            listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The :class:`~listbee.types.listing.ListingResponse` for that slug.
+            The :class:`~listbee.types.listing.ListingResponse` for that listing.
         """
-        response = await self._client.get(f"/v1/listings/{slug}")
+        response = await self._client.get(f"/v1/listings/{listing_id}")
         return ListingResponse.model_validate(response.json())
 
-    async def list(self, *, limit: int = 20, cursor: str | None = None) -> AsyncCursorPage[ListingResponse]:
+    async def list(self, *, limit: int = 20, cursor: str | None = None, status: str | None = None) -> AsyncCursorPage[ListingResponse]:
         """Return a paginated list of listings (async).
 
         Async-iterate the returned page to transparently fetch subsequent pages:
@@ -710,6 +713,7 @@ class AsyncListings:
         Args:
             limit: Maximum number of items per page (default 20).
             cursor: Pagination cursor from a previous response.
+            status: Filter listings by status (e.g. "published", "draft").
 
         Returns:
             An :class:`~listbee._pagination.AsyncCursorPage` of
@@ -718,11 +722,13 @@ class AsyncListings:
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
             params["cursor"] = cursor
+        if status is not None:
+            params["status"] = status
         return await self._client.get_page("/v1/listings", params, ListingResponse)
 
     async def update(
         self,
-        slug: str,
+        listing_id: str,
         *,
         name: str | None = None,
         price: int | None = None,
@@ -750,7 +756,7 @@ class AsyncListings:
         Only the supplied fields are updated; all others remain unchanged.
 
         Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
+            listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             content_type: Content type — "static", "generated", or "webhook".
@@ -801,16 +807,16 @@ class AsyncListings:
         for key, value in fields.items():
             if value is not None:
                 body[key] = value
-        response = await self._client.put(f"/v1/listings/{slug}", json=body)
+        response = await self._client.put(f"/v1/listings/{listing_id}", json=body)
         return ListingResponse.model_validate(response.json())
 
-    async def delete(self, slug: str) -> None:
+    async def delete(self, listing_id: str) -> None:
         """Delete a listing (async).
 
         Args:
-            slug: The listing's URL slug (e.g. "seo-playbook").
+            listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
         """
-        await self._client.delete(f"/v1/listings/{slug}")
+        await self._client.delete(f"/v1/listings/{listing_id}")
 
     async def set_deliverables(
         self,

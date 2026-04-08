@@ -146,6 +146,27 @@ class TestUpdateAccount:
             result = account.get()
         assert result.notify_orders is True
 
+    def test_update_account_sets_display_name_and_bio(self, account):
+        updated = {**ACCOUNT_JSON, "display_name": "New Name", "bio": "Short bio"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=updated))
+            result = account.update(display_name="New Name", bio="Short bio")
+        body = json.loads(route.calls[0].request.content)
+        assert body["display_name"] == "New Name"
+        assert body["bio"] == "Short bio"
+        assert isinstance(result, AccountResponse)
+        assert result.display_name == "New Name"
+        assert result.bio == "Short bio"
+
+    def test_update_account_omits_display_name_when_not_passed(self, account):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            account.update(ga_measurement_id="G-TEST")
+        body = json.loads(route.calls[0].request.content)
+        assert "display_name" not in body
+        assert "bio" not in body
+        assert "avatar" not in body
+
 
 class TestDeleteAccount:
     def test_delete_account_returns_none(self):

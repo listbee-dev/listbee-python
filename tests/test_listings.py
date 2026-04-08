@@ -211,18 +211,18 @@ class TestCreateListing:
 
 
 class TestGetListing:
-    def test_get_listing_by_slug(self, listings):
+    def test_get_listing_by_id(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            result = listings.get("seo-playbook")
+            mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            result = listings.get("lst_abc123")
         assert isinstance(result, ListingResponse)
         assert result.slug == "seo-playbook"
         assert result.id == "lst_abc123"
 
     def test_get_listing_sends_correct_path(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.get("/v1/listings/my-listing").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.get("my-listing")
+            route = mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.get("lst_abc123")
         assert route.called
 
 
@@ -268,12 +268,26 @@ class TestListListings:
             list(listings.list(limit=5))
         assert "limit=5" in str(route.calls[0].request.url)
 
+    def test_list_listings_with_status_filter(self, listings):
+        page_json = {"data": [LISTING_JSON], "has_more": False, "total_count": 1, "cursor": None}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
+            list(listings.list(status="published"))
+        assert "status=published" in str(route.calls[0].request.url)
+
+    def test_list_listings_without_status_omits_param(self, listings):
+        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
+            list(listings.list())
+        assert "status" not in str(route.calls[0].request.url)
+
 
 class TestUpdateListing:
     def test_update_sends_only_provided_fields(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.update("seo-playbook", name="Updated Name", price=3900)
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.update("lst_abc123", name="Updated Name", price=3900)
         body = json.loads(route.calls[0].request.content)
         assert body == {"name": "Updated Name", "price": 3900}
         assert "description" not in body
@@ -281,24 +295,24 @@ class TestUpdateListing:
     def test_update_returns_listing_response(self, listings):
         updated = {**LISTING_JSON, "name": "Updated Name", "price": 3900}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=updated))
-            result = listings.update("seo-playbook", name="Updated Name", price=3900)
+            mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=updated))
+            result = listings.update("lst_abc123", name="Updated Name", price=3900)
         assert isinstance(result, ListingResponse)
         assert result.name == "Updated Name"
         assert result.price == 3900
 
     def test_update_with_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.update("seo-playbook", content_type="generated")
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.update("lst_abc123", content_type="generated")
         body = json.loads(route.calls[0].request.content)
         assert body["content_type"] == "generated"
 
     def test_update_with_checkout_schema(self, listings):
         schema = [{"name": "color", "label": "Color", "type": "select", "options": ["Red", "Blue"]}]
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.update("seo-playbook", checkout_schema=schema)
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.update("lst_abc123", checkout_schema=schema)
         body = json.loads(route.calls[0].request.content)
         assert body["checkout_schema"] == schema
 
@@ -306,8 +320,8 @@ class TestUpdateListing:
 class TestDeleteListing:
     def test_delete_listing_sends_delete_request(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.delete("/v1/listings/seo-playbook").mock(return_value=httpx.Response(204))
-            result = listings.delete("seo-playbook")
+            route = mock.delete("/v1/listings/lst_abc123").mock(return_value=httpx.Response(204))
+            result = listings.delete("lst_abc123")
         assert route.called
         assert result is None
 
@@ -315,8 +329,8 @@ class TestDeleteListing:
 class TestContentTypeFields:
     def test_listing_response_static_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            result = listings.get("seo-playbook")
+            mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            result = listings.get("lst_abc123")
         assert result.content_type == "static"
         assert len(result.deliverables) == 1
         assert result.deliverables[0].type == "file"
@@ -325,8 +339,8 @@ class TestContentTypeFields:
 
     def test_listing_response_webhook_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/custom-service").mock(return_value=httpx.Response(200, json=WEBHOOK_LISTING_JSON))
-            result = listings.get("custom-service")
+            mock.get("/v1/listings/lst_ext456").mock(return_value=httpx.Response(200, json=WEBHOOK_LISTING_JSON))
+            result = listings.get("lst_ext456")
         assert result.content_type == "webhook"
         assert result.deliverables == []
         assert result.checkout_schema is not None
@@ -339,8 +353,8 @@ class TestContentTypeFields:
     def test_listing_response_generated_content_type(self, listings):
         generated_json = {**LISTING_JSON, "content_type": "generated", "deliverables": []}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/ai-report").mock(return_value=httpx.Response(200, json=generated_json))
-            result = listings.get("ai-report")
+            mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=generated_json))
+            result = listings.get("lst_abc123")
         assert result.content_type == "generated"
         assert result.deliverables == []
 
@@ -367,8 +381,8 @@ class TestContentTypeFields:
             },
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/ext").mock(return_value=httpx.Response(200, json=json_with_webhook_action))
-            result = listings.get("ext")
+            mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=json_with_webhook_action))
+            result = listings.get("lst_abc123")
         assert result.readiness.sellable is False
         assert result.readiness.actions[0].code == "configure_webhook"
         assert result.readiness.next == "configure_webhook"
@@ -402,8 +416,8 @@ class TestUtmFields:
 
     def test_update_listing_sends_utm_params(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.update("seo-playbook", utm_source="newsletter", utm_campaign="spring-sale")
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            listings.update("lst_abc123", utm_source="newsletter", utm_campaign="spring-sale")
         body = json.loads(route.calls[0].request.content)
         assert body["utm_source"] == "newsletter"
         assert body["utm_campaign"] == "spring-sale"
@@ -412,16 +426,16 @@ class TestUtmFields:
     def test_listing_response_includes_utm_fields(self, listings):
         listing_with_utm = {**LISTING_JSON, "utm_source": "twitter", "utm_medium": "social", "utm_campaign": "launch"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=listing_with_utm))
-            result = listings.get("seo-playbook")
+            mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=listing_with_utm))
+            result = listings.get("lst_abc123")
         assert result.utm_source == "twitter"
         assert result.utm_medium == "social"
         assert result.utm_campaign == "launch"
 
     def test_listing_response_utm_fields_default_to_none(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            result = listings.get("seo-playbook")
+            mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
+            result = listings.get("lst_abc123")
         assert result.utm_source is None
         assert result.utm_medium is None
         assert result.utm_campaign is None

@@ -35,6 +35,7 @@ class Orders:
         *,
         status: str | None = None,
         listing: str | None = None,
+        buyer_email: str | None = None,
         created_after: datetime | str | None = None,
         created_before: datetime | str | None = None,
         limit: int = 20,
@@ -52,6 +53,7 @@ class Orders:
         Args:
             status: Filter orders by status (e.g. "paid", "fulfilled").
             listing: Filter orders by listing slug (e.g. "seo-playbook").
+            buyer_email: Filter orders by buyer email address.
             created_after: Only return orders created after this ISO datetime.
             created_before: Only return orders created before this ISO datetime.
             limit: Maximum number of items per page (default 20).
@@ -66,6 +68,8 @@ class Orders:
             params["status"] = status
         if listing is not None:
             params["listing"] = listing
+        if buyer_email is not None:
+            params["buyer_email"] = buyer_email
         if created_after is not None:
             params["created_after"] = (
                 created_after.isoformat() if isinstance(created_after, datetime) else created_after
@@ -174,6 +178,7 @@ class AsyncOrders:
         *,
         status: str | None = None,
         listing: str | None = None,
+        buyer_email: str | None = None,
         created_after: datetime | str | None = None,
         created_before: datetime | str | None = None,
         limit: int = 20,
@@ -191,6 +196,7 @@ class AsyncOrders:
         Args:
             status: Filter orders by status (e.g. "paid", "fulfilled").
             listing: Filter orders by listing slug (e.g. "seo-playbook").
+            buyer_email: Filter orders by buyer email address.
             created_after: Only return orders created after this ISO datetime.
             created_before: Only return orders created before this ISO datetime.
             limit: Maximum number of items per page (default 20).
@@ -205,6 +211,8 @@ class AsyncOrders:
             params["status"] = status
         if listing is not None:
             params["listing"] = listing
+        if buyer_email is not None:
+            params["buyer_email"] = buyer_email
         if created_after is not None:
             params["created_after"] = (
                 created_after.isoformat() if isinstance(created_after, datetime) else created_after
