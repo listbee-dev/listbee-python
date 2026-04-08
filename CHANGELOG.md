@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-04-08
+
 ### Changed
 - Replace `fulfillment` (managed/external) with `content_type` (static/generated/webhook) on `ListingResponse` — `create()` and `update()` now accept `content_type` instead of `fulfillment`
 - Add `content_type`, `payment_status`, `listing_snapshot`, `seller_snapshot`, `handed_off_at` to `OrderResponse`
