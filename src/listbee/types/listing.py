@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 from listbee.types.shared import (
     BlurMode,
     CheckoutFieldResponse,
+    ContentType,
     DeliverableResponse,
-    FulfillmentMode,
     ListingReadiness,
     ListingStatus,
 )
@@ -91,17 +91,21 @@ class ListingResponse(BaseModel):
         description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
         examples=[2900],
     )
-    fulfillment: FulfillmentMode = Field(
-        description="How orders for this listing are fulfilled. 'managed' = ListBee delivers, 'external' = seller handles via webhook.",
-        examples=["managed"],
+    content_type: ContentType = Field(
+        description=(
+            "Content type: static (pre-attached content, ListBee delivers), "
+            "generated (content created after payment, ListBee delivers), "
+            "webhook (paid order handed to seller's system)."
+        ),
+        examples=["static"],
     )
     deliverables: list[DeliverableResponse] = Field(
         default=[],
-        description="Digital deliverables attached to this listing. Empty when fulfillment is external with no deliverable.",
-    )
-    has_deliverables: bool = Field(
-        description="`true` if at least one deliverable is attached.",
-        examples=[True],
+        description=(
+            "Digital deliverables attached to this listing. "
+            "Required for static content_type — ListBee delivers these to buyers on payment. "
+            "Empty for generated (content created per-order) and webhook (seller handles delivery) listings."
+        ),
     )
     has_cover: bool = Field(
         description="`true` if a cover image exists (uploaded or auto-generated).",

@@ -39,7 +39,7 @@ class Listings:
         name: str,
         price: int,
         deliverable: str | None = None,
-        fulfillment: str | None = None,
+        content_type: str | None = None,
         checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
@@ -70,9 +70,11 @@ class Listings:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             deliverable: File URL, redirect URL, or plain text to deliver after
-                purchase. Required for managed fulfillment, optional for external.
-            fulfillment: Fulfillment mode — "managed" or "external". Defaults to
-                "managed" when a deliverable is provided, "external" otherwise.
+                purchase. Required for static content_type.
+            content_type: Content type — "static", "generated", or "webhook".
+                "static" = ListBee auto-delivers pre-attached content on payment.
+                "generated" = your system creates content after payment via POST /fulfill.
+                "webhook" = order.paid fired, your system handles delivery.
             checkout_schema: Custom fields collected at checkout. Each dict should
                 have ``name``, ``label``, ``type``, and optionally ``required``
                 and ``options``. Max 10 fields.
@@ -106,8 +108,8 @@ class Listings:
         }
         if deliverable is not None:
             body["deliverable"] = deliverable
-        if fulfillment is not None:
-            body["fulfillment"] = fulfillment
+        if content_type is not None:
+            body["content_type"] = content_type
         if checkout_schema is not None:
             body["checkout_schema"] = _resolve_checkout_schema(checkout_schema)
         if description is not None:
@@ -280,7 +282,7 @@ class Listings:
         *,
         name: str | None = None,
         price: int | None = None,
-        fulfillment: str | None = None,
+        content_type: str | None = None,
         checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
@@ -307,7 +309,7 @@ class Listings:
             slug: The listing's URL slug (e.g. "seo-playbook").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            fulfillment: Fulfillment mode — "managed" or "external".
+            content_type: Content type — "static", "generated", or "webhook".
             checkout_schema: Custom fields collected at checkout. Max 10 fields.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
@@ -333,7 +335,7 @@ class Listings:
         fields = {
             "name": name,
             "price": price,
-            "fulfillment": fulfillment,
+            "content_type": content_type,
             "checkout_schema": _resolve_checkout_schema(checkout_schema),
             "description": description,
             "tagline": tagline,
@@ -481,7 +483,7 @@ class AsyncListings:
         name: str,
         price: int,
         deliverable: str | None = None,
-        fulfillment: str | None = None,
+        content_type: str | None = None,
         checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
@@ -512,9 +514,11 @@ class AsyncListings:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             deliverable: File URL, redirect URL, or plain text to deliver after
-                purchase. Required for managed fulfillment, optional for external.
-            fulfillment: Fulfillment mode — "managed" or "external". Defaults to
-                "managed" when a deliverable is provided, "external" otherwise.
+                purchase. Required for static content_type.
+            content_type: Content type — "static", "generated", or "webhook".
+                "static" = ListBee auto-delivers pre-attached content on payment.
+                "generated" = your system creates content after payment via POST /fulfill.
+                "webhook" = order.paid fired, your system handles delivery.
             checkout_schema: Custom fields collected at checkout. Each dict should
                 have ``name``, ``label``, ``type``, and optionally ``required``
                 and ``options``. Max 10 fields.
@@ -548,8 +552,8 @@ class AsyncListings:
         }
         if deliverable is not None:
             body["deliverable"] = deliverable
-        if fulfillment is not None:
-            body["fulfillment"] = fulfillment
+        if content_type is not None:
+            body["content_type"] = content_type
         if checkout_schema is not None:
             body["checkout_schema"] = _resolve_checkout_schema(checkout_schema)
         if description is not None:
@@ -722,7 +726,7 @@ class AsyncListings:
         *,
         name: str | None = None,
         price: int | None = None,
-        fulfillment: str | None = None,
+        content_type: str | None = None,
         checkout_schema: list[Any] | None = None,
         description: str | None = None,
         tagline: str | None = None,
@@ -749,7 +753,7 @@ class AsyncListings:
             slug: The listing's URL slug (e.g. "seo-playbook").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
-            fulfillment: Fulfillment mode — "managed" or "external".
+            content_type: Content type — "static", "generated", or "webhook".
             checkout_schema: Custom fields collected at checkout. Max 10 fields.
             description: Longer product description, plain text.
             tagline: Short line shown below the product name.
@@ -775,7 +779,7 @@ class AsyncListings:
         fields = {
             "name": name,
             "price": price,
-            "fulfillment": fulfillment,
+            "content_type": content_type,
             "checkout_schema": _resolve_checkout_schema(checkout_schema),
             "description": description,
             "tagline": tagline,

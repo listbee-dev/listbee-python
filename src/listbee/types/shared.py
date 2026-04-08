@@ -24,11 +24,20 @@ class DeliverableType(StrEnum):
     TEXT = "text"
 
 
-class FulfillmentMode(StrEnum):
-    """How an order is fulfilled after payment."""
+class ContentType(StrEnum):
+    """Content type of a listing — determines the delivery model."""
 
-    MANAGED = "managed"
-    EXTERNAL = "external"
+    STATIC = "static"
+    GENERATED = "generated"
+    WEBHOOK = "webhook"
+
+
+class PaymentStatus(StrEnum):
+    """Stripe payment status, independent of order fulfillment status."""
+
+    UNPAID = "unpaid"
+    PAID = "paid"
+    REFUNDED = "refunded"
 
 
 class CheckoutFieldType(StrEnum):
@@ -72,19 +81,6 @@ class CheckoutFieldResponse(BaseModel):
         description="Display order. Lower values shown first.",
         examples=[0],
     )
-
-
-class ShippingAddress(BaseModel):
-    """Shipping address collected at checkout."""
-
-    model_config = ConfigDict(frozen=True)
-
-    line1: str = Field(description="Street address line 1.", examples=["123 Main St"])
-    line2: str | None = Field(default=None, description="Street address line 2.", examples=["Apt 4B"])
-    city: str = Field(description="City.", examples=["San Francisco"])
-    state: str | None = Field(default=None, description="State or province.", examples=["CA"])
-    postal_code: str = Field(description="Postal or ZIP code.", examples=["94105"])
-    country: str = Field(description="Two-letter ISO country code.", examples=["US"])
 
 
 class DeliverableResponse(BaseModel):
@@ -154,7 +150,9 @@ class OrderStatus(StrEnum):
 
     PENDING = "pending"
     PAID = "paid"
+    PROCESSING = "processing"
     FULFILLED = "fulfilled"
+    HANDED_OFF = "handed_off"
     CANCELED = "canceled"
     FAILED = "failed"
 

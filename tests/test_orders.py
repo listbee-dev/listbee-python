@@ -22,11 +22,15 @@ ORDER_JSON = {
     "currency": "USD",
     "stripe_payment_intent_id": "pi_3abc123def456",
     "status": "paid",
+    "content_type": "static",
+    "payment_status": "paid",
     "checkout_data": None,
-    "shipping_address": None,
+    "listing_snapshot": {"name": "SEO Playbook", "price": 2999, "slug": "seo-playbook"},
+    "seller_snapshot": {"display_name": "Acme Agency"},
     "deliverables": [],
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
+    "handed_off_at": None,
     "refund_amount": 0,
     "refunded_at": None,
     "dispute_amount": 0,
@@ -41,14 +45,6 @@ ORDER_WITH_CHECKOUT_DATA_JSON = {
     **ORDER_JSON,
     "id": "ord_checkout123",
     "checkout_data": {"shirt_size": "L", "color": "Blue"},
-    "shipping_address": {
-        "line1": "123 Main St",
-        "line2": "Apt 4B",
-        "city": "San Francisco",
-        "state": "CA",
-        "postal_code": "94105",
-        "country": "US",
-    },
 }
 
 FULFILLED_ORDER_JSON = {
@@ -208,6 +204,20 @@ class TestOrderStatus:
             result = orders.get("ord_1")
         assert result.status == "failed"
 
+    def test_order_processing_status(self, orders):
+        processing_json = {**ORDER_JSON, "status": "processing"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=processing_json))
+            result = orders.get("ord_1")
+        assert result.status == "processing"
+
+    def test_order_handed_off_status(self, orders):
+        handed_off_json = {**ORDER_JSON, "status": "handed_off"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=handed_off_json))
+            result = orders.get("ord_1")
+        assert result.status == "handed_off"
+
 
 class TestOrderCheckoutData:
     def test_order_with_checkout_data(self, orders):
@@ -218,26 +228,44 @@ class TestOrderCheckoutData:
             result = orders.get("ord_checkout123")
         assert result.checkout_data == {"shirt_size": "L", "color": "Blue"}
 
-    def test_order_with_shipping_address(self, orders):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_checkout123").mock(
-                return_value=httpx.Response(200, json=ORDER_WITH_CHECKOUT_DATA_JSON)
-            )
-            result = orders.get("ord_checkout123")
-        assert result.shipping_address is not None
-        assert result.shipping_address.line1 == "123 Main St"
-        assert result.shipping_address.line2 == "Apt 4B"
-        assert result.shipping_address.city == "San Francisco"
-        assert result.shipping_address.state == "CA"
-        assert result.shipping_address.postal_code == "94105"
-        assert result.shipping_address.country == "US"
-
     def test_order_without_checkout_data(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/orders/ord_9xM4kP7nR2qT5wY1").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             result = orders.get("ord_9xM4kP7nR2qT5wY1")
         assert result.checkout_data is None
-        assert result.shipping_address is None
+
+
+class TestOrderNewFields:
+    def test_order_content_type(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders/ord_9xM4kP7nR2qT5wY1").mock(return_value=httpx.Response(200, json=ORDER_JSON))
+            result = orders.get("ord_9xM4kP7nR2qT5wY1")
+        assert result.content_type == "static"
+        assert result.payment_status == "paid"
+        assert result.listing_snapshot == {"name": "SEO Playbook", "price": 2999, "slug": "seo-playbook"}
+        assert result.seller_snapshot == {"display_name": "Acme Agency"}
+        assert result.handed_off_at is None
+
+    def test_order_processing_status(self, orders):
+        processing_json = {**ORDER_JSON, "status": "processing", "content_type": "generated"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=processing_json))
+            result = orders.get("ord_1")
+        assert result.status == "processing"
+        assert result.content_type == "generated"
+
+    def test_order_handed_off_status(self, orders):
+        handed_off_json = {
+            **ORDER_JSON,
+            "status": "handed_off",
+            "content_type": "webhook",
+            "handed_off_at": "2026-04-02T14:31:00Z",
+        }
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=handed_off_json))
+            result = orders.get("ord_1")
+        assert result.status == "handed_off"
+        assert result.handed_off_at is not None
 
 
 class TestFulfillOrder:

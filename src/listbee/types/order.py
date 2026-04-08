@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import DeliverableResponse, OrderStatus, ShippingAddress
+from listbee.types.shared import DeliverableResponse, OrderStatus
 
 
 class OrderResponse(BaseModel):
@@ -43,16 +43,55 @@ class OrderResponse(BaseModel):
         examples=["pi_3abc123def456"],
     )
     status: OrderStatus = Field(
-        description="Current order status.",
+        description=(
+            "Current order status. Full lifecycle: PENDING → PAID → PROCESSING (generated only) → FULFILLED. "
+            "Terminal error states: CANCELED, FAILED. "
+            "Use content_type to determine which statuses apply: "
+            "static skips PROCESSING and auto-fulfills; "
+            "generated enters PROCESSING until POST /fulfill is called; "
+            "webhook stays PAID — delivery handled externally."
+        ),
+        examples=["paid"],
+    )
+    content_type: str = Field(
+        description=(
+            "Content type of the listing at the time of purchase. "
+            "Determines the delivery model: "
+            "static = ListBee auto-delivered pre-attached content on payment; "
+            "generated = your system creates content after payment and pushes it via POST /fulfill; "
+            "webhook = order.paid fired, your system handles delivery entirely."
+        ),
+        examples=["static"],
+    )
+    payment_status: str = Field(
+        description=(
+            "Stripe payment status, independent of order fulfillment status. "
+            "Values: unpaid (payment not yet confirmed), paid (payment captured), "
+            "refunded (full refund issued)."
+        ),
         examples=["paid"],
     )
     checkout_data: dict[str, Any] | None = Field(
         default=None,
         description="Custom field values collected at checkout (from checkout_schema).",
     )
-    shipping_address: ShippingAddress | None = Field(
+    listing_snapshot: dict[str, Any] | None = Field(
         default=None,
-        description="Shipping address collected at checkout, if applicable.",
+        description=(
+            "Immutable snapshot of listing data captured at payment time. "
+            "Contains name, price, slug, and other listing fields as they existed when the buyer paid. "
+            "Use this as the authoritative record of what was purchased — the listing may have changed since."
+        ),
+        examples=[{"name": "SEO Playbook 2026", "price": 2900, "slug": "seo-playbook-2026"}],
+    )
+    seller_snapshot: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Immutable snapshot of seller identity captured at payment time. "
+            "Contains display_name and other account fields as they existed when the buyer paid. "
+            "Useful for receipts and audit trails when account details change later."
+        ),
+        examples=[{"display_name": "Acme Agency", "email": "seller@example.com"}],
     )
     deliverables: list[DeliverableResponse] = Field(
         default=[],
@@ -65,6 +104,14 @@ class OrderResponse(BaseModel):
     fulfilled_at: datetime | None = Field(
         default=None,
         description="ISO 8601 timestamp of when the order was fulfilled.",
+    )
+    handed_off_at: datetime | None = Field(
+        default=None,
+        description=(
+            "Timestamp when the order was handed off to the seller's external system via order.paid webhook. "
+            "Only set for webhook content_type listings. Null for static and generated listings."
+        ),
+        examples=["2026-04-02T14:31:00Z"],
     )
     refund_amount: int = Field(
         default=0,

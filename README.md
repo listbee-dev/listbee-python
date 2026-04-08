@@ -44,7 +44,7 @@ from listbee import ListBee, Deliverable
 
 client = ListBee(api_key="lb_...")
 
-# Managed fulfillment — ListBee delivers the file automatically
+# Static content — ListBee delivers pre-attached file automatically
 # One-shot: create listing + attach deliverable + publish
 listing = client.listings.create_complete(
     name="SEO Playbook",
@@ -54,16 +54,15 @@ listing = client.listings.create_complete(
 listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 
-# External fulfillment — you handle delivery via webhooks
+# Webhook content — you handle delivery via webhooks
 from listbee import CheckoutField
 
 listing = client.listings.create(
-    name="Custom T-Shirt",
+    name="Custom Consulting",
     price=3500,
-    fulfillment="external",
+    content_type="webhook",
     checkout_schema=[
-        CheckoutField.select("size", label="Size", options=["S", "M", "L", "XL"], sort_order=0),
-        CheckoutField.address("shipping_address", label="Shipping Address", sort_order=1),
+        CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
 )
 listing = client.listings.publish(listing.slug)
@@ -122,24 +121,31 @@ from listbee import ListBee
 
 client = ListBee(api_key="lb_...")
 
-# Create — managed fulfillment (ListBee delivers the file)
+# Create — static content (ListBee delivers pre-attached file)
 # Listings start as drafts. Attach deliverables then publish.
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,       # $29.00 in cents
+    content_type="static",
 )
 
-# Create — external fulfillment (you handle delivery)
+# Create — webhook content (you handle delivery via webhooks)
 from listbee import CheckoutField
 
 listing = client.listings.create(
-    name="Custom T-Shirt",
+    name="Custom Consulting",
     price=3500,
-    fulfillment="external",
+    content_type="webhook",
     checkout_schema=[
-        CheckoutField.select("size", label="Size", options=["S", "M", "L", "XL"], sort_order=0),
-        CheckoutField.select("color", label="Color", options=["Black", "White"], sort_order=1),
+        CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
+)
+
+# Create — generated content (your system creates content after payment)
+listing = client.listings.create(
+    name="AI Report",
+    price=2900,
+    content_type="generated",
 )
 
 # Create — all optional params
@@ -189,12 +195,12 @@ updated = client.listings.update(
     price=3900,
 )
 
-# Update fulfillment mode and checkout schema
+# Update content type and checkout schema
 from listbee import CheckoutField
 
 updated = client.listings.update(
     "r7kq2xy9",
-    fulfillment="external",
+    content_type="webhook",
     checkout_schema=[
         CheckoutField.text("notes", label="Special Instructions", sort_order=0),
     ],
@@ -263,10 +269,14 @@ for order in client.orders.list(status="paid"):
 order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
 print(order.listing_id, order.amount)
 print(order.checkout_data)        # custom fields from checkout
-print(order.shipping_address)     # ShippingAddress or None
+print(order.content_type)         # "static" | "generated" | "webhook"
+print(order.payment_status)       # "unpaid" | "paid" | "refunded"
+print(order.listing_snapshot)     # listing data at time of purchase
+print(order.seller_snapshot)      # seller data at time of purchase
 print(order.paid_at)              # when payment was confirmed
+print(order.handed_off_at)        # when handed to seller (webhook orders only)
 
-# Fulfill an order — close out an external fulfillment order (no content push)
+# Fulfill a generated order — push deliverables for ListBee to deliver
 order = client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
 print(order.status)               # "fulfilled"
 
@@ -413,11 +423,11 @@ print(connect.url)  # redirect seller here
 client.stripe.disconnect()
 ```
 
-## Fulfillment Modes
+## Content Types
 
-ListBee supports two fulfillment modes:
+ListBee supports three content types that determine how orders are fulfilled:
 
-**Managed** — ListBee delivers digital content (files, URLs, text) automatically via access grants. Attach deliverables to the listing and ListBee handles the rest.
+**Static** — ListBee delivers pre-attached digital content (files, URLs, text) automatically on payment via access grants.
 
 ```python
 from listbee import Deliverable
@@ -445,28 +455,53 @@ with open("playbook.pdf", "rb") as f:
 client.listings.add_deliverable(listing.slug, Deliverable.from_token(file.id))
 ```
 
-**External** — ListBee fires `order.paid` webhook, your app handles delivery. Supports physical goods, AI-generated content, services, anything.
+**Generated** — ListBee fires `order.paid` webhook, your system generates content and pushes it back via `POST /fulfill`. ListBee then delivers it to the buyer.
 
 ```python
-from listbee import CheckoutField
+from listbee import CheckoutField, Deliverable
 
 listing = client.listings.create(
     name="Custom AI Report",
     price=4900,
-    fulfillment="external",
+    content_type="generated",
     checkout_schema=[
         CheckoutField.text("topic", label="Report Topic", sort_order=0),
     ],
 )
 listing = client.listings.publish(listing.slug)
 
-# When you receive the order.paid webhook, generate and fulfill:
+# When you receive the order.paid webhook, generate content and fulfill:
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
         Deliverable.text("Your personalized report..."),
     ],
 )
+```
+
+**Webhook** — ListBee fires `order.paid` webhook, your app handles delivery entirely. Use for physical goods, services, or anything outside ListBee.
+
+```python
+listing = client.listings.create(
+    name="Custom Consulting",
+    price=4900,
+    content_type="webhook",
+)
+listing = client.listings.publish(listing.slug)
+# Receive order.paid webhook and handle delivery yourself
+```
+
+Use `order.content_type` to branch post-payment logic without re-fetching the listing:
+
+```python
+order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
+if order.content_type == "generated":
+    # Generate content and call orders.fulfill()
+    pass
+elif order.content_type == "webhook":
+    # Handle delivery in your own system
+    pass
+# static orders are auto-fulfilled by ListBee — no action needed
 ```
 
 ## Readiness System
@@ -509,7 +544,7 @@ if not listing.readiness.sellable:
 | `connect_stripe` | No Stripe account connected — start Connect onboarding |
 | `enable_charges` | Stripe charges are disabled — complete Stripe onboarding |
 | `update_billing` | ListBee subscription payment failed or unpaid |
-| `configure_webhook` | External fulfillment listing needs a webhook endpoint |
+| `configure_webhook` | Webhook content_type listing needs a webhook endpoint |
 | `publish_listing` | Listing is a draft — publish to make it purchasable |
 | `webhook_disabled` | Webhook endpoint is disabled |
 
@@ -743,19 +778,19 @@ from listbee import (
     FaqItem,
     CursorPage,
     CheckoutFieldResponse,
-    ShippingAddress,
 
     # Builder classes
     CheckoutField,       # input class: .text() | .select() | .address() | .date()
     Deliverable,         # input class: .file() | .url() | .text() | .from_token()
 
     # Enums
+    ContentType,         # "static" | "generated" | "webhook"
     DeliverableType,     # "file" | "url" | "text"
-    FulfillmentMode,     # "managed" | "external"
+    PaymentStatus,       # "unpaid" | "paid" | "refunded"
     CheckoutFieldType,   # "text" | "select" | "address" | "date"
     BlurMode,            # "auto" | "true" | "false"
     ListingStatus,       # "draft" | "published"
-    OrderStatus,         # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
+    OrderStatus,         # "pending" | "paid" | "processing" | "fulfilled" | "handed_off" | "canceled" | "failed"
     WebhookEventType,    # "order.paid" | "order.fulfilled" | "order.shipped" | ...
     ActionCode,          # "connect_stripe" | "configure_webhook" | ...
     ActionKind,          # "api" | "human"
@@ -778,15 +813,17 @@ from listbee import (
 Use enums to avoid magic strings:
 
 ```python
-from listbee import DeliverableType, FulfillmentMode, ActionCode, ActionKind, WebhookEventType
+from listbee import ContentType, DeliverableType, PaymentStatus, ActionCode, ActionKind, WebhookEventType
 
-# Check deliverable type
-if listing.has_deliverables and listing.deliverables[0].type == DeliverableType.FILE:
-    print("Delivers a file")
+# Check content type
+if listing.content_type == ContentType.STATIC and listing.deliverables:
+    print(f"Delivers {listing.deliverables[0].type} file")
 
-# Check fulfillment mode
-if listing.fulfillment == FulfillmentMode.EXTERNAL:
-    print("External fulfillment — handle delivery yourself")
+# Branch order fulfillment logic on content type
+if order.content_type == ContentType.GENERATED:
+    print("Generate and push content via orders.fulfill()")
+elif order.content_type == ContentType.WEBHOOK:
+    print("Handle delivery in your own system")
 
 # Subscribe to specific events
 webhook = client.webhooks.create(

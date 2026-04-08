@@ -23,7 +23,7 @@ LISTING_JSON = {
     "highlights": [],
     "cta": None,
     "price": 2900,
-    "fulfillment": "managed",
+    "content_type": "static",
     "deliverables": [
         {
             "object": "deliverable",
@@ -37,7 +37,6 @@ LISTING_JSON = {
             "url": None,
         }
     ],
-    "has_deliverables": True,
     "has_cover": True,
     "stock": None,
     "embed_url": None,
@@ -59,14 +58,13 @@ LISTING_JSON = {
     "created_at": "2026-03-30T12:00:00Z",
 }
 
-EXTERNAL_LISTING_JSON = {
+WEBHOOK_LISTING_JSON = {
     **LISTING_JSON,
     "id": "lst_ext456",
     "slug": "custom-service",
     "name": "Custom Service",
-    "fulfillment": "external",
+    "content_type": "webhook",
     "deliverables": [],
-    "has_deliverables": False,
     "checkout_schema": [
         {
             "key": "shirt_size",
@@ -78,6 +76,9 @@ EXTERNAL_LISTING_JSON = {
         }
     ],
 }
+
+# Keep EXTERNAL_LISTING_JSON as an alias for backwards compatibility in tests
+EXTERNAL_LISTING_JSON = WEBHOOK_LISTING_JSON
 
 
 @pytest.fixture
@@ -141,7 +142,7 @@ class TestCreateListing:
         assert "description" not in body
         assert "tagline" not in body
         assert "cover_blur" not in body  # default "auto" is not sent
-        assert "fulfillment" not in body  # not sent when None
+        assert "content_type" not in body  # not sent when None
 
     def test_create_listing_cover_blur_sent_when_not_auto(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
@@ -160,36 +161,36 @@ class TestCreateListing:
 
     def test_create_listing_without_deliverable(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
-            listings.create(name="Custom Service", price=5000, fulfillment="external")
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=WEBHOOK_LISTING_JSON))
+            listings.create(name="Custom Service", price=5000, content_type="webhook")
         body = json.loads(route.calls[0].request.content)
         assert "deliverable" not in body
-        assert body["fulfillment"] == "external"
+        assert body["content_type"] == "webhook"
 
-    def test_create_listing_with_fulfillment_mode(self, listings):
+    def test_create_listing_with_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.create(name="Test", price=100, deliverable="https://example.com/file.pdf", fulfillment="managed")
+            listings.create(name="Test", price=100, deliverable="https://example.com/file.pdf", content_type="static")
         body = json.loads(route.calls[0].request.content)
-        assert body["fulfillment"] == "managed"
+        assert body["content_type"] == "static"
 
     def test_create_listing_with_checkout_schema(self, listings):
         schema = [{"name": "shirt_size", "label": "Shirt Size", "type": "select", "options": ["S", "M", "L"]}]
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
-            listings.create(name="T-Shirt", price=2500, fulfillment="external", checkout_schema=schema)
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=WEBHOOK_LISTING_JSON))
+            listings.create(name="T-Shirt", price=2500, content_type="webhook", checkout_schema=schema)
         body = json.loads(route.calls[0].request.content)
         assert body["checkout_schema"] == schema
 
     def test_create_listing_with_checkout_field_builder(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
+            route = mock.post("/v1/listings").mock(return_value=httpx.Response(200, json=WEBHOOK_LISTING_JSON))
             from listbee.checkout_field import CheckoutField
 
             listings.create(
                 name="Sneakers",
                 price=8500,
-                fulfillment="external",
+                content_type="webhook",
                 checkout_schema=[
                     CheckoutField.select("size", label="Size", options=["S", "M", "L"], sort_order=0),
                     CheckoutField.text("notes", label="Notes", required=False, sort_order=1),
@@ -286,12 +287,12 @@ class TestUpdateListing:
         assert result.name == "Updated Name"
         assert result.price == 3900
 
-    def test_update_with_fulfillment_mode(self, listings):
+    def test_update_with_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.put("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
-            listings.update("seo-playbook", fulfillment="external")
+            listings.update("seo-playbook", content_type="generated")
         body = json.loads(route.calls[0].request.content)
-        assert body["fulfillment"] == "external"
+        assert body["content_type"] == "generated"
 
     def test_update_with_checkout_schema(self, listings):
         schema = [{"name": "color", "label": "Color", "type": "select", "options": ["Red", "Blue"]}]
@@ -311,25 +312,23 @@ class TestDeleteListing:
         assert result is None
 
 
-class TestFulfillmentFields:
-    def test_listing_response_managed_fulfillment(self, listings):
+class TestContentTypeFields:
+    def test_listing_response_static_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/listings/seo-playbook").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.get("seo-playbook")
-        assert result.fulfillment == "managed"
+        assert result.content_type == "static"
         assert len(result.deliverables) == 1
         assert result.deliverables[0].type == "file"
         assert result.deliverables[0].status == "ready"
-        assert result.has_deliverables is True
         assert result.checkout_schema is None
 
-    def test_listing_response_external_fulfillment(self, listings):
+    def test_listing_response_webhook_content_type(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/custom-service").mock(return_value=httpx.Response(200, json=EXTERNAL_LISTING_JSON))
+            mock.get("/v1/listings/custom-service").mock(return_value=httpx.Response(200, json=WEBHOOK_LISTING_JSON))
             result = listings.get("custom-service")
-        assert result.fulfillment == "external"
+        assert result.content_type == "webhook"
         assert result.deliverables == []
-        assert result.has_deliverables is False
         assert result.checkout_schema is not None
         assert len(result.checkout_schema) == 1
         assert result.checkout_schema[0].key == "shirt_size"
@@ -337,10 +336,18 @@ class TestFulfillmentFields:
         assert result.checkout_schema[0].options == ["S", "M", "L", "XL"]
         assert result.checkout_schema[0].sort_order == 0
 
+    def test_listing_response_generated_content_type(self, listings):
+        generated_json = {**LISTING_JSON, "content_type": "generated", "deliverables": []}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/listings/ai-report").mock(return_value=httpx.Response(200, json=generated_json))
+            result = listings.get("ai-report")
+        assert result.content_type == "generated"
+        assert result.deliverables == []
+
     def test_listing_response_configure_webhook_action(self, listings):
         json_with_webhook_action = {
             **LISTING_JSON,
-            "fulfillment": "external",
+            "content_type": "webhook",
             "readiness": {
                 "sellable": False,
                 "actions": [
@@ -581,7 +588,7 @@ class TestCreateComplete:
     def test_create_without_deliverables(self, sync_client):
         respx.post("https://api.listbee.so/v1/listings").mock(
             return_value=httpx.Response(
-                201, json=LISTING_JSON | {"id": "lst_new", "deliverables": [], "fulfillment": "external"}
+                201, json=LISTING_JSON | {"id": "lst_new", "deliverables": [], "content_type": "webhook"}
             )
         )
         result = Listings(sync_client).create_complete(name="Test", price=999)

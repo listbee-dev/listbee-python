@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Replace `fulfillment` (managed/external) with `content_type` (static/generated/webhook) on `ListingResponse` — `create()` and `update()` now accept `content_type` instead of `fulfillment`
+- Add `content_type`, `payment_status`, `listing_snapshot`, `seller_snapshot`, `handed_off_at` to `OrderResponse`
+- Add `processing` and `handed_off` to `OrderStatus` enum
+- Remove `has_deliverables` from `ListingResponse`
+- Remove `shipping_address` from `OrderResponse`
+
+### Added
+- `ContentType` enum: `static` | `generated` | `webhook`
+- `PaymentStatus` enum: `unpaid` | `paid` | `refunded`
+
+### Removed
+- `FulfillmentMode` enum — replaced by `ContentType`
+- `ShippingAddress` type — no longer returned by the API
+
 ## [0.13.1] - 2026-04-07
 
 ### Removed
