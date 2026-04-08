@@ -41,6 +41,7 @@ class APIStatusError(ListBeeError):
         detail: str,
         code: str,
         param: str | None = None,
+        request_id: str | None = None,
     ) -> None:
         self.type = type
         self.title = title
@@ -48,6 +49,7 @@ class APIStatusError(ListBeeError):
         self.detail = detail
         self.code = code
         self.param = param
+        self.request_id = request_id
         super().__init__(detail)
 
 
@@ -93,11 +95,12 @@ class RateLimitError(APIStatusError):
         detail: str,
         code: str,
         param: str | None = None,
+        request_id: str | None = None,
         limit: int | None = None,
         remaining: int | None = None,
         reset: datetime | None = None,
     ) -> None:
-        super().__init__(type=type, title=title, status=status, detail=detail, code=code, param=param)
+        super().__init__(type=type, title=title, status=status, detail=detail, code=code, param=param, request_id=request_id)
         self.limit = limit
         self.remaining = remaining
         self.reset = reset
@@ -148,6 +151,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
     error_code: str = body.get("code", "")
     error_param: str | None = body.get("param")
 
+    request_id: str | None = headers.get("x-request-id")
     exc_class = STATUS_CODE_TO_EXCEPTION.get(status_code)
 
     if exc_class is RateLimitError:
@@ -162,6 +166,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
             detail=error_detail,
             code=error_code,
             param=error_param,
+            request_id=request_id,
             limit=int(limit_str) if limit_str else None,
             remaining=int(remaining_str) if remaining_str else None,
             reset=datetime.fromtimestamp(float(reset_str)) if reset_str else None,
@@ -174,6 +179,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
         "detail": error_detail,
         "code": error_code,
         "param": error_param,
+        "request_id": request_id,
     }
 
     if exc_class is not None:

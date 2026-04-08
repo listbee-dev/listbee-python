@@ -60,6 +60,22 @@ class SyncCursorPage(Generic[T]):
                 model=self._model,
             )
 
+    def to_list(self, *, limit: int | None = None) -> list[T]:
+        """Collect all items across pages into a list.
+
+        Args:
+            limit: If provided, stop after collecting this many items.
+
+        Returns:
+            A list of all items (up to ``limit`` if given).
+        """
+        items: list[T] = []
+        for item in self:
+            items.append(item)
+            if limit is not None and len(items) >= limit:
+                break
+        return items
+
 
 class AsyncCursorPage(Generic[T]):
     """Async version of SyncCursorPage. Use with `async for`."""
@@ -99,3 +115,19 @@ class AsyncCursorPage(Generic[T]):
                 params={**self._params, "cursor": page.cursor},
                 model=self._model,
             )
+
+    async def to_list(self, *, limit: int | None = None) -> list[T]:
+        """Collect all items across pages into a list (async).
+
+        Args:
+            limit: If provided, stop after collecting this many items.
+
+        Returns:
+            A list of all items (up to ``limit`` if given).
+        """
+        items: list[T] = []
+        async for item in self:
+            items.append(item)
+            if limit is not None and len(items) >= limit:
+                break
+        return items

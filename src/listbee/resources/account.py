@@ -4,10 +4,41 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from listbee._raw_response import RawResponse
 from listbee.types.account import AccountResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+
+class _RawAccountProxy:
+    """Proxy that calls Account methods but returns RawResponse instead of parsed models.
+
+    # TODO: Apply the with_raw_response pattern to all resources (listings, orders, etc.)
+    """
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def get(self) -> RawResponse[AccountResponse]:
+        """Retrieve the current account and return the raw response."""
+        response = self._client._request_raw("GET", "/v1/account")
+        return RawResponse(response, AccountResponse)
+
+
+class _AsyncRawAccountProxy:
+    """Async proxy that calls Account methods but returns RawResponse instead of parsed models.
+
+    # TODO: Apply the with_raw_response pattern to all resources (listings, orders, etc.)
+    """
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def get(self) -> RawResponse[AccountResponse]:
+        """Retrieve the current account and return the raw response (async)."""
+        response = await self._client._request_raw("GET", "/v1/account")
+        return RawResponse(response, AccountResponse)
 
 
 class Account:
@@ -15,6 +46,11 @@ class Account:
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawAccountProxy:
+        """Access account methods that return raw HTTP responses instead of parsed models."""
+        return _RawAccountProxy(self._client)
 
     def get(self) -> AccountResponse:
         """Retrieve the current account.
@@ -74,6 +110,11 @@ class AsyncAccount:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawAccountProxy:
+        """Access account methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawAccountProxy(self._client)
 
     async def get(self) -> AccountResponse:
         """Retrieve the current account (async).

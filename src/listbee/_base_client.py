@@ -6,6 +6,7 @@ import asyncio
 import os
 import random
 import time
+import uuid
 from typing import Any, TypeVar
 
 import httpx
@@ -47,11 +48,13 @@ class BaseClient:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
+        http_client: httpx.Client | httpx.AsyncClient | None = None,
     ) -> None:
         self._api_key = api_key or os.environ.get("LISTBEE_API_KEY")
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
         self._max_retries = max_retries
+        self._custom_http_client = http_client
 
     @property
     def base_url(self) -> str:
@@ -117,6 +120,9 @@ class SyncClient(BaseClient):
         self._http_client: httpx.Client | None = None
 
     def _get_http_client(self) -> httpx.Client:
+        if self._custom_http_client is not None:
+            assert isinstance(self._custom_http_client, httpx.Client), "http_client must be an httpx.Client for the sync client"
+            return self._custom_http_client
         if self._http_client is None:
             self._http_client = httpx.Client(
                 base_url=self._base_url,
@@ -149,6 +155,11 @@ class SyncClient(BaseClient):
         headers = self._build_headers(authenticated=authenticated)
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
+
+        # Auto-generate idempotency key for mutating requests when retries are enabled
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
+            if "Idempotency-Key" not in headers:
+                headers["Idempotency-Key"] = str(uuid.uuid4())
 
         attempt = 0
         last_response: httpx.Response | None = None
@@ -193,6 +204,41 @@ class SyncClient(BaseClient):
         except Exception:
             body_ = {}
         raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
+
+    def _request_raw(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        """Like _request() but returns the raw httpx.Response without raising on errors."""
+        headers = self._build_headers(authenticated=authenticated)
+        effective_timeout = timeout if timeout is not None else self._timeout
+        client = self._get_http_client()
+
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
+            if "Idempotency-Key" not in headers:
+                headers["Idempotency-Key"] = str(uuid.uuid4())
+
+        try:
+            response = client.request(
+                method,
+                path,
+                headers=headers,
+                json=json,
+                params=params,
+                timeout=effective_timeout,
+            )
+        except httpx.TimeoutException as exc:
+            raise APITimeoutError(f"Request timed out: {exc}") from exc
+        except httpx.ConnectError as exc:
+            raise APIConnectionError(f"Connection error: {exc}") from exc
+
+        return response
 
     def get(
         self,
@@ -320,6 +366,9 @@ class AsyncClient(BaseClient):
         self._http_client: httpx.AsyncClient | None = None
 
     def _get_http_client(self) -> httpx.AsyncClient:
+        if self._custom_http_client is not None:
+            assert isinstance(self._custom_http_client, httpx.AsyncClient), "http_client must be an httpx.AsyncClient for the async client"
+            return self._custom_http_client
         if self._http_client is None:
             self._http_client = httpx.AsyncClient(
                 base_url=self._base_url,
@@ -352,6 +401,11 @@ class AsyncClient(BaseClient):
         headers = self._build_headers(authenticated=authenticated)
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
+
+        # Auto-generate idempotency key for mutating requests when retries are enabled
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
+            if "Idempotency-Key" not in headers:
+                headers["Idempotency-Key"] = str(uuid.uuid4())
 
         attempt = 0
         last_response: httpx.Response | None = None
@@ -394,6 +448,41 @@ class AsyncClient(BaseClient):
         except Exception:
             body_ = {}
         raise_for_status(last_response.status_code, body_, dict(last_response.headers))  # pragma: no cover
+
+    async def _request_raw(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+        authenticated: bool = True,
+    ) -> httpx.Response:
+        """Like _request() but returns the raw httpx.Response without raising on errors."""
+        headers = self._build_headers(authenticated=authenticated)
+        effective_timeout = timeout if timeout is not None else self._timeout
+        client = self._get_http_client()
+
+        if method.upper() in ("POST", "PUT") and self._max_retries > 0:
+            if "Idempotency-Key" not in headers:
+                headers["Idempotency-Key"] = str(uuid.uuid4())
+
+        try:
+            response = await client.request(
+                method,
+                path,
+                headers=headers,
+                json=json,
+                params=params,
+                timeout=effective_timeout,
+            )
+        except httpx.TimeoutException as exc:
+            raise APITimeoutError(f"Request timed out: {exc}") from exc
+        except httpx.ConnectError as exc:
+            raise APIConnectionError(f"Connection error: {exc}") from exc
+
+        return response
 
     async def get(
         self,

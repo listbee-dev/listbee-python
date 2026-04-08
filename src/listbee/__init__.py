@@ -13,6 +13,9 @@ Usage:
     print(listing.url)
 """
 
+from httpx import AsyncClient as DefaultAsyncHttpxClient
+from httpx import Client as DefaultHttpxClient
+
 from listbee._client import AsyncListBee, ListBee
 from listbee._exceptions import (
     APIConnectionError,
@@ -70,6 +73,8 @@ from listbee.types import (
 from listbee.webhooks import verify_signature
 
 __all__ = [
+    "DefaultHttpxClient",
+    "DefaultAsyncHttpxClient",
     "Deliverable",
     "ListBee",
     "AsyncListBee",

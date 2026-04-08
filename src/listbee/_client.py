@@ -54,6 +54,30 @@ class ListBee(SyncClient):
         self.stripe = Stripe(self)
         self.utility = Utility(self)
 
+    def with_options(
+        self,
+        *,
+        api_key: str | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+    ) -> ListBee:
+        """Return a new client with overridden options.
+
+        Args:
+            api_key: Override the API key for this client instance.
+            timeout: Override the request timeout in seconds.
+            max_retries: Override the max retry count.
+
+        Returns:
+            A new :class:`ListBee` client with the given options applied.
+        """
+        return ListBee(
+            api_key=api_key or self._api_key,
+            base_url=self._base_url,
+            timeout=timeout if timeout is not None else self._timeout,
+            max_retries=max_retries if max_retries is not None else self._max_retries,
+        )
+
 
 class AsyncListBee(AsyncClient):
     """Asynchronous ListBee API client.
@@ -92,3 +116,27 @@ class AsyncListBee(AsyncClient):
         self.account = AsyncAccount(self)
         self.stripe = AsyncStripe(self)
         self.utility = AsyncUtility(self)
+
+    def with_options(
+        self,
+        *,
+        api_key: str | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+    ) -> AsyncListBee:
+        """Return a new async client with overridden options.
+
+        Args:
+            api_key: Override the API key for this client instance.
+            timeout: Override the request timeout in seconds.
+            max_retries: Override the max retry count.
+
+        Returns:
+            A new :class:`AsyncListBee` client with the given options applied.
+        """
+        return AsyncListBee(
+            api_key=api_key or self._api_key,
+            base_url=self._base_url,
+            timeout=timeout if timeout is not None else self._timeout,
+            max_retries=max_retries if max_retries is not None else self._max_retries,
+        )
