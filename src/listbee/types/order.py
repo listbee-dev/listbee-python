@@ -144,3 +144,28 @@ class OrderResponse(BaseModel):
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the order was created.",
     )
+
+    @property
+    def is_paid(self) -> bool:
+        """True when payment has been captured."""
+        return self.payment_status == "paid"
+
+    @property
+    def is_refunded(self) -> bool:
+        """True when a full refund has been issued."""
+        return self.payment_status == "refunded"
+
+    @property
+    def is_disputed(self) -> bool:
+        """True when the order has an open dispute."""
+        return self.dispute_status is not None
+
+    @property
+    def needs_fulfillment(self) -> bool:
+        """True when the order is paid and awaiting generated content to be pushed via POST /fulfill."""
+        return self.status == "paid" and self.content_type == "generated"
+
+    @property
+    def is_terminal(self) -> bool:
+        """True when the order has reached a terminal state (fulfilled, handed_off, canceled, or failed)."""
+        return self.status in ("fulfilled", "handed_off", "canceled", "failed")

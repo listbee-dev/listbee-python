@@ -268,6 +268,25 @@ class ListingReadiness(BaseModel):
         description="Code of the highest-priority action (prefers kind: api). Null when sellable.",
     )
 
+    @property
+    def is_ready(self) -> bool:
+        """True when buyers can complete a purchase on this listing."""
+        return self.sellable
+
+    @property
+    def next_action(self) -> Action | None:
+        """Return the Action object for the highest-priority action, or None if ready."""
+        if self.next is None:
+            return None
+        for action in self.actions:
+            if action.code == self.next:
+                return action
+        return None
+
+    def actions_by_kind(self, kind: str) -> list[Action]:
+        """Return all actions of the given kind ('api' or 'human')."""
+        return [a for a in self.actions if a.kind == kind]
+
 
 class AccountReadiness(BaseModel):
     """Operational readiness state for an account."""
@@ -287,6 +306,25 @@ class AccountReadiness(BaseModel):
         description="Code of the highest-priority action (prefers kind: api). Null when operational.",
     )
 
+    @property
+    def is_ready(self) -> bool:
+        """True when the account can sell."""
+        return self.operational
+
+    @property
+    def next_action(self) -> Action | None:
+        """Return the Action object for the highest-priority action, or None if ready."""
+        if self.next is None:
+            return None
+        for action in self.actions:
+            if action.code == self.next:
+                return action
+        return None
+
+    def actions_by_kind(self, kind: str) -> list[Action]:
+        """Return all actions of the given kind ('api' or 'human')."""
+        return [a for a in self.actions if a.kind == kind]
+
 
 class WebhookReadiness(BaseModel):
     """Operational readiness state for a webhook endpoint."""
@@ -304,3 +342,22 @@ class WebhookReadiness(BaseModel):
         default=None,
         description="Code of the highest-priority action.",
     )
+
+    @property
+    def is_ready(self) -> bool:
+        """True when the webhook can receive events."""
+        return self.ready
+
+    @property
+    def next_action(self) -> Action | None:
+        """Return the Action object for the highest-priority action, or None if ready."""
+        if self.next is None:
+            return None
+        for action in self.actions:
+            if action.code == self.next:
+                return action
+        return None
+
+    def actions_by_kind(self, kind: str) -> list[Action]:
+        """Return all actions of the given kind ('api' or 'human')."""
+        return [a for a in self.actions if a.kind == kind]

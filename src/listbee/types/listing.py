@@ -194,3 +194,28 @@ class ListingResponse(BaseModel):
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the listing was created.",
     )
+
+    @property
+    def is_draft(self) -> bool:
+        """True when the listing is in draft state (not visible to buyers)."""
+        return self.status == "draft"
+
+    @property
+    def is_published(self) -> bool:
+        """True when the listing is published and visible to buyers."""
+        return self.status == "published"
+
+    @property
+    def is_in_stock(self) -> bool:
+        """True when the listing has available stock (or unlimited stock when stock is None)."""
+        return self.stock is None or self.stock > 0
+
+    @property
+    def has_deliverables(self) -> bool:
+        """True when the listing has at least one deliverable attached."""
+        return len(self.deliverables) > 0
+
+    @property
+    def checkout_url(self) -> str | None:
+        """Full product page URL — share this with buyers. None if the listing is not published."""
+        return self.url
