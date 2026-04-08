@@ -607,6 +607,282 @@ print(page.cursor)     # cursor string for the next page
 if page.has_more:
     next_page = client.listings.list(limit=10, cursor=page.cursor)
     print(next_page.data)
+
+# Collect all pages into a single list
+all_listings = page.to_list(limit=None)
+print(len(all_listings))  # total items across all pages
+```
+
+## Helper Methods & Properties
+
+The SDK includes convenience helpers for common patterns and state checks.
+
+### Order State Helpers
+
+```python
+order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
+
+# Payment state checkers
+if order.is_paid:
+    print("Order has been paid")
+if order.is_refunded:
+    print("Order was refunded")
+if order.is_disputed:
+    print("Order is under dispute")
+
+# Fulfillment state checkers
+if order.needs_fulfillment:
+    print("Call orders.fulfill() to push content")
+if order.is_terminal:
+    print("Order is in a final state (fulfilled, canceled, or failed)")
+
+# Content type branch
+if order.content_type == ContentType.GENERATED:
+    if order.is_paid and order.needs_fulfillment:
+        order = client.orders.fulfill(
+            order.id,
+            deliverables=[Deliverable.text("Your generated report...")]
+        )
+```
+
+### Listing State Helpers
+
+```python
+listing = client.listings.get("r7kq2xy9")
+
+# Publication state
+if listing.is_draft:
+    print("Listing is not yet publishable")
+if listing.is_published:
+    print("Listing is live and purchasable")
+
+# Stock state
+if listing.is_in_stock:
+    print("Stock available for purchase")
+
+# Content state
+if listing.has_deliverables:
+    print(f"Listing has {len(listing.deliverables)} deliverables")
+
+# Checkout link
+print(f"Share: {listing.checkout_url}")
+```
+
+### Readiness System Helpers
+
+```python
+account = client.account.get()
+
+# Quick readiness check
+if account.is_ready:
+    print("Account is fully operational")
+
+# Get the highest-priority action
+if not account.is_ready:
+    action = account.next_action
+    print(f"Action needed: {action.code} -> {action.message}")
+
+# Filter actions by kind
+api_actions = account.actions_by_kind("api")
+manual_actions = account.actions_by_kind("human")
+
+for action in api_actions:
+    print(f"Can be fixed via API: {action.code}")
+    print(f"  Endpoint: {action.resolve.endpoint}")
+    print(f"  Method: {action.resolve.method}")
+```
+
+Similar helpers on `ListingReadiness`:
+
+```python
+listing = client.listings.get("r7kq2xy9")
+if not listing.readiness.is_ready:
+    next_action = listing.readiness.next_action
+    print(f"Next: {next_action.code}")
+```
+
+### Price Formatting
+
+```python
+from listbee import format_price, to_minor, from_minor
+
+# Format cents as a decimal price
+price_str = format_price(2900)  # "$29.00"
+
+# Convert decimal to cents
+cents = to_minor(29.00)  # 2900
+
+# Convert cents to decimal
+decimal = from_minor(2900)  # 29.00
+```
+
+### Webhook Parsing & Verification
+
+Parse and verify webhook events in one step:
+
+```python
+from listbee import parse_webhook_event, WebhookVerificationError
+
+# In your webhook handler
+payload = request.body  # raw bytes
+signature = request.headers["listbee-signature"]
+secret = "whsec_..."    # from webhook.secret
+
+try:
+    event = parse_webhook_event(payload=payload, signature=signature, secret=secret)
+    print(f"Event: {event.type}")
+    print(f"Order ID: {event.data.id}")
+except WebhookVerificationError:
+    # Signature invalid — reject the request
+    return Response(status_code=401)
+```
+
+`parse_webhook_event` automatically verifies the signature and parses the JSON payload. Raises `WebhookVerificationError` if verification fails.
+
+Or verify and parse separately:
+
+```python
+from listbee import verify_signature, WebhookVerificationError
+import json
+
+payload = request.body
+signature = request.headers["listbee-signature"]
+
+try:
+    verify_signature(payload=payload, signature=signature, secret=secret)
+except WebhookVerificationError:
+    return Response(status_code=401)
+
+event = json.loads(payload)
+```
+
+## Client Configuration
+
+### Per-Call Options
+
+Override defaults for a single request:
+
+```python
+# Custom timeout for this call
+listing = client.listings.create(
+    name="Heavy image processing",
+    price=2900,
+    cover_url="https://example.com/large.jpg",
+    timeout=180.0,  # 3 minutes, overrides default 120s for create()
+)
+
+# Custom retries for this call
+order = client.orders.get(
+    "ord_9xM4kP7nR2qT5wY1",
+    max_retries=5,  # retry more aggressively on this request
+)
+```
+
+### Client-Level Options
+
+```python
+from listbee import ListBee
+
+client = ListBee(
+    api_key="lb_...",
+    timeout=60.0,           # default request timeout
+    max_retries=3,          # retries on 429/500/502/503/504
+    base_url="https://api.listbee.so",  # default; override for testing
+)
+```
+
+### Custom HTTP Client
+
+Use a custom `httpx.Client` or `httpx.AsyncClient`:
+
+```python
+import httpx
+from listbee import ListBee, DefaultHttpxClient
+
+# Custom sync client with extra configuration
+http_client = httpx.Client(
+    timeout=120.0,
+    limits=httpx.Limits(max_keepalive_connections=10),
+    headers={"User-Agent": "my-app/1.0"},
+)
+
+client = ListBee(
+    api_key="lb_...",
+    http_client=DefaultHttpxClient(client=http_client),
+)
+```
+
+For async:
+
+```python
+import httpx
+from listbee import AsyncListBee, DefaultAsyncHttpxClient
+
+http_client = httpx.AsyncClient(
+    timeout=120.0,
+    limits=httpx.Limits(max_keepalive_connections=10),
+)
+
+client = AsyncListBee(
+    api_key="lb_...",
+    http_client=DefaultAsyncHttpxClient(client=http_client),
+)
+```
+
+### Raw Response Access
+
+Access HTTP response headers, status, and request metadata:
+
+```python
+from listbee import ListBee
+
+client = ListBee(api_key="lb_...")
+
+# Get the raw response wrapper
+response = client.with_raw_response().account.get()
+
+# Access parsed model
+print(response.parsed.email)
+
+# Access raw HTTP response
+print(response.response.status_code)
+print(response.response.headers["x-request-id"])
+print(response.response.headers["x-ratelimit-remaining"])
+```
+
+This works on any resource method:
+
+```python
+response = client.with_raw_response().listings.get("r7kq2xy9")
+print(f"Status: {response.response.status_code}")
+print(f"Request ID: {response.response.headers.get('x-request-id')}")
+print(f"Listing: {response.parsed.name}")
+```
+
+## Action Resolution (Advanced)
+
+Automatically resolve readiness actions via API:
+
+```python
+from listbee import resolve_action
+
+account = client.account.get()
+if not account.is_ready:
+    action = account.next_action
+    
+    # Resolve this action (if it's an API action)
+    if action.kind == "api":
+        result = resolve_action(client, action)
+        # Handles action code, calls appropriate endpoint
+```
+
+For async:
+
+```python
+from listbee import resolve_action_async
+
+account = await client.account.get()
+result = await resolve_action_async(client, action)
 ```
 
 ## Error Handling
@@ -844,6 +1120,78 @@ for action in listing.readiness.actions:
         print(f"Create a webhook: {action.resolve.endpoint}")
     elif action.code == ActionCode.CONNECT_STRIPE:
         print(f"Connect Stripe: {action.resolve.url}")
+```
+
+## Migration Guide
+
+### From v0.13.x to v0.14.0
+
+**Breaking Change: Fulfillment → Content Type**
+
+The fulfillment concept has been replaced with content types. Update your code:
+
+```python
+# Old (v0.13.x)
+listing = client.listings.create(
+    name="Report",
+    price=2900,
+    fulfillment="managed",
+)
+
+# New (v0.14.0)
+from listbee import ContentType
+
+listing = client.listings.create(
+    name="Report",
+    price=2900,
+    content_type=ContentType.STATIC,  # or "static"
+)
+```
+
+**New: Order fields**
+
+Orders now include content-aware fields:
+
+```python
+order = client.orders.get("ord_...")
+
+# New fields in v0.14.0
+print(order.content_type)      # "static" | "generated" | "webhook"
+print(order.payment_status)    # "unpaid" | "paid" | "refunded"
+print(order.listing_snapshot)  # listing data at purchase time
+print(order.seller_snapshot)   # seller data at purchase time
+print(order.handed_off_at)     # when order was handed to seller (webhook only)
+
+# Old field removed
+# order.shipping_address  # removed
+```
+
+**New: Order status values**
+
+OrderStatus enum expanded with new states:
+
+```python
+from listbee import OrderStatus
+
+# New states in v0.14.0
+OrderStatus.PROCESSING   # order is generating content
+OrderStatus.HANDED_OFF   # order handed to seller (webhook orders)
+```
+
+### From v0.12.x to v0.13.x
+
+**Breaking Change: Removed signup resource**
+
+Account creation is now handled via the ListBee Console. The `client.signup` resource has been removed.
+
+```python
+# Old (v0.12.x)
+response = client.signup.send_otp("seller@example.com")
+token = client.signup.verify_otp("seller@example.com", "123456")
+
+# New (v0.13.x)
+# Use the Console at https://console.listbee.so to create accounts
+# Then use API key for subsequent API calls
 ```
 
 ## Requirements
