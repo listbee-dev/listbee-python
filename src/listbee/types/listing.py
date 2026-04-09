@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 from listbee.types.shared import (
     BlurMode,
     CheckoutFieldResponse,
-    ContentType,
     DeliverableResponse,
     ListingReadiness,
     ListingStatus,
@@ -91,20 +90,25 @@ class ListingResponse(BaseModel):
         description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
         examples=[2900],
     )
-    content_type: ContentType = Field(
+    fulfillment_url: str | None = Field(
+        default=None,
         description=(
-            "Content type: static (pre-attached content, ListBee delivers), "
-            "generated (content created after payment, ListBee delivers), "
-            "webhook (paid order handed to seller's system)."
+            "Optional URL called after payment to trigger external fulfillment. "
+            "When set, ListBee POSTs the order to this URL after the buyer pays. "
+            "Null means ListBee handles delivery via attached deliverables."
         ),
-        examples=["static"],
+        examples=["https://yourapp.com/webhooks/listbee/fulfill"],
+    )
+    has_deliverables: bool = Field(
+        description="`true` if one or more deliverables are attached to this listing.",
+        examples=[True],
     )
     deliverables: list[DeliverableResponse] = Field(
         default=[],
         description=(
             "Digital deliverables attached to this listing. "
-            "Required for static content_type — ListBee delivers these to buyers on payment. "
-            "Empty for generated (content created per-order) and webhook (seller handles delivery) listings."
+            "When present, ListBee delivers these to buyers on payment. "
+            "Empty for listings where the seller handles delivery externally."
         ),
     )
     has_cover: bool = Field(
@@ -209,11 +213,6 @@ class ListingResponse(BaseModel):
     def is_in_stock(self) -> bool:
         """True when the listing has available stock (or unlimited stock when stock is None)."""
         return self.stock is None or self.stock > 0
-
-    @property
-    def has_deliverables(self) -> bool:
-        """True when the listing has at least one deliverable attached."""
-        return len(self.deliverables) > 0
 
     @property
     def checkout_url(self) -> str | None:

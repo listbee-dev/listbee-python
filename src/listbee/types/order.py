@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import DeliverableResponse, OrderStatus
+from listbee.types.shared import Action, DeliverableResponse, OrderStatus
 
 
 class OrderResponse(BaseModel):
@@ -44,24 +44,10 @@ class OrderResponse(BaseModel):
     )
     status: OrderStatus = Field(
         description=(
-            "Current order status. Full lifecycle: PENDING → PAID → PROCESSING (generated only) → FULFILLED. "
-            "Terminal error states: CANCELED, FAILED. "
-            "Use content_type to determine which statuses apply: "
-            "static skips PROCESSING and auto-fulfills; "
-            "generated enters PROCESSING until POST /fulfill is called; "
-            "webhook stays PAID — delivery handled externally."
+            "Current order status. Lifecycle: PENDING → PAID → FULFILLED. "
+            "Terminal error states: CANCELED, FAILED."
         ),
         examples=["paid"],
-    )
-    content_type: str = Field(
-        description=(
-            "Content type of the listing at the time of purchase. "
-            "Determines the delivery model: "
-            "static = ListBee auto-delivered pre-attached content on payment; "
-            "generated = your system creates content after payment and pushes it via POST /fulfill; "
-            "webhook = order.paid fired, your system handles delivery entirely."
-        ),
-        examples=["static"],
     )
     payment_status: str = Field(
         description=(
@@ -93,6 +79,17 @@ class OrderResponse(BaseModel):
         ),
         examples=[{"display_name": "Acme Agency", "email": "seller@example.com"}],
     )
+    has_deliverables: bool = Field(
+        description="`true` if one or more deliverables are attached to this order.",
+        examples=[False],
+    )
+    actions: list[Action] | None = Field(
+        default=None,
+        description=(
+            "Actions available for this order (e.g. fulfill, refund). "
+            "Each action has a `priority` field indicating whether it is `required` or `suggested`."
+        ),
+    )
     deliverables: list[DeliverableResponse] = Field(
         default=[],
         description="Deliverables attached to this order.",
@@ -104,14 +101,6 @@ class OrderResponse(BaseModel):
     fulfilled_at: datetime | None = Field(
         default=None,
         description="ISO 8601 timestamp of when the order was fulfilled.",
-    )
-    handed_off_at: datetime | None = Field(
-        default=None,
-        description=(
-            "Timestamp when the order was handed off to the seller's external system via order.paid webhook. "
-            "Only set for webhook content_type listings. Null for static and generated listings."
-        ),
-        examples=["2026-04-02T14:31:00Z"],
     )
     refund_amount: int = Field(
         default=0,
@@ -162,10 +151,10 @@ class OrderResponse(BaseModel):
 
     @property
     def needs_fulfillment(self) -> bool:
-        """True when the order is paid and awaiting generated content to be pushed via POST /fulfill."""
-        return self.status == "paid" and self.content_type == "generated"
+        """True when the order is paid and has not yet been fulfilled."""
+        return self.status == "paid"
 
     @property
     def is_terminal(self) -> bool:
-        """True when the order has reached a terminal state (fulfilled, handed_off, canceled, or failed)."""
-        return self.status in ("fulfilled", "handed_off", "canceled", "failed")
+        """True when the order has reached a terminal state (fulfilled, canceled, or failed)."""
+        return self.status in ("fulfilled", "canceled", "failed")

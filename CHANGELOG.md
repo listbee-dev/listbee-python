@@ -9,8 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `with_raw_response` on all resources — access HTTP headers, request IDs, rate limit info without losing typed responses
+- `fulfillment_url` field on `ListingResponse` and `create()`/`update()` params — set a URL to trigger external fulfillment after payment
+- `has_deliverables` field on `ListingResponse` and `OrderResponse` — `true` when one or more deliverables are attached
+- `actions` list on `OrderResponse` — available actions for this order, each with a `priority` field
+- `ActionPriority` enum: `required` | `suggested`
+- `priority` field on `Action` model
+
+### Changed
+- Remove `content_type` field from `ListingResponse` and `OrderResponse` — fulfillment behavior is now derived from `has_deliverables` and `fulfillment_url`
+- Remove `handed_off_at` field from `OrderResponse`
+- Remove `processing` and `handed_off` values from `OrderStatus` enum
+- `create()` and `update()` on listings no longer accept `content_type` — use `fulfillment_url` to configure external fulfillment
+- `needs_fulfillment` property on `OrderResponse` now checks `status == "paid"` only
+- `is_terminal` property on `OrderResponse` no longer includes `handed_off` state
 
 ### Removed
+- `ContentType` enum — replaced by implicit model (`has_deliverables` for managed delivery, `fulfillment_url` for external)
 - `CheckoutFieldType.ADDRESS` — agents define their own fields, ListBee renders text/select/date
 - `CheckoutField.address()` builder method
 

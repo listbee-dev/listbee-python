@@ -230,15 +230,15 @@ BASE_ORDER = {
     "currency": "USD",
     "stripe_payment_intent_id": "pi_3abc123def456",
     "status": "paid",
-    "content_type": "static",
     "payment_status": "paid",
+    "has_deliverables": False,
+    "actions": None,
     "checkout_data": None,
     "listing_snapshot": None,
     "seller_snapshot": None,
     "deliverables": [],
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
-    "handed_off_at": None,
     "refund_amount": 0,
     "refunded_at": None,
     "dispute_amount": 0,
@@ -279,23 +279,15 @@ class TestOrderStateHelpers:
         assert order.is_disputed is False
 
     def test_needs_fulfillment_true(self):
-        order = self._make(status="paid", content_type="generated")
+        order = self._make(status="paid")
         assert order.needs_fulfillment is True
 
-    def test_needs_fulfillment_false_wrong_content_type(self):
-        order = self._make(status="paid", content_type="static")
-        assert order.needs_fulfillment is False
-
     def test_needs_fulfillment_false_wrong_status(self):
-        order = self._make(status="fulfilled", content_type="generated")
+        order = self._make(status="fulfilled")
         assert order.needs_fulfillment is False
 
     def test_is_terminal_fulfilled(self):
         order = self._make(status="fulfilled")
-        assert order.is_terminal is True
-
-    def test_is_terminal_handed_off(self):
-        order = self._make(status="handed_off")
         assert order.is_terminal is True
 
     def test_is_terminal_canceled(self):
@@ -329,7 +321,8 @@ BASE_LISTING = {
     "highlights": [],
     "cta": None,
     "price": 2900,
-    "content_type": "static",
+    "fulfillment_url": None,
+    "has_deliverables": False,
     "deliverables": [],
     "has_cover": False,
     "stock": None,
@@ -386,22 +379,11 @@ class TestListingLifecycleHelpers:
         assert listing.is_in_stock is False
 
     def test_has_deliverables_true(self):
-        deliverable = {
-            "object": "deliverable",
-            "id": "del_001",
-            "type": "file",
-            "status": "ready",
-            "content": None,
-            "filename": "ebook.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "url": None,
-        }
-        listing = self._make(deliverables=[deliverable])
+        listing = self._make(has_deliverables=True)
         assert listing.has_deliverables is True
 
     def test_has_deliverables_false(self):
-        listing = self._make(deliverables=[])
+        listing = self._make(has_deliverables=False)
         assert listing.has_deliverables is False
 
     def test_checkout_url_returns_url(self):

@@ -54,13 +54,13 @@ listing = client.listings.create_complete(
 listing = client.listings.publish(listing.slug)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 
-# Webhook content — you handle delivery via webhooks
+# External fulfillment — set a URL and you handle delivery
 from listbee import CheckoutField
 
 listing = client.listings.create(
     name="Custom Consulting",
     price=3500,
-    content_type="webhook",
+    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
     checkout_schema=[
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
@@ -121,31 +121,23 @@ from listbee import ListBee
 
 client = ListBee(api_key="lb_...")
 
-# Create — static content (ListBee delivers pre-attached file)
+# Create — managed delivery (ListBee delivers pre-attached deliverables)
 # Listings start as drafts. Attach deliverables then publish.
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,       # $29.00 in cents
-    content_type="static",
 )
 
-# Create — webhook content (you handle delivery via webhooks)
+# Create — external fulfillment (your system handles delivery via fulfillment_url)
 from listbee import CheckoutField
 
 listing = client.listings.create(
     name="Custom Consulting",
     price=3500,
-    content_type="webhook",
+    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
     checkout_schema=[
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
-)
-
-# Create — generated content (your system creates content after payment)
-listing = client.listings.create(
-    name="AI Report",
-    price=2900,
-    content_type="generated",
 )
 
 # Create — all optional params
@@ -195,12 +187,12 @@ updated = client.listings.update(
     price=3900,
 )
 
-# Update content type and checkout schema
+# Update fulfillment URL and checkout schema
 from listbee import CheckoutField
 
 updated = client.listings.update(
     "r7kq2xy9",
-    content_type="webhook",
+    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
     checkout_schema=[
         CheckoutField.text("notes", label="Special Instructions", sort_order=0),
     ],
@@ -269,12 +261,12 @@ for order in client.orders.list(status="paid"):
 order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
 print(order.listing_id, order.amount)
 print(order.checkout_data)        # custom fields from checkout
-print(order.content_type)         # "static" | "generated" | "webhook"
 print(order.payment_status)       # "unpaid" | "paid" | "refunded"
+print(order.has_deliverables)     # True if deliverables are attached
+print(order.actions)              # list of available actions (with priority)
 print(order.listing_snapshot)     # listing data at time of purchase
 print(order.seller_snapshot)      # seller data at time of purchase
 print(order.paid_at)              # when payment was confirmed
-print(order.handed_off_at)        # when handed to seller (webhook orders only)
 
 # Fulfill a generated order — push deliverables for ListBee to deliver
 order = client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
@@ -436,11 +428,11 @@ for plan in plans.data:
     print(f"{plan.name}: ${plan.price_monthly / 100}/month (fee: {plan.fee_rate})")
 ```
 
-## Content Types
+## Fulfillment Modes
 
-ListBee supports three content types that determine how orders are fulfilled:
+ListBee supports two fulfillment modes determined by the listing's deliverables and `fulfillment_url`.
 
-**Static** — ListBee delivers pre-attached digital content (files, URLs, text) automatically on payment via access grants.
+**Managed** — ListBee delivers pre-attached digital content (files, URLs, text) automatically on payment. Attach deliverables to the listing before publishing.
 
 ```python
 from listbee import Deliverable
@@ -468,22 +460,23 @@ with open("playbook.pdf", "rb") as f:
 client.listings.add_deliverable(listing.slug, Deliverable.from_token(file.id))
 ```
 
-**Generated** — ListBee fires `order.paid` webhook, your system generates content and pushes it back via `POST /fulfill`. ListBee then delivers it to the buyer.
+**External** — Set `fulfillment_url` and ListBee POSTs the order to your URL after payment. Your system handles delivery. Use for physical goods, AI-generated content, services, or anything that requires custom logic.
 
 ```python
 from listbee import CheckoutField, Deliverable
 
+# AI-generated content — receive order, generate, push back via fulfill()
 listing = client.listings.create(
     name="Custom AI Report",
     price=4900,
-    content_type="generated",
+    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
     checkout_schema=[
         CheckoutField.text("topic", label="Report Topic", sort_order=0),
     ],
 )
 listing = client.listings.publish(listing.slug)
 
-# When you receive the order.paid webhook, generate content and fulfill:
+# When your endpoint receives the order, generate content and push back:
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
     deliverables=[
@@ -492,29 +485,17 @@ order = client.orders.fulfill(
 )
 ```
 
-**Webhook** — ListBee fires `order.paid` webhook, your app handles delivery entirely. Use for physical goods, services, or anything outside ListBee.
-
-```python
-listing = client.listings.create(
-    name="Custom Consulting",
-    price=4900,
-    content_type="webhook",
-)
-listing = client.listings.publish(listing.slug)
-# Receive order.paid webhook and handle delivery yourself
-```
-
-Use `order.content_type` to branch post-payment logic without re-fetching the listing:
+Use `order.has_deliverables` and `order.actions` to branch post-payment logic:
 
 ```python
 order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
-if order.content_type == "generated":
-    # Generate content and call orders.fulfill()
+if order.has_deliverables:
+    # ListBee has deliverables ready for the buyer
     pass
-elif order.content_type == "webhook":
-    # Handle delivery in your own system
-    pass
-# static orders are auto-fulfilled by ListBee — no action needed
+if order.actions:
+    # There are actions to take — check priority
+    for action in order.actions:
+        print(f"{action.priority}: {action.code} — {action.message}")
 ```
 
 ## Readiness System
@@ -557,7 +538,7 @@ if not listing.readiness.sellable:
 | `connect_stripe` | No Stripe account connected — start Connect onboarding |
 | `enable_charges` | Stripe charges are disabled — complete Stripe onboarding |
 | `update_billing` | ListBee subscription payment failed or unpaid |
-| `configure_webhook` | Webhook content_type listing needs a webhook endpoint |
+| `configure_webhook` | Listing with `fulfillment_url` needs a webhook endpoint configured |
 | `publish_listing` | Listing is a draft — publish to make it purchasable |
 | `webhook_disabled` | Webhook endpoint is disabled |
 
@@ -649,13 +630,12 @@ if order.needs_fulfillment:
 if order.is_terminal:
     print("Order is in a final state (fulfilled, canceled, or failed)")
 
-# Content type branch
-if order.content_type == ContentType.GENERATED:
-    if order.is_paid and order.needs_fulfillment:
-        order = client.orders.fulfill(
-            order.id,
-            deliverables=[Deliverable.text("Your generated report...")]
-        )
+# Fulfill a paid order — push content for ListBee to deliver
+if order.needs_fulfillment:
+    order = client.orders.fulfill(
+        order.id,
+        deliverables=[Deliverable.text("Your generated report...")]
+    )
 ```
 
 ### Listing State Helpers
@@ -1073,14 +1053,14 @@ from listbee import (
     Deliverable,         # input class: .file() | .url() | .text() | .from_token()
 
     # Enums
-    ContentType,         # "static" | "generated" | "webhook"
+    ActionPriority,      # "required" | "suggested"
     DeliverableType,     # "file" | "url" | "text"
     PaymentStatus,       # "unpaid" | "paid" | "refunded"
     CheckoutFieldType,   # "text" | "select" | "date"
     BlurMode,            # "auto" | "true" | "false"
     ListingStatus,       # "draft" | "published"
-    OrderStatus,         # "pending" | "paid" | "processing" | "fulfilled" | "handed_off" | "canceled" | "failed"
-    WebhookEventType,    # "order.paid" | "order.fulfilled" | "order.shipped" | ...
+    OrderStatus,         # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
+    WebhookEventType,    # "order.paid" | "order.fulfilled" | "order.refunded" | ...
     ActionCode,          # "connect_stripe" | "configure_webhook" | ...
     ActionKind,          # "api" | "human"
 
@@ -1102,17 +1082,17 @@ from listbee import (
 Use enums to avoid magic strings:
 
 ```python
-from listbee import ContentType, DeliverableType, PaymentStatus, ActionCode, ActionKind, WebhookEventType
+from listbee import ActionPriority, DeliverableType, PaymentStatus, ActionCode, ActionKind, WebhookEventType
 
-# Check content type
-if listing.content_type == ContentType.STATIC and listing.deliverables:
+# Check if managed delivery has been configured
+if listing.has_deliverables:
     print(f"Delivers {listing.deliverables[0].type} file")
 
-# Branch order fulfillment logic on content type
-if order.content_type == ContentType.GENERATED:
-    print("Generate and push content via orders.fulfill()")
-elif order.content_type == ContentType.WEBHOOK:
-    print("Handle delivery in your own system")
+# Check for required actions on an order
+if order.actions:
+    required = [a for a in order.actions if a.priority == ActionPriority.REQUIRED]
+    for action in required:
+        print(f"Required: {action.code} — {action.message}")
 
 # Subscribe to specific events
 webhook = client.webhooks.create(
@@ -1137,59 +1117,67 @@ for action in listing.readiness.actions:
 
 ## Migration Guide
 
-### From v0.13.x to v0.14.0
+### From v0.14.x to v0.15.x
 
-**Breaking Change: Fulfillment → Content Type**
+**Breaking Change: Content Type → Implicit Fulfillment Model**
 
-The fulfillment concept has been replaced with content types. Update your code:
+The `content_type` field has been removed. Fulfillment is now determined implicitly:
+- Listings with deliverables attached → ListBee manages delivery
+- Listings with `fulfillment_url` set → Your system handles delivery
 
 ```python
-# Old (v0.13.x)
+# Old (v0.14.x)
 listing = client.listings.create(
     name="Report",
     price=2900,
-    fulfillment="managed",
+    content_type="static",
 )
 
-# New (v0.14.0)
-from listbee import ContentType
-
+# New (v0.15.x)
 listing = client.listings.create(
     name="Report",
     price=2900,
-    content_type=ContentType.STATIC,  # or "static"
+    # Attach deliverables after creation, or use create_complete()
+)
+
+# Old (external fulfillment)
+listing = client.listings.create(
+    name="Custom Service",
+    price=2900,
+    content_type="webhook",
+)
+
+# New (external fulfillment)
+listing = client.listings.create(
+    name="Custom Service",
+    price=2900,
+    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
 )
 ```
 
-**New: Order fields**
-
-Orders now include content-aware fields:
+**Changed: Order fields**
 
 ```python
 order = client.orders.get("ord_...")
 
-# New fields in v0.14.0
-print(order.content_type)      # "static" | "generated" | "webhook"
-print(order.payment_status)    # "unpaid" | "paid" | "refunded"
-print(order.listing_snapshot)  # listing data at purchase time
-print(order.seller_snapshot)   # seller data at purchase time
-print(order.handed_off_at)     # when order was handed to seller (webhook only)
+# Removed in v0.15.x
+# order.content_type     — removed
+# order.handed_off_at    — removed
 
-# Old field removed
-# order.shipping_address  # removed
+# New in v0.15.x
+print(order.has_deliverables)  # True if deliverables are attached
+print(order.actions)           # list of available actions with priority
 ```
 
-**New: Order status values**
+**Changed: OrderStatus**
 
-OrderStatus enum expanded with new states:
+`PROCESSING` and `HANDED_OFF` values removed from `OrderStatus`. Lifecycle is now `PENDING → PAID → FULFILLED`.
 
-```python
-from listbee import OrderStatus
+### From v0.13.x to v0.14.0
 
-# New states in v0.14.0
-OrderStatus.PROCESSING   # order is generating content
-OrderStatus.HANDED_OFF   # order handed to seller (webhook orders)
-```
+**Breaking Change: Fulfillment → Content Type**
+
+The fulfillment concept was replaced with content types in v0.14.0. See v0.14.0 release notes for details.
 
 ### From v0.12.x to v0.13.x
 

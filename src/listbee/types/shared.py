@@ -32,12 +32,11 @@ class DeliverableStatus(StrEnum):
     FAILED = "failed"
 
 
-class ContentType(StrEnum):
-    """Content type of a listing — determines the delivery model."""
+class ActionPriority(StrEnum):
+    """Priority level of a readiness action."""
 
-    STATIC = "static"
-    GENERATED = "generated"
-    WEBHOOK = "webhook"
+    REQUIRED = "required"
+    SUGGESTED = "suggested"
 
 
 class PaymentStatus(StrEnum):
@@ -157,9 +156,7 @@ class OrderStatus(StrEnum):
 
     PENDING = "pending"
     PAID = "paid"
-    PROCESSING = "processing"
     FULFILLED = "fulfilled"
-    HANDED_OFF = "handed_off"
     CANCELED = "canceled"
     FAILED = "failed"
 
@@ -244,6 +241,11 @@ class Action(BaseModel):
     )
     resolve: ActionResolve = Field(
         description="Resolution path — API endpoint or human-facing URL.",
+    )
+    priority: ActionPriority = Field(
+        default=ActionPriority.REQUIRED,
+        description="Priority level: `required` blocks sellability, `suggested` is optional improvement.",
+        examples=["required"],
     )
 
 

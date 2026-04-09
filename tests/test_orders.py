@@ -22,15 +22,15 @@ ORDER_JSON = {
     "currency": "USD",
     "stripe_payment_intent_id": "pi_3abc123def456",
     "status": "paid",
-    "content_type": "static",
     "payment_status": "paid",
+    "has_deliverables": False,
+    "actions": None,
     "checkout_data": None,
     "listing_snapshot": {"name": "SEO Playbook", "price": 2999, "slug": "seo-playbook"},
     "seller_snapshot": {"display_name": "Acme Agency"},
     "deliverables": [],
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
-    "handed_off_at": None,
     "refund_amount": 0,
     "refunded_at": None,
     "dispute_amount": 0,
@@ -220,19 +220,12 @@ class TestOrderStatus:
             result = orders.get("ord_1")
         assert result.status == "failed"
 
-    def test_order_processing_status(self, orders):
-        processing_json = {**ORDER_JSON, "status": "processing"}
+    def test_order_has_deliverables_field(self, orders):
+        order_with_deliverables = {**ORDER_JSON, "has_deliverables": True}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=processing_json))
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=order_with_deliverables))
             result = orders.get("ord_1")
-        assert result.status == "processing"
-
-    def test_order_handed_off_status(self, orders):
-        handed_off_json = {**ORDER_JSON, "status": "handed_off"}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=handed_off_json))
-            result = orders.get("ord_1")
-        assert result.status == "handed_off"
+        assert result.has_deliverables is True
 
 
 class TestOrderCheckoutData:
@@ -252,36 +245,48 @@ class TestOrderCheckoutData:
 
 
 class TestOrderNewFields:
-    def test_order_content_type(self, orders):
+    def test_order_payment_status_and_snapshots(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/orders/ord_9xM4kP7nR2qT5wY1").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             result = orders.get("ord_9xM4kP7nR2qT5wY1")
-        assert result.content_type == "static"
         assert result.payment_status == "paid"
         assert result.listing_snapshot == {"name": "SEO Playbook", "price": 2999, "slug": "seo-playbook"}
         assert result.seller_snapshot == {"display_name": "Acme Agency"}
-        assert result.handed_off_at is None
+        assert result.has_deliverables is False
+        assert result.actions is None
 
-    def test_order_processing_status(self, orders):
-        processing_json = {**ORDER_JSON, "status": "processing", "content_type": "generated"}
+    def test_order_has_deliverables_true(self, orders):
+        order_json = {**ORDER_JSON, "has_deliverables": True}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=processing_json))
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=order_json))
             result = orders.get("ord_1")
-        assert result.status == "processing"
-        assert result.content_type == "generated"
+        assert result.has_deliverables is True
 
-    def test_order_handed_off_status(self, orders):
-        handed_off_json = {
+    def test_order_actions_list(self, orders):
+        order_json = {
             **ORDER_JSON,
-            "status": "handed_off",
-            "content_type": "webhook",
-            "handed_off_at": "2026-04-02T14:31:00Z",
+            "actions": [
+                {
+                    "code": "publish_listing",
+                    "kind": "api",
+                    "priority": "required",
+                    "message": "Publish this listing to allow purchases.",
+                    "resolve": {
+                        "method": "POST",
+                        "endpoint": "/v1/listings/lst_abc123/publish",
+                        "url": None,
+                        "params": None,
+                    },
+                }
+            ],
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=handed_off_json))
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=order_json))
             result = orders.get("ord_1")
-        assert result.status == "handed_off"
-        assert result.handed_off_at is not None
+        assert result.actions is not None
+        assert len(result.actions) == 1
+        assert result.actions[0].code == "publish_listing"
+        assert result.actions[0].priority == "required"
 
 
 class TestFulfillOrder:
