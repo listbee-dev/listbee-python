@@ -606,7 +606,9 @@ class TestCreateComplete:
     def test_create_without_deliverables(self, sync_client):
         respx.post("https://api.listbee.so/v1/listings").mock(
             return_value=httpx.Response(
-                201, json=LISTING_JSON | {"id": "lst_new", "deliverables": [], "has_deliverables": False, "fulfillment_url": None}
+                201,
+                json=LISTING_JSON
+                | {"id": "lst_new", "deliverables": [], "has_deliverables": False, "fulfillment_url": None},
             )
         )
         result = Listings(sync_client).create_complete(name="Test", price=999)

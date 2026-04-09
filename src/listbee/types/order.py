@@ -44,8 +44,7 @@ class OrderResponse(BaseModel):
     )
     status: OrderStatus = Field(
         description=(
-            "Current order status. Lifecycle: PENDING → PAID → FULFILLED. "
-            "Terminal error states: CANCELED, FAILED."
+            "Current order status. Lifecycle: PENDING → PAID → FULFILLED. Terminal error states: CANCELED, FAILED."
         ),
         examples=["paid"],
     )
