@@ -12,14 +12,13 @@ class CheckoutField:
 
         CheckoutField.text("notes", label="Special Instructions")
         CheckoutField.select("size", label="Size", options=["S", "M", "L"])
-        CheckoutField.address("shipping", label="Shipping Address")
         CheckoutField.date("delivery_date", label="Preferred Date")
     """
 
     __slots__ = ("_key", "_type", "_label", "_required", "_options", "_sort_order")
 
     def __init__(self) -> None:
-        raise TypeError("Use factory methods: CheckoutField.text(), .select(), .address(), .date()")
+        raise TypeError("Use factory methods: CheckoutField.text(), .select(), .date()")
 
     @classmethod
     def text(cls, key: str, *, label: str, required: bool = True, sort_order: int = 0) -> CheckoutField:
@@ -65,25 +64,6 @@ class CheckoutField:
         inst._label = label
         inst._required = required
         inst._options = options
-        inst._sort_order = sort_order
-        return inst
-
-    @classmethod
-    def address(cls, key: str, *, label: str, required: bool = True, sort_order: int = 0) -> CheckoutField:
-        """Create a structured address checkout field.
-
-        Args:
-            key: Unique field key — becomes the key in ``order.checkout_data``.
-            label: Label shown to the buyer at checkout.
-            required: Whether the field must be filled (default True).
-            sort_order: Display order — lower values shown first (default 0).
-        """
-        inst = object.__new__(cls)
-        inst._key = key
-        inst._type = "address"
-        inst._label = label
-        inst._required = required
-        inst._options = None
         inst._sort_order = sort_order
         return inst
 

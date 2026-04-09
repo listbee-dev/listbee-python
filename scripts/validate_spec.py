@@ -83,6 +83,9 @@ def extract_spec_operations(spec: dict) -> dict[str, dict]:
     """Extract all operations from OpenAPI spec: {operation_id: {method, path}}."""
     ops: dict[str, dict] = {}
     for path, methods in (spec.get("paths") or {}).items():
+        # Skip internal console routes — session-authenticated, not part of public API
+        if path.startswith("/console"):
+            continue
         for method, op in methods.items():
             if method not in ("get", "post", "put", "patch", "delete"):
                 continue

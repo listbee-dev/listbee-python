@@ -53,7 +53,6 @@ class CheckoutFieldType(StrEnum):
 
     TEXT = "text"
     SELECT = "select"
-    ADDRESS = "address"
     DATE = "date"
 
 

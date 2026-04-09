@@ -48,24 +48,6 @@ class TestCheckoutFieldSelect:
         }
 
 
-class TestCheckoutFieldAddress:
-    def test_address(self):
-        f = CheckoutField.address("shipping", label="Shipping Address")
-        assert f._key == "shipping"
-        assert f._type == "address"
-        assert f._options is None
-
-    def test_address_to_api_body(self):
-        f = CheckoutField.address("shipping", label="Shipping Address", sort_order=2)
-        assert f.to_api_body() == {
-            "key": "shipping",
-            "type": "address",
-            "label": "Shipping Address",
-            "required": True,
-            "sort_order": 2,
-        }
-
-
 class TestCheckoutFieldDate:
     def test_date(self):
         f = CheckoutField.date("delivery", label="Preferred Date")
@@ -96,10 +78,6 @@ class TestCheckoutFieldConstructor:
     def test_repr_select(self):
         f = CheckoutField.select("size", label="Size", options=["S", "M"])
         assert repr(f) == "CheckoutField.select('size', label='Size')"
-
-    def test_repr_address(self):
-        f = CheckoutField.address("addr", label="Address")
-        assert repr(f) == "CheckoutField.address('addr', label='Address')"
 
     def test_repr_date(self):
         f = CheckoutField.date("when", label="When")

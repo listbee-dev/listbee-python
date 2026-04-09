@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- `CheckoutFieldType.ADDRESS` — agents define their own fields, ListBee renders text/select/date
+- `CheckoutField.address()` builder method
+
 ## [0.14.2] - 2026-04-08
 
 ### Added

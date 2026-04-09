@@ -1069,14 +1069,14 @@ from listbee import (
     CheckoutFieldResponse,
 
     # Builder classes
-    CheckoutField,       # input class: .text() | .select() | .address() | .date()
+    CheckoutField,       # input class: .text() | .select() | .date()
     Deliverable,         # input class: .file() | .url() | .text() | .from_token()
 
     # Enums
     ContentType,         # "static" | "generated" | "webhook"
     DeliverableType,     # "file" | "url" | "text"
     PaymentStatus,       # "unpaid" | "paid" | "refunded"
-    CheckoutFieldType,   # "text" | "select" | "address" | "date"
+    CheckoutFieldType,   # "text" | "select" | "date"
     BlurMode,            # "auto" | "true" | "false"
     ListingStatus,       # "draft" | "published"
     OrderStatus,         # "pending" | "paid" | "processing" | "fulfilled" | "handed_off" | "canceled" | "failed"
