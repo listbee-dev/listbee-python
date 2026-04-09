@@ -12,10 +12,7 @@ if TYPE_CHECKING:
 
 
 class _RawAccountProxy:
-    """Proxy that calls Account methods but returns RawResponse instead of parsed models.
-
-    # TODO: Apply the with_raw_response pattern to all resources (listings, orders, etc.)
-    """
+    """Proxy that calls Account methods but returns RawResponse instead of parsed models."""
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
@@ -27,10 +24,7 @@ class _RawAccountProxy:
 
 
 class _AsyncRawAccountProxy:
-    """Async proxy that calls Account methods but returns RawResponse instead of parsed models.
-
-    # TODO: Apply the with_raw_response pattern to all resources (listings, orders, etc.)
-    """
+    """Async proxy that calls Account methods but returns RawResponse instead of parsed models."""
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client

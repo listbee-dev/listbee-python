@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from listbee._constants import LISTING_CREATE_TIMEOUT
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
+from listbee._raw_response import RawResponse
 from listbee.types.listing import ListingResponse
 
 if TYPE_CHECKING:
@@ -27,11 +28,74 @@ def _resolve_checkout_schema(schema: list[Any] | None) -> list[dict[str, Any]] |
     return resolved
 
 
+class _RawListingsProxy:
+    """Proxy that calls Listings methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def create(
+        self,
+        *,
+        name: str,
+        price: int,
+        **kwargs: Any,
+    ) -> RawResponse[ListingResponse]:
+        """Create a new listing and return the raw response."""
+        body = {"name": name, "price": price, **{k: v for k, v in kwargs.items() if v is not None}}
+        response = self._client.request_raw("POST", "/v1/listings", json=body)
+        return RawResponse(response, ListingResponse)
+
+    def get(self, listing_id: str) -> RawResponse[ListingResponse]:
+        """Retrieve a listing by ID and return the raw response."""
+        response = self._client.request_raw("GET", f"/v1/listings/{listing_id}")
+        return RawResponse(response, ListingResponse)
+
+    def update(self, listing_id: str, **kwargs: Any) -> RawResponse[ListingResponse]:
+        """Update a listing and return the raw response."""
+        body = {k: v for k, v in kwargs.items() if v is not None}
+        response = self._client.request_raw("PUT", f"/v1/listings/{listing_id}", json=body)
+        return RawResponse(response, ListingResponse)
+
+    def publish(self, listing_id: str) -> RawResponse[ListingResponse]:
+        """Publish a draft listing and return the raw response."""
+        response = self._client.request_raw("POST", f"/v1/listings/{listing_id}/publish")
+        return RawResponse(response, ListingResponse)
+
+
+class _AsyncRawListingsProxy:
+    """Async proxy that calls Listings methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def get(self, listing_id: str) -> RawResponse[ListingResponse]:
+        """Retrieve a listing by ID and return the raw response (async)."""
+        response = await self._client.request_raw("GET", f"/v1/listings/{listing_id}")
+        return RawResponse(response, ListingResponse)
+
+    async def update(self, listing_id: str, **kwargs: Any) -> RawResponse[ListingResponse]:
+        """Update a listing and return the raw response (async)."""
+        body = {k: v for k, v in kwargs.items() if v is not None}
+        response = await self._client.request_raw("PUT", f"/v1/listings/{listing_id}", json=body)
+        return RawResponse(response, ListingResponse)
+
+    async def publish(self, listing_id: str) -> RawResponse[ListingResponse]:
+        """Publish a draft listing and return the raw response (async)."""
+        response = await self._client.request_raw("POST", f"/v1/listings/{listing_id}/publish")
+        return RawResponse(response, ListingResponse)
+
+
 class Listings:
     """Sync resource for the /v1/listings endpoint."""
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawListingsProxy:
+        """Access listing methods that return raw HTTP responses instead of parsed models."""
+        return _RawListingsProxy(self._client)
 
     def create(
         self,
@@ -481,6 +545,11 @@ class AsyncListings:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawListingsProxy:
+        """Access listing methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawListingsProxy(self._client)
 
     async def create(
         self,

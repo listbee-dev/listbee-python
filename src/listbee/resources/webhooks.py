@@ -5,10 +5,73 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
+from listbee._raw_response import RawResponse
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+
+class _RawWebhooksProxy:
+    """Proxy that calls Webhooks methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def create(self, *, name: str, url: str, events: list[str] | None = None) -> RawResponse[WebhookResponse]:
+        """Create a webhook endpoint and return the raw response."""
+        body: dict[str, Any] = {"name": name, "url": url}
+        if events is not None:
+            body["events"] = events
+        response = self._client.request_raw("POST", "/v1/webhooks", json=body)
+        return RawResponse(response, WebhookResponse)
+
+    def update(self, webhook_id: str, **kwargs: Any) -> RawResponse[WebhookResponse]:
+        """Update a webhook endpoint and return the raw response."""
+        body = {k: v for k, v in kwargs.items() if v is not None}
+        response = self._client.request_raw("PUT", f"/v1/webhooks/{webhook_id}", json=body)
+        return RawResponse(response, WebhookResponse)
+
+    def retry_event(self, webhook_id: str, event_id: str) -> RawResponse[WebhookEventResponse]:
+        """Retry a failed webhook event and return the raw response."""
+        response = self._client.request_raw("POST", f"/v1/webhooks/{webhook_id}/events/{event_id}/retry")
+        return RawResponse(response, WebhookEventResponse)
+
+    def test(self, webhook_id: str) -> RawResponse[WebhookTestResponse]:
+        """Send a test event and return the raw response."""
+        response = self._client.request_raw("POST", f"/v1/webhooks/{webhook_id}/test")
+        return RawResponse(response, WebhookTestResponse)
+
+
+class _AsyncRawWebhooksProxy:
+    """Async proxy that calls Webhooks methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def create(self, *, name: str, url: str, events: list[str] | None = None) -> RawResponse[WebhookResponse]:
+        """Create a webhook endpoint and return the raw response (async)."""
+        body: dict[str, Any] = {"name": name, "url": url}
+        if events is not None:
+            body["events"] = events
+        response = await self._client.request_raw("POST", "/v1/webhooks", json=body)
+        return RawResponse(response, WebhookResponse)
+
+    async def update(self, webhook_id: str, **kwargs: Any) -> RawResponse[WebhookResponse]:
+        """Update a webhook endpoint and return the raw response (async)."""
+        body = {k: v for k, v in kwargs.items() if v is not None}
+        response = await self._client.request_raw("PUT", f"/v1/webhooks/{webhook_id}", json=body)
+        return RawResponse(response, WebhookResponse)
+
+    async def retry_event(self, webhook_id: str, event_id: str) -> RawResponse[WebhookEventResponse]:
+        """Retry a failed webhook event and return the raw response (async)."""
+        response = await self._client.request_raw("POST", f"/v1/webhooks/{webhook_id}/events/{event_id}/retry")
+        return RawResponse(response, WebhookEventResponse)
+
+    async def test(self, webhook_id: str) -> RawResponse[WebhookTestResponse]:
+        """Send a test event and return the raw response (async)."""
+        response = await self._client.request_raw("POST", f"/v1/webhooks/{webhook_id}/test")
+        return RawResponse(response, WebhookTestResponse)
 
 
 class Webhooks:
@@ -16,6 +79,11 @@ class Webhooks:
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawWebhooksProxy:
+        """Access webhook methods that return raw HTTP responses instead of parsed models."""
+        return _RawWebhooksProxy(self._client)
 
     def create(
         self,
@@ -167,6 +235,11 @@ class AsyncWebhooks:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawWebhooksProxy:
+        """Access webhook methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawWebhooksProxy(self._client)
 
     async def create(
         self,

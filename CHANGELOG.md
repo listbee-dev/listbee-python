@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `with_raw_response` on all resources — access HTTP headers, request IDs, rate limit info without losing typed responses
+
 ### Removed
 - `CheckoutFieldType.ADDRESS` — agents define their own fields, ListBee renders text/select/date
 - `CheckoutField.address()` builder method

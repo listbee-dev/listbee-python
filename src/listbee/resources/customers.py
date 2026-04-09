@@ -6,10 +6,35 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
+from listbee._raw_response import RawResponse
 from listbee.types.customer import CustomerResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+
+class _RawCustomersProxy:
+    """Proxy that calls Customers methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def get(self, customer_id: str) -> RawResponse[CustomerResponse]:
+        """Retrieve a customer by ID and return the raw response."""
+        response = self._client.request_raw("GET", f"/v1/customers/{customer_id}")
+        return RawResponse(response, CustomerResponse)
+
+
+class _AsyncRawCustomersProxy:
+    """Async proxy that calls Customers methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def get(self, customer_id: str) -> RawResponse[CustomerResponse]:
+        """Retrieve a customer by ID and return the raw response (async)."""
+        response = await self._client.request_raw("GET", f"/v1/customers/{customer_id}")
+        return RawResponse(response, CustomerResponse)
 
 
 class Customers:
@@ -17,6 +42,11 @@ class Customers:
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawCustomersProxy:
+        """Access customer methods that return raw HTTP responses instead of parsed models."""
+        return _RawCustomersProxy(self._client)
 
     def list(
         self,
@@ -75,6 +105,11 @@ class AsyncCustomers:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawCustomersProxy:
+        """Access customer methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawCustomersProxy(self._client)
 
     async def list(
         self,

@@ -4,10 +4,35 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from listbee._raw_response import RawResponse
 from listbee.types.api_key import ApiKeyResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+
+class _RawApiKeysProxy:
+    """Proxy that calls ApiKeys methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def create(self, *, name: str) -> RawResponse[ApiKeyResponse]:
+        """Create an API key and return the raw response."""
+        response = self._client.request_raw("POST", "/v1/api-keys", json={"name": name})
+        return RawResponse(response, ApiKeyResponse)
+
+
+class _AsyncRawApiKeysProxy:
+    """Async proxy that calls ApiKeys methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def create(self, *, name: str) -> RawResponse[ApiKeyResponse]:
+        """Create an API key and return the raw response (async)."""
+        response = await self._client.request_raw("POST", "/v1/api-keys", json={"name": name})
+        return RawResponse(response, ApiKeyResponse)
 
 
 class ApiKeys:
@@ -15,6 +40,11 @@ class ApiKeys:
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawApiKeysProxy:
+        """Access API key methods that return raw HTTP responses instead of parsed models."""
+        return _RawApiKeysProxy(self._client)
 
     def list(self) -> list[ApiKeyResponse]:
         """Return all API keys for the account.
@@ -55,6 +85,11 @@ class AsyncApiKeys:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawApiKeysProxy:
+        """Access API key methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawApiKeysProxy(self._client)
 
     async def list(self) -> list[ApiKeyResponse]:
         """Return all API keys for the account (async).

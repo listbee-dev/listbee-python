@@ -6,10 +6,55 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
+from listbee._raw_response import RawResponse
 from listbee.types.order import OrderResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+
+class _RawOrdersProxy:
+    """Proxy that calls Orders methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def get(self, order_id: str) -> RawResponse[OrderResponse]:
+        """Retrieve an order by ID and return the raw response."""
+        response = self._client.request_raw("GET", f"/v1/orders/{order_id}")
+        return RawResponse(response, OrderResponse)
+
+    def fulfill(self, order_id: str) -> RawResponse[OrderResponse]:
+        """Fulfill an order and return the raw response."""
+        response = self._client.request_raw("POST", f"/v1/orders/{order_id}/fulfill", json={})
+        return RawResponse(response, OrderResponse)
+
+    def refund(self, order_id: str) -> RawResponse[OrderResponse]:
+        """Issue a refund and return the raw response."""
+        response = self._client.request_raw("POST", f"/v1/orders/{order_id}/refund")
+        return RawResponse(response, OrderResponse)
+
+
+class _AsyncRawOrdersProxy:
+    """Async proxy that calls Orders methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def get(self, order_id: str) -> RawResponse[OrderResponse]:
+        """Retrieve an order by ID and return the raw response (async)."""
+        response = await self._client.request_raw("GET", f"/v1/orders/{order_id}")
+        return RawResponse(response, OrderResponse)
+
+    async def fulfill(self, order_id: str) -> RawResponse[OrderResponse]:
+        """Fulfill an order and return the raw response (async)."""
+        response = await self._client.request_raw("POST", f"/v1/orders/{order_id}/fulfill", json={})
+        return RawResponse(response, OrderResponse)
+
+    async def refund(self, order_id: str) -> RawResponse[OrderResponse]:
+        """Issue a refund and return the raw response (async)."""
+        response = await self._client.request_raw("POST", f"/v1/orders/{order_id}/refund")
+        return RawResponse(response, OrderResponse)
 
 
 class Orders:
@@ -17,6 +62,11 @@ class Orders:
 
     def __init__(self, client: SyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawOrdersProxy:
+        """Access order methods that return raw HTTP responses instead of parsed models."""
+        return _RawOrdersProxy(self._client)
 
     def get(self, order_id: str) -> OrderResponse:
         """Retrieve an order by its ID.
@@ -160,6 +210,11 @@ class AsyncOrders:
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawOrdersProxy:
+        """Access order methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawOrdersProxy(self._client)
 
     async def get(self, order_id: str) -> OrderResponse:
         """Retrieve an order by its ID (async).

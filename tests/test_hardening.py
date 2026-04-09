@@ -466,3 +466,187 @@ class TestWithRawResponse:
         assert raw.request_id == "req_account"
         account = raw.parse()
         assert account.id == "acc_test"
+
+    def test_listings_with_raw_response_proxy(self):
+        """with_raw_response on Listings calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_listing"}
+        mock_raw.json.return_value = {
+            "object": "listing",
+            "id": "lst_test",
+            "name": "Test Listing",
+            "price": 1000,
+            "status": "draft",
+            "slug": "test-listing",
+            "currency": "USD",
+            "content_type": "static",
+            "checkout_url": "https://checkout.listbee.so/test-listing",
+            "cover_url": None,
+            "description": None,
+            "tagline": None,
+            "highlights": [],
+            "cta": None,
+            "metadata": None,
+            "compare_at_price": None,
+            "badges": [],
+            "cover_blur": "auto",
+            "rating": None,
+            "rating_count": None,
+            "reviews": [],
+            "faqs": [],
+            "utm_source": None,
+            "utm_medium": None,
+            "utm_campaign": None,
+            "deliverables": [],
+            "has_cover": False,
+            "readiness": {"sellable": False, "actions": [], "next": None},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.listings.with_raw_response.get("lst_test")
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_listing"
+        listing = raw.parse()
+        assert listing.id == "lst_test"
+
+    def test_orders_with_raw_response_proxy(self):
+        """with_raw_response on Orders calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_order"}
+        mock_raw.json.return_value = {
+            "object": "order",
+            "id": "ord_test",
+            "status": "paid",
+            "payment_status": "paid",
+            "listing_id": "lst_abc",
+            "buyer_email": "buyer@example.com",
+            "amount": 1000,
+            "currency": "USD",
+            "content_type": "static",
+            "stripe_payment_intent_id": "pi_test",
+            "listing_snapshot": None,
+            "seller_snapshot": None,
+            "handed_off_at": None,
+            "checkout_data": {},
+            "deliverables": [],
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.orders.with_raw_response.get("ord_test")
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_order"
+        order = raw.parse()
+        assert order.id == "ord_test"
+
+    def test_webhooks_with_raw_response_proxy(self):
+        """with_raw_response on Webhooks calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_webhook"}
+        mock_raw.json.return_value = {
+            "object": "webhook_test",
+            "status": "delivered",
+            "delivered_at": "2024-01-01T00:00:00Z",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.webhooks.with_raw_response.test("wh_abc")
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_webhook"
+
+    def test_api_keys_with_raw_response_proxy(self):
+        """with_raw_response on ApiKeys calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 201
+        mock_raw.headers = {"x-request-id": "req_apikey"}
+        mock_raw.json.return_value = {
+            "object": "api_key",
+            "id": "lbk_test",
+            "name": "My Key",
+            "key": "lb_secretvalue",
+            "prefix": "lb_secr",
+            "created_at": "2024-01-01T00:00:00Z",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.api_keys.with_raw_response.create(name="My Key")
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_apikey"
+        key = raw.parse()
+        assert key.id == "lbk_test"
+
+    def test_customers_with_raw_response_proxy(self):
+        """with_raw_response on Customers calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_customer"}
+        mock_raw.json.return_value = {
+            "object": "customer",
+            "id": "cus_test",
+            "email": "buyer@example.com",
+            "order_count": 3,
+            "total_orders": 3,
+            "total_spent": 9900,
+            "currency": "USD",
+            "created_at": "2024-01-01T00:00:00Z",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.customers.with_raw_response.get("cus_test")
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_customer"
+        customer = raw.parse()
+        assert customer.id == "cus_test"
+
+    def test_stripe_with_raw_response_proxy(self):
+        """with_raw_response on Stripe calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 201
+        mock_raw.headers = {"x-request-id": "req_stripe"}
+        mock_raw.json.return_value = {
+            "object": "stripe_connect_session",
+            "url": "https://connect.stripe.com/setup/s/test",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.stripe.with_raw_response.connect()
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_stripe"
+
+    def test_utility_with_raw_response_proxy(self):
+        """with_raw_response on Utility calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_ping"}
+        mock_raw.json.return_value = {
+            "object": "ping",
+            "status": "ok",
+            "version": "1.0.0",
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.utility.with_raw_response.ping()
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_ping"
+        ping = raw.parse()
+        assert ping.status == "ok"

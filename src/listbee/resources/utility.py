@@ -4,10 +4,45 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from listbee._raw_response import RawResponse
 from listbee.types import PingResponse, PlanListResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+
+class _RawUtilityProxy:
+    """Proxy that calls Utility methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: SyncClient) -> None:
+        self._client = client
+
+    def ping(self) -> RawResponse[PingResponse]:
+        """Check API connectivity and return the raw response."""
+        response = self._client.request_raw("GET", "/v1/ping")
+        return RawResponse(response, PingResponse)
+
+    def plans(self) -> RawResponse[PlanListResponse]:
+        """List available pricing plans and return the raw response."""
+        response = self._client.request_raw("GET", "/v1/plans")
+        return RawResponse(response, PlanListResponse)
+
+
+class _AsyncRawUtilityProxy:
+    """Async proxy that calls Utility methods but returns RawResponse instead of parsed models."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def ping(self) -> RawResponse[PingResponse]:
+        """Check API connectivity and return the raw response (async)."""
+        response = await self._client.request_raw("GET", "/v1/ping")
+        return RawResponse(response, PingResponse)
+
+    async def plans(self) -> RawResponse[PlanListResponse]:
+        """List available pricing plans and return the raw response (async)."""
+        response = await self._client.request_raw("GET", "/v1/plans")
+        return RawResponse(response, PlanListResponse)
 
 
 class Utility:
@@ -20,6 +55,11 @@ class Utility:
             client: The synchronous client instance.
         """
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _RawUtilityProxy:
+        """Access utility methods that return raw HTTP responses instead of parsed models."""
+        return _RawUtilityProxy(self._client)
 
     def ping(self) -> PingResponse:
         """Check API connectivity and verify the API key is valid.
@@ -65,6 +105,11 @@ class AsyncUtility:
             client: The asynchronous client instance.
         """
         self._client = client
+
+    @property
+    def with_raw_response(self) -> _AsyncRawUtilityProxy:
+        """Access utility methods that return raw HTTP responses instead of parsed models."""
+        return _AsyncRawUtilityProxy(self._client)
 
     async def ping(self) -> PingResponse:
         """Async: Check API connectivity and verify the API key is valid.
