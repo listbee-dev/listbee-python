@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-04-10
+
 ### Added
 - `with_raw_response` on all resources — access HTTP headers, request IDs, rate limit info without losing typed responses
 - `fulfillment_url` field on `ListingResponse` and `create()`/`update()` params — set a URL to trigger external fulfillment after payment
