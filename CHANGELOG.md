@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-04-10
+
 ### Added
 - `set_cover(listing_id, source)` convenience method on listings resource — accepts a `file_` token, image URL, bytes, or BinaryIO; uploads and applies in one call (sync + async)
 - `set_avatar(source)` convenience method on store resource — accepts a `file_` token, image URL, bytes, or BinaryIO; uploads and applies in one call (sync + async)
