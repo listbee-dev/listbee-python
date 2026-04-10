@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-04-10
+
 ### Added
 - Store resource: `client.store.get()`, `client.store.update()` — brand information (display name, bio, avatar, slug) is now managed via Store
 - Bootstrap resource: `client.bootstrap.start()`, `.verify()`, `.create_store()` — 3-step onboarding flow to create an account and obtain an API key without the Console
