@@ -105,7 +105,13 @@ class RateLimitError(APIStatusError):
         reset: datetime | None = None,
     ) -> None:
         super().__init__(
-            type=type, title=title, status=status, detail=detail, code=code, param=param, request_id=request_id,
+            type=type,
+            title=title,
+            status=status,
+            detail=detail,
+            code=code,
+            param=param,
+            request_id=request_id,
             extras=extras,
         )
         self.limit = limit

@@ -118,9 +118,12 @@ class TestExtras:
     def test_extras_captures_extension_members(self):
         body = {
             "type": "https://docs.listbee.so/errors/not-in-draft",
-            "title": "Conflict", "status": 409,
-            "detail": "Listing is not in draft", "code": "not_in_draft",
-            "current_status": "published", "required_status": "draft",
+            "title": "Conflict",
+            "status": 409,
+            "detail": "Listing is not in draft",
+            "code": "not_in_draft",
+            "current_status": "published",
+            "required_status": "draft",
         }
         try:
             raise_for_status(409, body, {})
@@ -136,8 +139,13 @@ class TestExtras:
 
     def test_extras_with_actions_and_next(self):
         body = {
-            "type": "t", "title": "t", "status": 409, "detail": "d", "code": "publish_failed",
-            "actions": [{"code": "connect_stripe"}], "next": "connect_stripe",
+            "type": "t",
+            "title": "t",
+            "status": 409,
+            "detail": "d",
+            "code": "publish_failed",
+            "actions": [{"code": "connect_stripe"}],
+            "next": "connect_stripe",
         }
         try:
             raise_for_status(409, body, {})
@@ -147,7 +155,11 @@ class TestExtras:
 
     def test_extras_on_rate_limit(self):
         body = {
-            "type": "t", "title": "t", "status": 429, "detail": "d", "code": "rate_limited",
+            "type": "t",
+            "title": "t",
+            "status": 429,
+            "detail": "d",
+            "code": "rate_limited",
             "retry_after": 60,
         }
         try:
