@@ -144,7 +144,6 @@ class TestUpdateAccount:
         assert result.notify_orders is True
 
 
-
 class TestDeleteAccount:
     def test_delete_account_returns_none(self):
         client = SyncClient(api_key="lb_test_key_1234567890abcdef")

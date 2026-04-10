@@ -1,12 +1,10 @@
 """Store response models."""
 
-from __future__ import annotations
-
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import Action
+from listbee.types.shared import Action as Action
 
 
 class StoreReadiness(BaseModel):
@@ -16,9 +14,9 @@ class StoreReadiness(BaseModel):
         description="True when the store can sell. False means actions are needed.",
         examples=[False],
     )
-    actions: list[Action] = Field(
+    actions: list[Action] = Field(  # pyright: ignore[reportUnknownVariableType]
         default_factory=list,
-        description="What's needed to make this store sellable. Empty when sellable is true.",
+        description="What\'s needed to make this store sellable. Empty when sellable is true.",
     )
     next: str | None = Field(
         default=None,
@@ -67,5 +65,5 @@ class StoreResponse(BaseModel):
         examples=["lb_abc123"],
     )
     readiness: StoreReadiness = Field(
-        description="Store readiness. Check `actions` for what's needed before you can sell.",
+        description="Store readiness. Check `actions` for what\'s needed before you can sell.",
     )

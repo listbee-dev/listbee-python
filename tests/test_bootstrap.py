@@ -67,9 +67,7 @@ def bootstrap(sync_client):
 class TestBootstrapStart:
     def test_start_sends_email_and_returns_session(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/bootstrap").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON)
-            )
+            route = mock.post("/v1/bootstrap").mock(return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON))
             result = bootstrap.start(email="seller@example.com")
         body = json.loads(route.calls[0].request.content)
         assert body == {"email": "seller@example.com"}
@@ -79,9 +77,7 @@ class TestBootstrapStart:
 
     def test_start_returns_bootstrap_response(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/bootstrap").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON)
-            )
+            mock.post("/v1/bootstrap").mock(return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON))
             result = bootstrap.start(email="test@example.com")
         assert isinstance(result, BootstrapResponse)
         assert result.object == "bootstrap_session"
@@ -90,9 +86,7 @@ class TestBootstrapStart:
 class TestBootstrapVerify:
     def test_verify_sends_session_and_code(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/bootstrap/verify").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON)
-            )
+            route = mock.post("/v1/bootstrap/verify").mock(return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON))
             result = bootstrap.verify(session="sess_abc123", code="123456")
         body = json.loads(route.calls[0].request.content)
         assert body == {"session": "sess_abc123", "code": "123456"}
@@ -102,9 +96,7 @@ class TestBootstrapVerify:
 
     def test_verify_returns_bootstrap_verify_response(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/bootstrap/verify").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON)
-            )
+            mock.post("/v1/bootstrap/verify").mock(return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON))
             result = bootstrap.verify(session="sess_abc123", code="000000")
         assert isinstance(result, BootstrapVerifyResponse)
         assert result.object == "bootstrap_session"
@@ -113,9 +105,7 @@ class TestBootstrapVerify:
 class TestBootstrapCreateStore:
     def test_create_store_sends_session_and_name(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/bootstrap/store").mock(
-                return_value=httpx.Response(200, json=STORE_JSON)
-            )
+            route = mock.post("/v1/bootstrap/store").mock(return_value=httpx.Response(200, json=STORE_JSON))
             result = bootstrap.create_store(
                 session="sess_abc123_verified",
                 store_name="Acme Agency",
@@ -126,9 +116,7 @@ class TestBootstrapCreateStore:
 
     def test_create_store_returns_store_with_api_key(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/bootstrap/store").mock(
-                return_value=httpx.Response(200, json=STORE_JSON)
-            )
+            mock.post("/v1/bootstrap/store").mock(return_value=httpx.Response(200, json=STORE_JSON))
             result = bootstrap.create_store(
                 session="sess_abc123_verified",
                 store_name="Acme Agency",
@@ -142,15 +130,9 @@ class TestBootstrapCreateStore:
     def test_full_bootstrap_flow(self, bootstrap):
         """Integration-style test: full 3-step bootstrap flow."""
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/bootstrap").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON)
-            )
-            mock.post("/v1/bootstrap/verify").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON)
-            )
-            mock.post("/v1/bootstrap/store").mock(
-                return_value=httpx.Response(200, json=STORE_JSON)
-            )
+            mock.post("/v1/bootstrap").mock(return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON))
+            mock.post("/v1/bootstrap/verify").mock(return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON))
+            mock.post("/v1/bootstrap/store").mock(return_value=httpx.Response(200, json=STORE_JSON))
 
             # Step 1: start
             step1 = bootstrap.start(email="seller@example.com")
