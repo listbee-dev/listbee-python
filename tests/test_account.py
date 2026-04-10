@@ -18,10 +18,7 @@ ACCOUNT_JSON = {
     "email": "seller@example.com",
     "plan": "free",
     "fee_rate": "0.10",
-    "currency": "USD",
-    "display_name": "Example Seller",
-    "bio": None,
-    "has_avatar": False,
+    "currency": "usd",
     "billing_status": "active",
     "ga_measurement_id": None,
     "notify_orders": True,
@@ -51,7 +48,7 @@ class TestGetAccount:
         assert result.email == "seller@example.com"
         assert result.plan == "free"
         assert result.fee_rate == "0.10"
-        assert result.currency == "USD"
+        assert result.currency == "usd"
         assert result.stats.total_revenue == 125000
         assert result.stats.total_orders == 47
         assert result.stats.total_listings == 5
@@ -146,26 +143,6 @@ class TestUpdateAccount:
             result = account.get()
         assert result.notify_orders is True
 
-    def test_update_account_sets_display_name_and_bio(self, account):
-        updated = {**ACCOUNT_JSON, "display_name": "New Name", "bio": "Short bio"}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=updated))
-            result = account.update(display_name="New Name", bio="Short bio")
-        body = json.loads(route.calls[0].request.content)
-        assert body["display_name"] == "New Name"
-        assert body["bio"] == "Short bio"
-        assert isinstance(result, AccountResponse)
-        assert result.display_name == "New Name"
-        assert result.bio == "Short bio"
-
-    def test_update_account_omits_display_name_when_not_passed(self, account):
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
-            account.update(ga_measurement_id="G-TEST")
-        body = json.loads(route.calls[0].request.content)
-        assert "display_name" not in body
-        assert "bio" not in body
-        assert "avatar" not in body
 
 
 class TestDeleteAccount:

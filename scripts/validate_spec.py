@@ -269,13 +269,13 @@ OP_ID_OVERRIDES: dict[str, str] = {
     "deliver_order": "deliver",
     "start_stripe_connect": "connect",
     "disconnect_stripe": "disconnect",
+    "bootstrap_start": "start",
+    "bootstrap_verify": "verify",
+    "bootstrap_store": "create_store",
 }
 
 # Multi-word resource names (operation ID resource part → SDK resource file stem)
-RESOURCE_ALIASES: dict[str, str] = {
-    "api_keys": "api_keys",
-    "api_key": "api_keys",
-}
+RESOURCE_ALIASES: dict[str, str] = {}
 
 
 def op_id_to_method_name(op_id: str) -> str:

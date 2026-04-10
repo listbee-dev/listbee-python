@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Store resource: `client.store.get()`, `client.store.update()` — brand information (display name, bio, avatar, slug) is now managed via Store
+- Bootstrap resource: `client.bootstrap.start()`, `.verify()`, `.create_store()` — 3-step onboarding flow to create an account and obtain an API key without the Console
+
+### Removed
+- API Keys resource (`client.api_keys`) — replaced by the bootstrap flow; API keys are issued automatically at store creation
+- `display_name`, `bio`, `has_avatar` fields from `AccountResponse` — brand info moved to `StoreResponse`
+- `display_name`, `bio`, `avatar` params from `client.account.update()` — use `client.store.update()` instead
+
+### Changed
+- `AccountResponse.currency` is now lowercase ISO 4217 (e.g. `"usd"`) to match API
+
 ## [0.15.0] - 2026-04-10
 
 ### Added

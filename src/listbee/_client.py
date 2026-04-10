@@ -4,11 +4,12 @@ from typing import Any
 
 from listbee._base_client import AsyncClient, SyncClient
 from listbee.resources.account import Account, AsyncAccount
-from listbee.resources.api_keys import ApiKeys, AsyncApiKeys
+from listbee.resources.bootstrap import AsyncBootstrap, Bootstrap
 from listbee.resources.customers import AsyncCustomers, Customers
 from listbee.resources.files import AsyncFiles, Files
 from listbee.resources.listings import AsyncListings, Listings
 from listbee.resources.orders import AsyncOrders, Orders
+from listbee.resources.store import AsyncStore, Store
 from listbee.resources.stripe import AsyncStripe, Stripe
 from listbee.resources.utility import AsyncUtility, Utility
 from listbee.resources.webhooks import AsyncWebhooks, Webhooks
@@ -44,7 +45,8 @@ class ListBee(SyncClient):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.api_keys = ApiKeys(self)
+        self.bootstrap = Bootstrap(self)
+        self.store = Store(self)
         self.customers = Customers(self)
         self.files = Files(self)
         self.listings = Listings(self)
@@ -107,7 +109,8 @@ class AsyncListBee(AsyncClient):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.api_keys = AsyncApiKeys(self)
+        self.bootstrap = AsyncBootstrap(self)
+        self.store = AsyncStore(self)
         self.customers = AsyncCustomers(self)
         self.files = AsyncFiles(self)
         self.listings = AsyncListings(self)

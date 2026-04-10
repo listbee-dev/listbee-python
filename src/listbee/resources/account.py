@@ -66,18 +66,14 @@ class Account:
     def update(
         self,
         *,
-        display_name: str | None = None,
-        bio: str | None = None,
-        avatar: str | None = None,
         ga_measurement_id: str | None = None,
         notify_orders: bool | None = None,
     ) -> AccountResponse:
         """Update account settings.
 
+        Brand information (display name, bio, avatar) is managed via ``client.store.update()``.
+
         Args:
-            display_name: Public display name shown on the storefront.
-            bio: Short seller bio shown on the storefront.
-            avatar: URL of an avatar image to fetch and store.
             ga_measurement_id: Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX').
                 Pass ``None`` to clear the existing value.
             notify_orders: Whether to receive email notifications for new orders.
@@ -86,12 +82,6 @@ class Account:
             The updated :class:`~listbee.types.account.AccountResponse`.
         """
         body: dict[str, Any] = {}
-        if display_name is not None:
-            body["display_name"] = display_name
-        if bio is not None:
-            body["bio"] = bio
-        if avatar is not None:
-            body["avatar"] = avatar
         body["ga_measurement_id"] = ga_measurement_id
         if notify_orders is not None:
             body["notify_orders"] = notify_orders
@@ -130,18 +120,14 @@ class AsyncAccount:
     async def update(
         self,
         *,
-        display_name: str | None = None,
-        bio: str | None = None,
-        avatar: str | None = None,
         ga_measurement_id: str | None = None,
         notify_orders: bool | None = None,
     ) -> AccountResponse:
         """Update account settings (async).
 
+        Brand information (display name, bio, avatar) is managed via ``client.store.update()``.
+
         Args:
-            display_name: Public display name shown on the storefront.
-            bio: Short seller bio shown on the storefront.
-            avatar: URL of an avatar image to fetch and store.
             ga_measurement_id: Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX').
                 Pass ``None`` to clear the existing value.
             notify_orders: Whether to receive email notifications for new orders.
@@ -150,12 +136,6 @@ class AsyncAccount:
             The updated :class:`~listbee.types.account.AccountResponse`.
         """
         body: dict[str, Any] = {}
-        if display_name is not None:
-            body["display_name"] = display_name
-        if bio is not None:
-            body["bio"] = bio
-        if avatar is not None:
-            body["avatar"] = avatar
         body["ga_measurement_id"] = ga_measurement_id
         if notify_orders is not None:
             body["notify_orders"] = notify_orders

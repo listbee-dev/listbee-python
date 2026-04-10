@@ -567,28 +567,31 @@ class TestWithRawResponse:
         assert isinstance(raw, RawResponse)
         assert raw.request_id == "req_webhook"
 
-    def test_api_keys_with_raw_response_proxy(self):
-        """with_raw_response on ApiKeys calls request_raw and returns RawResponse."""
+    def test_store_with_raw_response_proxy(self):
+        """with_raw_response on Store calls request_raw and returns RawResponse."""
         client = ListBee(api_key="lb_test")
         mock_raw = MagicMock()
-        mock_raw.status_code = 201
-        mock_raw.headers = {"x-request-id": "req_apikey"}
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_store"}
         mock_raw.json.return_value = {
-            "object": "api_key",
-            "id": "lbk_test",
-            "name": "My Key",
-            "key": "lb_secretvalue",
-            "prefix": "lb_secr",
-            "created_at": "2024-01-01T00:00:00Z",
+            "object": "store",
+            "id": "st_test123",
+            "display_name": "Acme Agency",
+            "slug": "acme-agency",
+            "bio": None,
+            "avatar_url": None,
+            "url": "https://buy.listbee.so/acme-agency",
+            "api_key": None,
+            "readiness": {"sellable": True, "actions": [], "next": None},
         }
 
         with patch.object(client, "request_raw", return_value=mock_raw):
-            raw = client.api_keys.with_raw_response.create(name="My Key")
+            raw = client.store.with_raw_response.get()
 
         assert isinstance(raw, RawResponse)
-        assert raw.request_id == "req_apikey"
-        key = raw.parse()
-        assert key.id == "lbk_test"
+        assert raw.request_id == "req_store"
+        store = raw.parse()
+        assert store.id == "st_test123"
 
     def test_customers_with_raw_response_proxy(self):
         """with_raw_response on Customers calls request_raw and returns RawResponse."""

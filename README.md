@@ -29,6 +29,8 @@ client = ListBee(api_key="lb_...")
 
 | Resource | Methods |
 |----------|---------|
+| Bootstrap | start, verify, create_store |
+| Store | get, update |
 | Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, add_deliverable, remove_deliverable, create_complete, publish |
 | Orders | get, list, fulfill, refund |
 | Customers | get, list |
@@ -36,7 +38,6 @@ client = ListBee(api_key="lb_...")
 | Webhooks | create, list, update, delete, list_events, retry_event, test |
 | Account | get, update, delete |
 | Stripe | connect, disconnect |
-| API Keys | create, list, delete |
 | Utility | ping, plans |
 
 ```python
@@ -92,6 +93,37 @@ print(listing.url)
 
 ## Authentication
 
+### Bootstrap (programmatic account creation)
+
+Use the 3-step bootstrap flow to create a new account and obtain an API key entirely via the SDK — no Console visit required.
+
+```python
+from listbee import ListBee
+
+# No API key needed for bootstrap
+client = ListBee(api_key="")
+
+# Step 1 — send OTP to email
+session = client.bootstrap.start(email="seller@example.com")
+print(session.session)   # sess_abc123
+
+# Step 2 — verify OTP from email
+verified = client.bootstrap.verify(session=session.session, code="123456")
+print(verified.verified)   # True
+
+# Step 3 — create store and get API key (shown once — save immediately)
+store = client.bootstrap.create_store(
+    session=verified.session,
+    store_name="Acme Agency",
+)
+print(store.api_key)   # lb_... — store this securely
+print(store.url)       # https://buy.listbee.so/acme-agency
+```
+
+The `api_key` in the `StoreResponse` is returned **only once**. Store it in your secrets manager before continuing.
+
+### Existing key
+
 Pass your API key explicitly or via the `LISTBEE_API_KEY` environment variable.
 
 ```python
@@ -110,7 +142,7 @@ client = ListBee(api_key=os.environ["LISTBEE_API_KEY"])
 
 The key is validated lazily — the client constructs successfully even with a missing or invalid key. A `ListBeeError` (specifically `AuthenticationError`) is raised only when you make the first API call.
 
-API keys start with `lb_`. Get yours at [console.listbee.so](https://console.listbee.so).
+API keys start with `lb_`.
 
 ## Resources
 
@@ -353,23 +385,32 @@ print(account.plan)         # free | growth | scale
 print(account.fee_rate)     # "0.10" (10%)
 print(account.readiness.operational)
 
+# Update account settings
+client.account.update(ga_measurement_id="G-XXXXXXXXXX")
+client.account.update(notify_orders=False)
+client.account.update(ga_measurement_id=None)  # clear GA ID
+
 # Delete account — irreversible
 client.account.delete()
 ```
 
-### API Keys
+Brand information (display name, bio, avatar, slug) lives on the Store — see the [Store](#store) section.
+
+### Store
 
 ```python
-# List all API keys
-for key in client.api_keys.list():
-    print(key.id, key.label)
+store = client.store.get()
+print(store.id)            # st_7kQ2xY9mN3pR5tW1vB8a
+print(store.display_name)  # Acme Agency
+print(store.slug)          # acme-agency
+print(store.url)           # https://buy.listbee.so/acme-agency
+print(store.readiness.sellable)
 
-# Create a new key — the key value is only shown once
-new_key = client.api_keys.create(label="CI pipeline")
-print(new_key.key)  # lb_... (save this immediately)
-
-# Delete a key
-client.api_keys.delete("lbk_7kQ2xY9mN3pR5tW1")
+# Update brand information
+store = client.store.update(display_name="New Agency Name")
+store = client.store.update(bio="We help teams ship faster.")
+store = client.store.update(slug="new-slug")
+store = client.store.update(avatar_url="https://example.com/avatar.png")
 ```
 
 ### Customers
@@ -1037,6 +1078,10 @@ from listbee import (
     OrderResponse,
     WebhookResponse,
     AccountResponse,
+    StoreResponse,
+    StoreReadiness,
+    BootstrapResponse,
+    BootstrapVerifyResponse,
     CustomerResponse,
     FileResponse,
     ListingReadiness,
@@ -1116,6 +1161,43 @@ for action in listing.readiness.actions:
 ```
 
 ## Migration Guide
+
+### From v0.15.x to v0.16.x
+
+**Breaking Change: API Keys removed — use Bootstrap**
+
+The `client.api_keys` resource has been removed. Use the bootstrap flow to create accounts and obtain API keys programmatically.
+
+```python
+# Old (v0.15.x)
+new_key = client.api_keys.create(name="CI pipeline")
+print(new_key.key)
+
+# New (v0.16.x) — bootstrap creates the account and issues the key
+client = ListBee(api_key="")
+session = client.bootstrap.start(email="seller@example.com")
+verified = client.bootstrap.verify(session=session.session, code="123456")
+store = client.bootstrap.create_store(session=verified.session, store_name="Acme Agency")
+print(store.api_key)  # lb_... — save immediately
+```
+
+**Breaking Change: Brand fields moved from Account to Store**
+
+`display_name`, `bio`, and `has_avatar` are no longer on `AccountResponse`. They now live on `StoreResponse`.
+
+```python
+# Old (v0.15.x)
+account = client.account.get()
+print(account.display_name)
+
+client.account.update(display_name="New Name", bio="Short bio")
+
+# New (v0.16.x)
+store = client.store.get()
+print(store.display_name)
+
+client.store.update(display_name="New Name", bio="Short bio")
+```
 
 ### From v0.14.x to v0.15.x
 

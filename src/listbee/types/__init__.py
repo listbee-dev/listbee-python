@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from listbee.types.account import AccountResponse, AccountStats
-from listbee.types.api_key import ApiKeyResponse
+from listbee.types.bootstrap import BootstrapResponse, BootstrapVerifyResponse
 from listbee.types.customer import CustomerResponse
 from listbee.types.file import FileResponse
 from listbee.types.listing import FaqItem, ListingResponse, Review
@@ -31,6 +31,7 @@ from listbee.types.shared import (
     WebhookEventType,
     WebhookReadiness,
 )
+from listbee.types.store import StoreReadiness, StoreResponse
 from listbee.types.stripe import StripeConnectSessionResponse
 from listbee.types.utility import PingResponse
 from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
@@ -55,6 +56,7 @@ __all__ = [
     "ListingReadiness",
     "AccountReadiness",
     "WebhookReadiness",
+    "StoreReadiness",
     # Checkout/deliverable models
     "CheckoutFieldResponse",
     "DeliverableResponse",
@@ -71,8 +73,11 @@ __all__ = [
     # Account
     "AccountResponse",
     "AccountStats",
-    # API Key
-    "ApiKeyResponse",
+    # Bootstrap
+    "BootstrapResponse",
+    "BootstrapVerifyResponse",
+    # Store
+    "StoreResponse",
     # Customer
     "CustomerResponse",
     # File

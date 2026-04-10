@@ -53,20 +53,8 @@ class AccountResponse(BaseModel):
     )
     currency: str | None = Field(
         default=None,
-        description="Three-letter ISO currency code, uppercase. Set during onboarding.",
-        examples=["USD"],
-    )
-    display_name: str | None = Field(
-        default=None,
-        description="Display name shown on the seller's profile.",
-    )
-    bio: str | None = Field(
-        default=None,
-        description="Short bio or description shown on the seller's profile.",
-    )
-    has_avatar: bool = Field(
-        default=False,
-        description="`true` if the account has an uploaded avatar image.",
+        description="Account currency (ISO 4217, lowercase). Set automatically from Stripe Connect. Cannot be changed after connection.",
+        examples=["usd", "eur"],
     )
     billing_status: str = Field(
         description="Current billing/subscription status.",
