@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-04-10
+
+### Added
+- `extras` property on `APIStatusError` and all subclasses — a `dict[str, Any]` containing all RFC 9457 extension members from the error response body. Enables agents to read structured error metadata (`current_status`, `allowed_statuses`, `actions`, `retry_after`, etc.) without parsing the `detail` text.
+
 ## [0.17.0] - 2026-04-10
 
 ### Added
