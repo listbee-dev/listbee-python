@@ -2,13 +2,27 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import mimetypes
+from typing import TYPE_CHECKING, Any, BinaryIO
 
+from listbee._exceptions import ListBeeError
 from listbee._raw_response import RawResponse
 from listbee.types.store import StoreResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
+
+# Accepted image MIME types for avatar uploads
+_IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+}
+
+_MAX_URL_REDIRECTS = 3
+_URL_FETCH_TIMEOUT = 30.0
 
 
 class _RawStoreProxy:
@@ -33,6 +47,14 @@ class _AsyncRawStoreProxy:
         """Retrieve the store and return the raw response (async)."""
         response = await self._client.request_raw("GET", "/v1/store")
         return RawResponse(response, StoreResponse)
+
+
+def _resolve_avatar_token(source: str | BinaryIO | bytes, files_resource: Any, *, _async: bool = False) -> str:
+    """Sync helper — upload if needed and return the file token.
+
+    Not called at module level; import-guarded inside each method.
+    """
+    raise NotImplementedError("Use the per-class helper instead")
 
 
 class Store:
@@ -65,7 +87,7 @@ class Store:
         *,
         display_name: str | None = None,
         bio: str | None = None,
-        avatar_url: str | None = None,
+        avatar: str | None = None,
         slug: str | None = None,
     ) -> StoreResponse:
         """Update store settings.
@@ -73,7 +95,10 @@ class Store:
         Args:
             display_name: Store display name shown to buyers.
             bio: Store bio shown on product pages.
-            avatar_url: Store avatar image URL.
+            avatar: File token for the store avatar image (``file_`` prefixed).
+                Upload a file first with ``client.files.upload(purpose="avatar")``
+                to get a token, then pass it here. Use :meth:`set_avatar` for a
+                one-step helper that handles upload from bytes, BinaryIO, or URL.
             slug: URL-safe store slug (3-60 chars, lowercase letters, digits, hyphens).
                 Must start and end with alphanumeric characters.
 
@@ -85,12 +110,83 @@ class Store:
             body["display_name"] = display_name
         if bio is not None:
             body["bio"] = bio
-        if avatar_url is not None:
-            body["avatar_url"] = avatar_url
+        if avatar is not None:
+            body["avatar"] = avatar
         if slug is not None:
             body["slug"] = slug
         response = self._client.put("/v1/store", json=body)
         return StoreResponse.model_validate(response.json())
+
+    def set_avatar(self, source: str | BinaryIO | bytes) -> StoreResponse:
+        """Set the store avatar from a file token, URL, or binary content.
+
+        Accepts three input forms:
+
+        * **File token** (``file_`` prefix) — passed directly to store update.
+          Upload via ``client.files.upload(purpose="avatar")`` first.
+        * **URL** (``http://`` / ``https://``) — fetched, validated as an image,
+          uploaded with ``purpose="avatar"``, then applied.
+        * **bytes / BinaryIO** — uploaded with ``purpose="avatar"``, then applied.
+
+        Args:
+            source: A ``file_`` token, an image URL, raw bytes, or a file-like object.
+
+        Returns:
+            The updated :class:`~listbee.types.store.StoreResponse`.
+
+        Raises:
+            ListBeeError: If the URL fetch fails, returns a non-image content type,
+                or the upload/update request fails.
+        """
+        import httpx as _httpx
+
+        token = self._resolve_avatar_source(source, _httpx)
+        return self.update(avatar=token)
+
+    def _resolve_avatar_source(self, source: str | BinaryIO | bytes, _httpx: Any) -> str:
+        """Upload (if needed) and return a file_ token for the avatar."""
+        from listbee.resources.files import Files
+
+        files_resource = Files(self._client)
+
+        if isinstance(source, str) and source.startswith("file_"):
+            return source
+
+        if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+            with _httpx.Client(follow_redirects=True, max_redirects=_MAX_URL_REDIRECTS) as http:
+                try:
+                    resp = http.get(source, timeout=_URL_FETCH_TIMEOUT)
+                except _httpx.TimeoutException as exc:
+                    raise ListBeeError(f"Timed out fetching avatar URL: {source}") from exc
+                except _httpx.RequestError as exc:
+                    raise ListBeeError(f"Failed to fetch avatar URL: {source} — {exc}") from exc
+                if resp.is_error:
+                    raise ListBeeError(f"Failed to fetch avatar URL: {source} — HTTP {resp.status_code}")
+                content_type = resp.headers.get("content-type", "").split(";")[0].strip()
+                if content_type not in _IMAGE_MIME_TYPES:
+                    raise ListBeeError(
+                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
+                    )
+                content = resp.content
+                ext = mimetypes.guess_extension(content_type) or ".jpg"
+                filename = f"avatar{ext}"
+                file_resp = files_resource.upload(file=(filename, content, content_type), purpose="avatar")
+                return file_resp.id
+
+        # bytes or BinaryIO
+        if isinstance(source, bytes):
+            content = source
+            filename = "avatar.jpg"
+            content_type = "image/jpeg"
+        else:
+            content = source.read()
+            name = getattr(source, "name", "avatar.jpg")
+            filename = name if isinstance(name, str) else "avatar.jpg"
+            guessed, _ = mimetypes.guess_type(filename)
+            content_type = guessed or "image/jpeg"
+
+        file_resp = files_resource.upload(file=(filename, content, content_type), purpose="avatar")
+        return file_resp.id
 
 
 class AsyncStore:
@@ -123,7 +219,7 @@ class AsyncStore:
         *,
         display_name: str | None = None,
         bio: str | None = None,
-        avatar_url: str | None = None,
+        avatar: str | None = None,
         slug: str | None = None,
     ) -> StoreResponse:
         """Update store settings (async).
@@ -131,7 +227,10 @@ class AsyncStore:
         Args:
             display_name: Store display name shown to buyers.
             bio: Store bio shown on product pages.
-            avatar_url: Store avatar image URL.
+            avatar: File token for the store avatar image (``file_`` prefixed).
+                Upload a file first with ``client.files.upload(purpose="avatar")``
+                to get a token, then pass it here. Use :meth:`set_avatar` for a
+                one-step helper that handles upload from bytes, BinaryIO, or URL.
             slug: URL-safe store slug (3-60 chars, lowercase letters, digits, hyphens).
                 Must start and end with alphanumeric characters.
 
@@ -143,9 +242,82 @@ class AsyncStore:
             body["display_name"] = display_name
         if bio is not None:
             body["bio"] = bio
-        if avatar_url is not None:
-            body["avatar_url"] = avatar_url
+        if avatar is not None:
+            body["avatar"] = avatar
         if slug is not None:
             body["slug"] = slug
         response = await self._client.put("/v1/store", json=body)
         return StoreResponse.model_validate(response.json())
+
+    async def set_avatar(self, source: str | BinaryIO | bytes) -> StoreResponse:
+        """Set the store avatar from a file token, URL, or binary content (async).
+
+        Accepts three input forms:
+
+        * **File token** (``file_`` prefix) — passed directly to store update.
+          Upload via ``client.files.upload(purpose="avatar")`` first.
+        * **URL** (``http://`` / ``https://``) — fetched, validated as an image,
+          uploaded with ``purpose="avatar"``, then applied.
+        * **bytes / BinaryIO** — uploaded with ``purpose="avatar"``, then applied.
+
+        Args:
+            source: A ``file_`` token, an image URL, raw bytes, or a file-like object.
+
+        Returns:
+            The updated :class:`~listbee.types.store.StoreResponse`.
+
+        Raises:
+            ListBeeError: If the URL fetch fails, returns a non-image content type,
+                or the upload/update request fails.
+        """
+        import httpx as _httpx
+
+        token = await self._resolve_avatar_source(source, _httpx)
+        return await self.update(avatar=token)
+
+    async def _resolve_avatar_source(self, source: str | BinaryIO | bytes, _httpx: Any) -> str:
+        """Upload (if needed) and return a file_ token for the avatar (async)."""
+        import mimetypes as _mimetypes
+
+        from listbee.resources.files import AsyncFiles
+
+        files_resource = AsyncFiles(self._client)
+
+        if isinstance(source, str) and source.startswith("file_"):
+            return source
+
+        if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+            async with _httpx.AsyncClient(follow_redirects=True, max_redirects=_MAX_URL_REDIRECTS) as http:
+                try:
+                    resp = await http.get(source, timeout=_URL_FETCH_TIMEOUT)
+                except _httpx.TimeoutException as exc:
+                    raise ListBeeError(f"Timed out fetching avatar URL: {source}") from exc
+                except _httpx.RequestError as exc:
+                    raise ListBeeError(f"Failed to fetch avatar URL: {source} — {exc}") from exc
+                if resp.is_error:
+                    raise ListBeeError(f"Failed to fetch avatar URL: {source} — HTTP {resp.status_code}")
+                content_type = resp.headers.get("content-type", "").split(";")[0].strip()
+                if content_type not in _IMAGE_MIME_TYPES:
+                    raise ListBeeError(
+                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
+                    )
+                content = resp.content
+                ext = _mimetypes.guess_extension(content_type) or ".jpg"
+                filename = f"avatar{ext}"
+                file_resp = await files_resource.upload(file=(filename, content, content_type), purpose="avatar")
+                return file_resp.id
+
+        # bytes or BinaryIO
+        if isinstance(source, bytes):
+            content = source
+            filename = "avatar.jpg"
+            content_type = "image/jpeg"
+        else:
+            content = source.read()
+            name = getattr(source, "name", "avatar.jpg")
+            filename = name if isinstance(name, str) else "avatar.jpg"
+            guessed, _ = _mimetypes.guess_type(filename)
+            content_type = guessed or "image/jpeg"
+
+        file_resp = await files_resource.upload(file=(filename, content, content_type), purpose="avatar")
+        return file_resp.id

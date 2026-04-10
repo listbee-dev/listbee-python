@@ -20,9 +20,17 @@ class _RawFilesProxy:
     def __init__(self, client: SyncClient) -> None:
         self._client = client
 
-    def upload(self, *, file: FileUpload, timeout: float | None = None) -> RawResponse[FileResponse]:
+    def upload(
+        self,
+        *,
+        file: FileUpload,
+        purpose: str = "deliverable",
+        timeout: float | None = None,
+    ) -> RawResponse[FileResponse]:
         """Upload a file and return the raw response."""
-        response = self._client.post_multipart("/v1/files", files={"file": file}, timeout=timeout)
+        files: dict = {"file": file}
+        data: dict = {"purpose": purpose}
+        response = self._client.post_multipart("/v1/files", files=files, data=data, timeout=timeout)
         return RawResponse(response, FileResponse)
 
 
@@ -32,9 +40,17 @@ class _AsyncRawFilesProxy:
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def upload(self, *, file: FileUpload, timeout: float | None = None) -> RawResponse[FileResponse]:
+    async def upload(
+        self,
+        *,
+        file: FileUpload,
+        purpose: str = "deliverable",
+        timeout: float | None = None,
+    ) -> RawResponse[FileResponse]:
         """Upload a file and return the raw response (async)."""
-        response = await self._client.post_multipart("/v1/files", files={"file": file}, timeout=timeout)
+        files: dict = {"file": file}
+        data: dict = {"purpose": purpose}
+        response = await self._client.post_multipart("/v1/files", files=files, data=data, timeout=timeout)
         return RawResponse(response, FileResponse)
 
 
@@ -53,23 +69,29 @@ class Files:
         self,
         *,
         file: FileUpload,
+        purpose: str = "deliverable",
         timeout: float | None = None,
     ) -> FileResponse:
-        """Upload a file for use as a listing deliverable.
+        """Upload a file.
 
         Returns a file token valid for 24 hours. Pass the token to
-        ``listings.set_deliverables()`` or ``orders.deliver()`` to attach it.
+        ``listings.set_deliverables()``, ``listings.set_cover()``,
+        ``store.set_avatar()``, or ``orders.deliver()`` to attach it.
 
         Args:
             file: Tuple of (filename, content_bytes, mime_type).
+            purpose: File purpose — ``"deliverable"`` (default), ``"cover"``, or ``"avatar"``.
             timeout: Request timeout override. File uploads may take longer.
 
         Returns:
             The :class:`~listbee.types.file.FileResponse` with a token ID.
         """
+        files: dict = {"file": file}
+        data: dict = {"purpose": purpose}
         response = self._client.post_multipart(
             "/v1/files",
-            files={"file": file},
+            files=files,
+            data=data,
             timeout=timeout,
         )
         return FileResponse.model_validate(response.json())
@@ -90,23 +112,29 @@ class AsyncFiles:
         self,
         *,
         file: FileUpload,
+        purpose: str = "deliverable",
         timeout: float | None = None,
     ) -> FileResponse:
-        """Upload a file for use as a listing deliverable (async).
+        """Upload a file (async).
 
         Returns a file token valid for 24 hours. Pass the token to
-        ``listings.set_deliverables()`` or ``orders.deliver()`` to attach it.
+        ``listings.set_deliverables()``, ``listings.set_cover()``,
+        ``store.set_avatar()``, or ``orders.deliver()`` to attach it.
 
         Args:
             file: Tuple of (filename, content_bytes, mime_type).
+            purpose: File purpose — ``"deliverable"`` (default), ``"cover"``, or ``"avatar"``.
             timeout: Request timeout override. File uploads may take longer.
 
         Returns:
             The :class:`~listbee.types.file.FileResponse` with a token ID.
         """
+        files: dict = {"file": file}
+        data: dict = {"purpose": purpose}
         response = await self._client.post_multipart(
             "/v1/files",
-            files={"file": file},
+            files=files,
+            data=data,
             timeout=timeout,
         )
         return FileResponse.model_validate(response.json())

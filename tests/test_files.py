@@ -39,3 +39,44 @@ class TestUploadFile:
             files.upload(file=("ebook.pdf", b"fake-pdf-content", "application/pdf"))
         sent_headers = route.calls[0].request.headers
         assert "multipart/form-data" in sent_headers.get("content-type", "")
+
+    def test_upload_default_purpose_is_deliverable(self):
+        """Default purpose is deliverable — field present in request body."""
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        files = Files(client)
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/files").mock(return_value=httpx.Response(201, json=FILE_JSON))
+            files.upload(file=("ebook.pdf", b"fake-pdf-content", "application/pdf"))
+        # The purpose field should be present in the multipart body
+        body_text = route.calls[0].request.content.decode(errors="replace")
+        assert "deliverable" in body_text
+
+    def test_upload_cover_purpose(self):
+        """purpose='cover' is sent in the multipart request."""
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        files = Files(client)
+        cover_json = {**FILE_JSON, "purpose": "cover", "filename": "cover.jpg", "mime_type": "image/jpeg"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/files").mock(return_value=httpx.Response(201, json=cover_json))
+            result = files.upload(
+                file=("cover.jpg", b"fake-image-content", "image/jpeg"),
+                purpose="cover",
+            )
+        body_text = route.calls[0].request.content.decode(errors="replace")
+        assert "cover" in body_text
+        assert result.purpose == "cover"
+
+    def test_upload_avatar_purpose(self):
+        """purpose='avatar' is sent in the multipart request."""
+        client = SyncClient(api_key="lb_test_key_1234567890abcdef")
+        files = Files(client)
+        avatar_json = {**FILE_JSON, "purpose": "avatar", "filename": "avatar.png", "mime_type": "image/png"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/files").mock(return_value=httpx.Response(201, json=avatar_json))
+            result = files.upload(
+                file=("avatar.png", b"fake-image-content", "image/png"),
+                purpose="avatar",
+            )
+        body_text = route.calls[0].request.content.decode(errors="replace")
+        assert "avatar" in body_text
+        assert result.purpose == "avatar"

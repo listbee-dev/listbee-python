@@ -294,10 +294,19 @@ class SyncClient(BaseClient):
         path: str,
         *,
         files: Any,
+        data: dict[str, Any] | None = None,
         timeout: float | None = None,
         authenticated: bool = True,
     ) -> httpx.Response:
-        """POST a multipart/form-data request (for file uploads)."""
+        """POST a multipart/form-data request (for file uploads).
+
+        Args:
+            path: API path.
+            files: httpx-style files dict.
+            data: Optional form fields to include alongside the file (e.g. ``{"purpose": "cover"}``).
+            timeout: Request timeout override.
+            authenticated: Whether to include the Authorization header.
+        """
         headers = self._build_multipart_headers(authenticated=authenticated)
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
@@ -312,6 +321,7 @@ class SyncClient(BaseClient):
                     path,
                     headers=headers,
                     files=files,
+                    data=data,
                     timeout=effective_timeout,
                 )
             except httpx.TimeoutException as exc:
@@ -538,10 +548,19 @@ class AsyncClient(BaseClient):
         path: str,
         *,
         files: Any,
+        data: dict[str, Any] | None = None,
         timeout: float | None = None,
         authenticated: bool = True,
     ) -> httpx.Response:
-        """POST a multipart/form-data request (for file uploads)."""
+        """POST a multipart/form-data request (for file uploads).
+
+        Args:
+            path: API path.
+            files: httpx-style files dict.
+            data: Optional form fields to include alongside the file (e.g. ``{"purpose": "cover"}``).
+            timeout: Request timeout override.
+            authenticated: Whether to include the Authorization header.
+        """
         headers = self._build_multipart_headers(authenticated=authenticated)
         effective_timeout = timeout if timeout is not None else self._timeout
         client = self._get_http_client()
@@ -556,6 +575,7 @@ class AsyncClient(BaseClient):
                     path,
                     headers=headers,
                     files=files,
+                    data=data,
                     timeout=effective_timeout,
                 )
             except httpx.TimeoutException as exc:

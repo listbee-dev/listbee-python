@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 
 import httpx
@@ -9,6 +10,7 @@ import pytest
 import respx
 
 from listbee._base_client import SyncClient
+from listbee._exceptions import ListBeeError
 from listbee.deliverable import Deliverable
 from listbee.resources.listings import Listings
 from listbee.types.listing import ListingResponse
@@ -633,3 +635,116 @@ class TestCreateComplete:
                 deliverables=[Deliverable.file(b"x", filename="f.pdf")],
             )
         assert exc_info.value.listing_id == "lst_new"
+
+
+COVER_FILE_JSON = {
+    "object": "file",
+    "id": "file_covertoken456",
+    "filename": "cover.jpeg",
+    "size": 2048,
+    "mime_type": "image/jpeg",
+    "purpose": "cover",
+    "expires_at": "2026-04-11T15:00:00Z",
+    "created_at": "2026-04-10T15:00:00Z",
+}
+
+
+class TestSetCover:
+    @respx.mock
+    def test_set_cover_with_file_token_passes_directly(self, sync_client):
+        """file_ token goes straight to update without uploading."""
+        respx.put("https://api.listbee.so/v1/listings/lst_abc123").mock(
+            return_value=httpx.Response(200, json=LISTING_JSON)
+        )
+        result = Listings(sync_client).set_cover("lst_abc123", "file_covertoken456")
+        assert isinstance(result, ListingResponse)
+        # No upload call should have been made
+        assert all(
+            call.request.url.path != "/v1/files"
+            for route in respx.mock.routes
+            for call in route.calls
+        )
+
+    @respx.mock
+    def test_set_cover_with_bytes_uploads_then_updates(self, sync_client):
+        """bytes input triggers upload then update."""
+        image_bytes = b"\xff\xd8\xff\xe0fake-jpeg"
+        upload_route = respx.post("https://api.listbee.so/v1/files").mock(
+            return_value=httpx.Response(201, json=COVER_FILE_JSON)
+        )
+        update_route = respx.put("https://api.listbee.so/v1/listings/lst_abc123").mock(
+            return_value=httpx.Response(200, json=LISTING_JSON)
+        )
+        result = Listings(sync_client).set_cover("lst_abc123", image_bytes)
+        assert upload_route.call_count == 1
+        body = json.loads(update_route.calls[0].request.content)
+        assert body["cover_url"] == "file_covertoken456"
+        assert isinstance(result, ListingResponse)
+
+    @respx.mock
+    def test_set_cover_with_binary_io_uploads_then_updates(self, sync_client):
+        """BinaryIO input triggers upload then update."""
+        image_bytes = b"\xff\xd8\xff\xe0fake-jpeg"
+        buf = io.BytesIO(image_bytes)
+        buf.name = "my_cover.jpg"
+        upload_route = respx.post("https://api.listbee.so/v1/files").mock(
+            return_value=httpx.Response(201, json=COVER_FILE_JSON)
+        )
+        update_route = respx.put("https://api.listbee.so/v1/listings/lst_abc123").mock(
+            return_value=httpx.Response(200, json=LISTING_JSON)
+        )
+        result = Listings(sync_client).set_cover("lst_abc123", buf)
+        assert upload_route.call_count == 1
+        body = json.loads(update_route.calls[0].request.content)
+        assert body["cover_url"] == "file_covertoken456"
+        assert isinstance(result, ListingResponse)
+
+    @respx.mock
+    def test_set_cover_with_url_uploads_then_updates(self, sync_client):
+        """URL input fetches image, uploads with purpose=cover, then updates."""
+        image_bytes = b"\xff\xd8\xff\xe0fake-jpeg"
+        upload_route = respx.post("https://api.listbee.so/v1/files").mock(
+            return_value=httpx.Response(201, json=COVER_FILE_JSON)
+        )
+        update_route = respx.put("https://api.listbee.so/v1/listings/lst_abc123").mock(
+            return_value=httpx.Response(200, json=LISTING_JSON)
+        )
+        with respx.mock(assert_all_called=False) as url_mock:
+            url_mock.get("https://example.com/cover.jpg").mock(
+                return_value=httpx.Response(
+                    200,
+                    content=image_bytes,
+                    headers={"content-type": "image/jpeg"},
+                )
+            )
+            result = Listings(sync_client).set_cover("lst_abc123", "https://example.com/cover.jpg")
+
+        assert upload_route.call_count == 1
+        # Verify purpose=cover was sent in multipart
+        upload_body = upload_route.calls[0].request.content.decode(errors="replace")
+        assert "cover" in upload_body
+        body = json.loads(update_route.calls[0].request.content)
+        assert body["cover_url"] == "file_covertoken456"
+        assert isinstance(result, ListingResponse)
+
+    def test_set_cover_url_non_image_raises(self, sync_client):
+        """Non-image content-type from URL raises ListBeeError."""
+        with respx.mock() as url_mock:
+            url_mock.get("https://example.com/notimage.html").mock(
+                return_value=httpx.Response(
+                    200,
+                    content=b"<html>",
+                    headers={"content-type": "text/html"},
+                )
+            )
+            with pytest.raises(ListBeeError, match="did not return an image"):
+                Listings(sync_client).set_cover("lst_abc123", "https://example.com/notimage.html")
+
+    def test_set_cover_url_http_error_raises(self, sync_client):
+        """Non-200 URL response raises ListBeeError."""
+        with respx.mock() as url_mock:
+            url_mock.get("https://example.com/missing.jpg").mock(
+                return_value=httpx.Response(404, content=b"not found")
+            )
+            with pytest.raises(ListBeeError, match="HTTP 404"):
+                Listings(sync_client).set_cover("lst_abc123", "https://example.com/missing.jpg")

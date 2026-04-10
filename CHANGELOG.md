@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `set_cover(listing_id, source)` convenience method on listings resource — accepts a `file_` token, image URL, bytes, or BinaryIO; uploads and applies in one call (sync + async)
+- `set_avatar(source)` convenience method on store resource — accepts a `file_` token, image URL, bytes, or BinaryIO; uploads and applies in one call (sync + async)
+- `purpose` parameter on `files.upload()` — `"deliverable"` (default), `"cover"`, or `"avatar"`
+- `has_avatar` field on `StoreResponse` — `True` when a store avatar has been uploaded
+
+### Changed
+- Store `update()` parameter `avatar_url` renamed to `avatar` (file token, `file_` prefixed)
+
+### Removed
+- `avatar_url` field from `StoreResponse` (replaced by `has_avatar`)
+- `avatar_url` parameter from store `update()` (replaced by `avatar`)
+
 ## [0.16.0] - 2026-04-10
 
 ### Added

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import mimetypes
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 from listbee._constants import LISTING_CREATE_TIMEOUT
+from listbee._exceptions import ListBeeError
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee._raw_response import RawResponse
 from listbee.types.listing import ListingResponse
@@ -13,6 +15,18 @@ if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
     from listbee.deliverable import Deliverable
     from listbee.types.shared import DeliverableResponse
+
+# Accepted image MIME types for cover uploads
+_IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+}
+
+_MAX_URL_REDIRECTS = 3
+_URL_FETCH_TIMEOUT = 30.0
 
 
 def _resolve_checkout_schema(schema: list[Any] | None) -> list[dict[str, Any]] | None:
@@ -539,6 +553,78 @@ class Listings:
         response = self._client.post(f"/v1/listings/{listing_id}/publish")
         return ListingResponse.model_validate(response.json())
 
+    def set_cover(self, listing_id: str, source: str | BinaryIO | bytes) -> ListingResponse:
+        """Set the listing cover image from a file token, URL, or binary content.
+
+        Accepts three input forms:
+
+        * **File token** (``file_`` prefix) — passed directly to listing update.
+          Upload via ``client.files.upload(purpose="cover")`` first.
+        * **URL** (``http://`` / ``https://``) — fetched, validated as an image,
+          uploaded with ``purpose="cover"``, then applied.
+        * **bytes / BinaryIO** — uploaded with ``purpose="cover"``, then applied.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            source: A ``file_`` token, an image URL, raw bytes, or a file-like object.
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+
+        Raises:
+            ListBeeError: If the URL fetch fails, returns a non-image content type,
+                or the upload/update request fails.
+        """
+        import httpx as _httpx
+
+        token = self._resolve_cover_source(listing_id, source, _httpx)
+        return self.update(listing_id, cover_url=token)
+
+    def _resolve_cover_source(self, listing_id: str, source: str | BinaryIO | bytes, _httpx: Any) -> str:
+        """Upload (if needed) and return a file_ token for the cover."""
+        from listbee.resources.files import Files
+
+        files_resource = Files(self._client)
+
+        if isinstance(source, str) and source.startswith("file_"):
+            return source
+
+        if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+            with _httpx.Client(follow_redirects=True, max_redirects=_MAX_URL_REDIRECTS) as http:
+                try:
+                    resp = http.get(source, timeout=_URL_FETCH_TIMEOUT)
+                except _httpx.TimeoutException as exc:
+                    raise ListBeeError(f"Timed out fetching cover URL: {source}") from exc
+                except _httpx.RequestError as exc:
+                    raise ListBeeError(f"Failed to fetch cover URL: {source} — {exc}") from exc
+                if resp.is_error:
+                    raise ListBeeError(f"Failed to fetch cover URL: {source} — HTTP {resp.status_code}")
+                content_type = resp.headers.get("content-type", "").split(";")[0].strip()
+                if content_type not in _IMAGE_MIME_TYPES:
+                    raise ListBeeError(
+                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
+                    )
+                content = resp.content
+                ext = mimetypes.guess_extension(content_type) or ".jpg"
+                filename = f"cover{ext}"
+                file_resp = files_resource.upload(file=(filename, content, content_type), purpose="cover")
+                return file_resp.id
+
+        # bytes or BinaryIO
+        if isinstance(source, bytes):
+            content = source
+            filename = "cover.jpg"
+            content_type = "image/jpeg"
+        else:
+            content = source.read()
+            name = getattr(source, "name", "cover.jpg")
+            filename = name if isinstance(name, str) else "cover.jpg"
+            guessed, _ = mimetypes.guess_type(filename)
+            content_type = guessed or "image/jpeg"
+
+        file_resp = files_resource.upload(file=(filename, content, content_type), purpose="cover")
+        return file_resp.id
+
 
 class AsyncListings:
     """Async resource for the /v1/listings endpoint."""
@@ -992,3 +1078,75 @@ class AsyncListings:
         """
         response = await self._client.post(f"/v1/listings/{listing_id}/publish")
         return ListingResponse.model_validate(response.json())
+
+    async def set_cover(self, listing_id: str, source: str | BinaryIO | bytes) -> ListingResponse:
+        """Set the listing cover image from a file token, URL, or binary content (async).
+
+        Accepts three input forms:
+
+        * **File token** (``file_`` prefix) — passed directly to listing update.
+          Upload via ``client.files.upload(purpose="cover")`` first.
+        * **URL** (``http://`` / ``https://``) — fetched, validated as an image,
+          uploaded with ``purpose="cover"``, then applied.
+        * **bytes / BinaryIO** — uploaded with ``purpose="cover"``, then applied.
+
+        Args:
+            listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
+            source: A ``file_`` token, an image URL, raw bytes, or a file-like object.
+
+        Returns:
+            The updated :class:`~listbee.types.listing.ListingResponse`.
+
+        Raises:
+            ListBeeError: If the URL fetch fails, returns a non-image content type,
+                or the upload/update request fails.
+        """
+        import httpx as _httpx
+
+        token = await self._resolve_cover_source(listing_id, source, _httpx)
+        return await self.update(listing_id, cover_url=token)
+
+    async def _resolve_cover_source(self, listing_id: str, source: str | BinaryIO | bytes, _httpx: Any) -> str:
+        """Upload (if needed) and return a file_ token for the cover (async)."""
+        from listbee.resources.files import AsyncFiles
+
+        files_resource = AsyncFiles(self._client)
+
+        if isinstance(source, str) and source.startswith("file_"):
+            return source
+
+        if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+            async with _httpx.AsyncClient(follow_redirects=True, max_redirects=_MAX_URL_REDIRECTS) as http:
+                try:
+                    resp = await http.get(source, timeout=_URL_FETCH_TIMEOUT)
+                except _httpx.TimeoutException as exc:
+                    raise ListBeeError(f"Timed out fetching cover URL: {source}") from exc
+                except _httpx.RequestError as exc:
+                    raise ListBeeError(f"Failed to fetch cover URL: {source} — {exc}") from exc
+                if resp.is_error:
+                    raise ListBeeError(f"Failed to fetch cover URL: {source} — HTTP {resp.status_code}")
+                content_type = resp.headers.get("content-type", "").split(";")[0].strip()
+                if content_type not in _IMAGE_MIME_TYPES:
+                    raise ListBeeError(
+                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
+                    )
+                content = resp.content
+                ext = mimetypes.guess_extension(content_type) or ".jpg"
+                filename = f"cover{ext}"
+                file_resp = await files_resource.upload(file=(filename, content, content_type), purpose="cover")
+                return file_resp.id
+
+        # bytes or BinaryIO
+        if isinstance(source, bytes):
+            content = source
+            filename = "cover.jpg"
+            content_type = "image/jpeg"
+        else:
+            content = source.read()
+            name = getattr(source, "name", "cover.jpg")
+            filename = name if isinstance(name, str) else "cover.jpg"
+            guessed, _ = mimetypes.guess_type(filename)
+            content_type = guessed or "image/jpeg"
+
+        file_resp = await files_resource.upload(file=(filename, content, content_type), purpose="cover")
+        return file_resp.id

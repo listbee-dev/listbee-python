@@ -50,10 +50,10 @@ class StoreResponse(BaseModel):
         description="Store bio shown on product pages.",
         examples=["We make great things."],
     )
-    avatar_url: str | None = Field(
-        default=None,
-        description="Store avatar image URL.",
-        examples=[None],
+    has_avatar: bool = Field(
+        default=False,
+        description="True when a store avatar has been uploaded.",
+        examples=[False],
     )
     url: str = Field(
         description="Public store URL.",

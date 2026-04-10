@@ -274,6 +274,18 @@ listing = client.listings.publish(listing.slug)
 listing = client.listings.publish("r7kq2xy9")
 print(listing.status)    # "published"
 
+# Set cover image — accepts a file_ token, image URL, bytes, or BinaryIO
+# From a URL (fetched, validated as image, uploaded, then applied):
+listing = client.listings.set_cover("lst_r7kq2xy9", "https://example.com/cover.jpg")
+
+# From local file bytes:
+with open("cover.png", "rb") as f:
+    listing = client.listings.set_cover("lst_r7kq2xy9", f)
+
+# From a pre-uploaded file token:
+file = client.files.upload(file=("cover.jpg", img_bytes, "image/jpeg"), purpose="cover")
+listing = client.listings.update("lst_r7kq2xy9", cover_url=file.id)
+
 # Delete
 client.listings.delete("m3pr5tw1")
 ```
@@ -404,13 +416,25 @@ print(store.id)            # st_7kQ2xY9mN3pR5tW1vB8a
 print(store.display_name)  # Acme Agency
 print(store.slug)          # acme-agency
 print(store.url)           # https://buy.listbee.so/acme-agency
+print(store.has_avatar)    # True when an avatar has been uploaded
 print(store.readiness.sellable)
 
 # Update brand information
 store = client.store.update(display_name="New Agency Name")
 store = client.store.update(bio="We help teams ship faster.")
 store = client.store.update(slug="new-slug")
-store = client.store.update(avatar_url="https://example.com/avatar.png")
+
+# Set avatar — one-step helper: accepts a file token, URL, bytes, or BinaryIO
+# From a URL (fetched, validated as image, uploaded, then applied):
+store = client.store.set_avatar("https://example.com/avatar.png")
+
+# From local file bytes:
+with open("avatar.png", "rb") as f:
+    store = client.store.set_avatar(f)
+
+# From a pre-uploaded file token:
+file = client.files.upload(file=("avatar.png", img_bytes, "image/png"), purpose="avatar")
+store = client.store.update(avatar=file.id)
 ```
 
 ### Customers
@@ -432,17 +456,32 @@ print(customer.order_count)
 ```python
 from listbee import Deliverable
 
-# Upload a file to use as a deliverable
+# Upload a file as a deliverable (default purpose)
 with open("playbook.pdf", "rb") as f:
-    file = client.files.upload(file=f, filename="playbook.pdf")
-print(file.id)      # file token to pass to Deliverable.from_token()
-print(file.url)     # CDN URL
+    content = f.read()
+file = client.files.upload(file=("playbook.pdf", content, "application/pdf"))
+print(file.id)      # file_ token — valid for 24 hours
+print(file.purpose) # "deliverable"
+
+# Upload with explicit purpose
+cover = client.files.upload(
+    file=("cover.jpg", img_bytes, "image/jpeg"),
+    purpose="cover",       # "deliverable" | "cover" | "avatar"
+)
+avatar = client.files.upload(
+    file=("avatar.png", img_bytes, "image/png"),
+    purpose="avatar",
+)
 
 # Then attach to a listing using the uploaded file token
 client.listings.set_deliverables(
-    "r7kq2xy9",
+    "lst_r7kq2xy9",
     deliverables=[Deliverable.from_token(file.id)],
 )
+
+# Or use set_cover / set_avatar convenience helpers (handle upload automatically)
+client.listings.set_cover("lst_r7kq2xy9", cover.id)   # token
+client.store.set_avatar(avatar.id)                      # token
 ```
 
 ### Stripe
@@ -1161,6 +1200,45 @@ for action in listing.readiness.actions:
 ```
 
 ## Migration Guide
+
+### From v0.16.x to Unreleased
+
+**Breaking Change: Store `avatar_url` field removed — use `has_avatar` bool**
+
+`StoreResponse.avatar_url` is replaced by `StoreResponse.has_avatar` (bool). To set the avatar, upload a file token and pass it to `update(avatar=...)` or use the `set_avatar()` helper.
+
+```python
+# Old (v0.16.x)
+store = client.store.get()
+print(store.avatar_url)   # URL or None
+
+client.store.update(avatar_url="https://example.com/avatar.png")
+
+# New
+store = client.store.get()
+print(store.has_avatar)   # True / False
+
+# One-step helper: URL, bytes, BinaryIO, or file_ token
+client.store.set_avatar("https://example.com/avatar.png")
+client.store.set_avatar(open("avatar.png", "rb"))
+
+# Or upload manually and pass the token
+file = client.files.upload(file=("avatar.png", img_bytes, "image/png"), purpose="avatar")
+client.store.update(avatar=file.id)
+```
+
+**New: `set_cover()` on listings — one-step cover image upload**
+
+```python
+# Old: upload then update manually
+file = client.files.upload(file=("cover.jpg", img_bytes, "image/jpeg"))
+client.listings.update("lst_abc", cover_url=file.id)
+
+# New: one-step helper
+client.listings.set_cover("lst_abc", "https://example.com/cover.jpg")
+client.listings.set_cover("lst_abc", open("cover.jpg", "rb"))
+client.listings.set_cover("lst_abc", img_bytes)
+```
 
 ### From v0.15.x to v0.16.x
 
