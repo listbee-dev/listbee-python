@@ -30,6 +30,7 @@ class APIStatusError(ListBeeError):
         detail: Specific explanation of what went wrong.
         code: Machine-readable error code.
         param: Request field that caused the error, if applicable.
+        extras: RFC 9457 extension members not covered by the standard fields.
     """
 
     def __init__(
@@ -42,6 +43,7 @@ class APIStatusError(ListBeeError):
         code: str,
         param: str | None = None,
         request_id: str | None = None,
+        extras: dict[str, Any] | None = None,
     ) -> None:
         self.type = type
         self.title = title
@@ -50,6 +52,7 @@ class APIStatusError(ListBeeError):
         self.code = code
         self.param = param
         self.request_id = request_id
+        self.extras: dict[str, Any] = extras or {}
         super().__init__(detail)
 
 
@@ -96,12 +99,14 @@ class RateLimitError(APIStatusError):
         code: str,
         param: str | None = None,
         request_id: str | None = None,
+        extras: dict[str, Any] | None = None,
         limit: int | None = None,
         remaining: int | None = None,
         reset: datetime | None = None,
     ) -> None:
         super().__init__(
-            type=type, title=title, status=status, detail=detail, code=code, param=param, request_id=request_id
+            type=type, title=title, status=status, detail=detail, code=code, param=param, request_id=request_id,
+            extras=extras,
         )
         self.limit = limit
         self.remaining = remaining
@@ -144,6 +149,9 @@ STATUS_CODE_TO_EXCEPTION: dict[int, type[APIStatusError]] = {
 }
 
 
+_KNOWN_FIELDS = {"type", "title", "status", "detail", "code", "param"}
+
+
 def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, str]) -> None:
     """Parse an RFC 9457 error body and raise the appropriate exception."""
     error_type: str = body.get("type", "")
@@ -152,6 +160,8 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
     error_detail: str = body.get("detail", "")
     error_code: str = body.get("code", "")
     error_param: str | None = body.get("param")
+
+    extras = {k: v for k, v in body.items() if k not in _KNOWN_FIELDS}
 
     request_id: str | None = headers.get("x-request-id")
     exc_class = STATUS_CODE_TO_EXCEPTION.get(status_code)
@@ -169,6 +179,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
             code=error_code,
             param=error_param,
             request_id=request_id,
+            extras=extras,
             limit=int(limit_str) if limit_str else None,
             remaining=int(remaining_str) if remaining_str else None,
             reset=datetime.fromtimestamp(float(reset_str)) if reset_str else None,
@@ -182,6 +193,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
         "code": error_code,
         "param": error_param,
         "request_id": request_id,
+        "extras": extras,
     }
 
     if exc_class is not None:

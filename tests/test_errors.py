@@ -112,3 +112,45 @@ class TestRaiseForStatus:
     def test_catching_base_class_catches_all(self):
         with pytest.raises(ListBeeError):
             raise_for_status(401, self._body(status=401), {})
+
+
+class TestExtras:
+    def test_extras_captures_extension_members(self):
+        body = {
+            "type": "https://docs.listbee.so/errors/not-in-draft",
+            "title": "Conflict", "status": 409,
+            "detail": "Listing is not in draft", "code": "not_in_draft",
+            "current_status": "published", "required_status": "draft",
+        }
+        try:
+            raise_for_status(409, body, {})
+        except Exception as e:
+            assert e.extras == {"current_status": "published", "required_status": "draft"}
+
+    def test_extras_empty_when_no_extensions(self):
+        body = {"type": "t", "title": "t", "status": 404, "detail": "d", "code": "not_found"}
+        try:
+            raise_for_status(404, body, {})
+        except Exception as e:
+            assert e.extras == {}
+
+    def test_extras_with_actions_and_next(self):
+        body = {
+            "type": "t", "title": "t", "status": 409, "detail": "d", "code": "publish_failed",
+            "actions": [{"code": "connect_stripe"}], "next": "connect_stripe",
+        }
+        try:
+            raise_for_status(409, body, {})
+        except Exception as e:
+            assert "actions" in e.extras
+            assert e.extras["next"] == "connect_stripe"
+
+    def test_extras_on_rate_limit(self):
+        body = {
+            "type": "t", "title": "t", "status": 429, "detail": "d", "code": "rate_limited",
+            "retry_after": 60,
+        }
+        try:
+            raise_for_status(429, body, {"x-ratelimit-limit": "100"})
+        except Exception as e:
+            assert e.extras == {"retry_after": 60}
