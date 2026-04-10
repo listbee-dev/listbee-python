@@ -242,9 +242,7 @@ class TestSetAvatar:
     def test_set_avatar_url_http_error_raises(self, store):
         """Non-200 response from URL raises ListBeeError."""
         with respx.mock() as url_mock:
-            url_mock.get("https://example.com/missing.jpg").mock(
-                return_value=httpx.Response(404, content=b"not found")
-            )
+            url_mock.get("https://example.com/missing.jpg").mock(return_value=httpx.Response(404, content=b"not found"))
             with pytest.raises(ListBeeError, match="HTTP 404"):
                 store.set_avatar("https://example.com/missing.jpg")
 
@@ -252,9 +250,7 @@ class TestSetAvatar:
 class TestStoreHasAvatar:
     def test_has_avatar_true(self, store):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/store").mock(
-                return_value=httpx.Response(200, json={**STORE_JSON, "has_avatar": True})
-            )
+            mock.get("/v1/store").mock(return_value=httpx.Response(200, json={**STORE_JSON, "has_avatar": True}))
             result = store.get()
         assert result.has_avatar is True
 

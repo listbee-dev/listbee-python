@@ -659,11 +659,7 @@ class TestSetCover:
         result = Listings(sync_client).set_cover("lst_abc123", "file_covertoken456")
         assert isinstance(result, ListingResponse)
         # No upload call should have been made
-        assert all(
-            call.request.url.path != "/v1/files"
-            for route in respx.mock.routes
-            for call in route.calls
-        )
+        assert all(call.request.url.path != "/v1/files" for route in respx.mock.routes for call in route.calls)
 
     @respx.mock
     def test_set_cover_with_bytes_uploads_then_updates(self, sync_client):
@@ -743,8 +739,6 @@ class TestSetCover:
     def test_set_cover_url_http_error_raises(self, sync_client):
         """Non-200 URL response raises ListBeeError."""
         with respx.mock() as url_mock:
-            url_mock.get("https://example.com/missing.jpg").mock(
-                return_value=httpx.Response(404, content=b"not found")
-            )
+            url_mock.get("https://example.com/missing.jpg").mock(return_value=httpx.Response(404, content=b"not found"))
             with pytest.raises(ListBeeError, match="HTTP 404"):
                 Listings(sync_client).set_cover("lst_abc123", "https://example.com/missing.jpg")

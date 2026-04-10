@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import mimetypes
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from listbee._constants import LISTING_CREATE_TIMEOUT
 from listbee._exceptions import ListBeeError
@@ -601,9 +601,7 @@ class Listings:
                     raise ListBeeError(f"Failed to fetch cover URL: {source} — HTTP {resp.status_code}")
                 content_type = resp.headers.get("content-type", "").split(";")[0].strip()
                 if content_type not in _IMAGE_MIME_TYPES:
-                    raise ListBeeError(
-                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
-                    )
+                    raise ListBeeError(f"URL did not return an image (got Content-Type: {content_type}): {source}")
                 content = resp.content
                 ext = mimetypes.guess_extension(content_type) or ".jpg"
                 filename = f"cover{ext}"
@@ -612,11 +610,11 @@ class Listings:
 
         # bytes or BinaryIO
         if isinstance(source, bytes):
-            content = source
+            content: bytes = source
             filename = "cover.jpg"
             content_type = "image/jpeg"
         else:
-            content = source.read()
+            content = cast(bytes, source.read())  # type: ignore[union-attr]
             name = getattr(source, "name", "cover.jpg")
             filename = name if isinstance(name, str) else "cover.jpg"
             guessed, _ = mimetypes.guess_type(filename)
@@ -1127,9 +1125,7 @@ class AsyncListings:
                     raise ListBeeError(f"Failed to fetch cover URL: {source} — HTTP {resp.status_code}")
                 content_type = resp.headers.get("content-type", "").split(";")[0].strip()
                 if content_type not in _IMAGE_MIME_TYPES:
-                    raise ListBeeError(
-                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
-                    )
+                    raise ListBeeError(f"URL did not return an image (got Content-Type: {content_type}): {source}")
                 content = resp.content
                 ext = mimetypes.guess_extension(content_type) or ".jpg"
                 filename = f"cover{ext}"
@@ -1138,11 +1134,11 @@ class AsyncListings:
 
         # bytes or BinaryIO
         if isinstance(source, bytes):
-            content = source
+            content: bytes = source
             filename = "cover.jpg"
             content_type = "image/jpeg"
         else:
-            content = source.read()
+            content = cast(bytes, source.read())  # type: ignore[union-attr]
             name = getattr(source, "name", "cover.jpg")
             filename = name if isinstance(name, str) else "cover.jpg"
             guessed, _ = mimetypes.guess_type(filename)

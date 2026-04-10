@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import mimetypes
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from listbee._exceptions import ListBeeError
 from listbee._raw_response import RawResponse
@@ -47,14 +47,6 @@ class _AsyncRawStoreProxy:
         """Retrieve the store and return the raw response (async)."""
         response = await self._client.request_raw("GET", "/v1/store")
         return RawResponse(response, StoreResponse)
-
-
-def _resolve_avatar_token(source: str | BinaryIO | bytes, files_resource: Any, *, _async: bool = False) -> str:
-    """Sync helper — upload if needed and return the file token.
-
-    Not called at module level; import-guarded inside each method.
-    """
-    raise NotImplementedError("Use the per-class helper instead")
 
 
 class Store:
@@ -164,9 +156,7 @@ class Store:
                     raise ListBeeError(f"Failed to fetch avatar URL: {source} — HTTP {resp.status_code}")
                 content_type = resp.headers.get("content-type", "").split(";")[0].strip()
                 if content_type not in _IMAGE_MIME_TYPES:
-                    raise ListBeeError(
-                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
-                    )
+                    raise ListBeeError(f"URL did not return an image (got Content-Type: {content_type}): {source}")
                 content = resp.content
                 ext = mimetypes.guess_extension(content_type) or ".jpg"
                 filename = f"avatar{ext}"
@@ -175,11 +165,11 @@ class Store:
 
         # bytes or BinaryIO
         if isinstance(source, bytes):
-            content = source
+            content: bytes = source
             filename = "avatar.jpg"
             content_type = "image/jpeg"
         else:
-            content = source.read()
+            content = cast(bytes, source.read())  # type: ignore[union-attr]
             name = getattr(source, "name", "avatar.jpg")
             filename = name if isinstance(name, str) else "avatar.jpg"
             guessed, _ = mimetypes.guess_type(filename)
@@ -298,9 +288,7 @@ class AsyncStore:
                     raise ListBeeError(f"Failed to fetch avatar URL: {source} — HTTP {resp.status_code}")
                 content_type = resp.headers.get("content-type", "").split(";")[0].strip()
                 if content_type not in _IMAGE_MIME_TYPES:
-                    raise ListBeeError(
-                        f"URL did not return an image (got Content-Type: {content_type}): {source}"
-                    )
+                    raise ListBeeError(f"URL did not return an image (got Content-Type: {content_type}): {source}")
                 content = resp.content
                 ext = _mimetypes.guess_extension(content_type) or ".jpg"
                 filename = f"avatar{ext}"
@@ -309,11 +297,11 @@ class AsyncStore:
 
         # bytes or BinaryIO
         if isinstance(source, bytes):
-            content = source
+            content: bytes = source
             filename = "avatar.jpg"
             content_type = "image/jpeg"
         else:
-            content = source.read()
+            content = cast(bytes, source.read())  # type: ignore[union-attr]
             name = getattr(source, "name", "avatar.jpg")
             filename = name if isinstance(name, str) else "avatar.jpg"
             guessed, _ = _mimetypes.guess_type(filename)

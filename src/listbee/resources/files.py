@@ -28,8 +28,8 @@ class _RawFilesProxy:
         timeout: float | None = None,
     ) -> RawResponse[FileResponse]:
         """Upload a file and return the raw response."""
-        files: dict = {"file": file}
-        data: dict = {"purpose": purpose}
+        files: dict[str, FileUpload] = {"file": file}
+        data: dict[str, str] = {"purpose": purpose}
         response = self._client.post_multipart("/v1/files", files=files, data=data, timeout=timeout)
         return RawResponse(response, FileResponse)
 
@@ -48,8 +48,8 @@ class _AsyncRawFilesProxy:
         timeout: float | None = None,
     ) -> RawResponse[FileResponse]:
         """Upload a file and return the raw response (async)."""
-        files: dict = {"file": file}
-        data: dict = {"purpose": purpose}
+        files: dict[str, FileUpload] = {"file": file}
+        data: dict[str, str] = {"purpose": purpose}
         response = await self._client.post_multipart("/v1/files", files=files, data=data, timeout=timeout)
         return RawResponse(response, FileResponse)
 
@@ -86,8 +86,8 @@ class Files:
         Returns:
             The :class:`~listbee.types.file.FileResponse` with a token ID.
         """
-        files: dict = {"file": file}
-        data: dict = {"purpose": purpose}
+        files: dict[str, FileUpload] = {"file": file}
+        data: dict[str, str] = {"purpose": purpose}
         response = self._client.post_multipart(
             "/v1/files",
             files=files,
@@ -129,8 +129,8 @@ class AsyncFiles:
         Returns:
             The :class:`~listbee.types.file.FileResponse` with a token ID.
         """
-        files: dict = {"file": file}
-        data: dict = {"purpose": purpose}
+        files: dict[str, FileUpload] = {"file": file}
+        data: dict[str, str] = {"purpose": purpose}
         response = await self._client.post_multipart(
             "/v1/files",
             files=files,
