@@ -52,7 +52,7 @@ listing = client.listings.create_complete(
     price=2900,
     deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 
 # External fulfillment — set a URL and you handle delivery
@@ -66,7 +66,7 @@ listing = client.listings.create(
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 ```
 
 Using an environment variable instead:
@@ -87,7 +87,7 @@ listing = client.listings.create_complete(
     price=2900,
     deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 print(listing.url)
 ```
 
@@ -199,10 +199,10 @@ print(listing.id)    # lst_r7kq2xy9m3pR5tW1
 from listbee import Deliverable
 
 client.listings.set_deliverables(
-    listing.slug,
+    listing.id,
     deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 print(listing.url)   # https://buy.listbee.so/m3pr5tw1
 
 # Get by slug
@@ -268,7 +268,7 @@ listing = client.listings.create_complete(
         Deliverable.url("https://example.com/seo-playbook.pdf"),
     ],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 
 # Publish a draft listing — makes it live and purchasable
 listing = client.listings.publish("r7kq2xy9")
@@ -352,7 +352,6 @@ webhook = client.webhooks.create(
     events=[
         WebhookEventType.ORDER_PAID,
         WebhookEventType.ORDER_FULFILLED,
-        WebhookEventType.ORDER_SHIPPED,
         WebhookEventType.ORDER_REFUNDED,
     ],
 )
@@ -442,13 +441,13 @@ store = client.store.update(avatar=file.id)
 ```python
 # List all customers (buyers who have placed orders)
 for customer in client.customers.list():
-    print(customer.email, customer.order_count)
+    print(customer.email, customer.total_orders)
 
 # Get a customer by ID
 customer = client.customers.get("acc_4hR9nK2mQ7tV5wX1")
 print(customer.email)
 print(customer.total_spent)    # total amount in cents
-print(customer.order_count)
+print(customer.total_orders)
 ```
 
 ### Files
@@ -525,11 +524,11 @@ listing = client.listings.create_complete(
         Deliverable.url("https://example.com/seo-playbook.pdf"),
     ],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 
 # Add or remove individual deliverables after creation
-client.listings.add_deliverable(listing.slug, Deliverable.text("Bonus: license key XXXX-XXXX"))
-client.listings.remove_deliverable(listing.slug, "del_4hR9nK2mQ7tV5wX1")
+client.listings.add_deliverable(listing.id, Deliverable.text("Bonus: license key XXXX-XXXX"))
+client.listings.remove_deliverable(listing.id, "del_4hR9nK2mQ7tV5wX1")
 ```
 
 Upload a file and use it as a deliverable:
@@ -537,7 +536,7 @@ Upload a file and use it as a deliverable:
 ```python
 with open("playbook.pdf", "rb") as f:
     file = client.files.upload(file=f, filename="playbook.pdf")
-client.listings.add_deliverable(listing.slug, Deliverable.from_token(file.id))
+client.listings.add_deliverable(listing.id, Deliverable.from_token(file.id))
 ```
 
 **External** — Set `fulfillment_url` and ListBee POSTs the order to your URL after payment. Your system handles delivery. Use for physical goods, AI-generated content, services, or anything that requires custom logic.
@@ -554,7 +553,7 @@ listing = client.listings.create(
         CheckoutField.text("topic", label="Report Topic", sort_order=0),
     ],
 )
-listing = client.listings.publish(listing.slug)
+listing = client.listings.publish(listing.id)
 
 # When your endpoint receives the order, generate content and push back:
 order = client.orders.fulfill(
@@ -1042,7 +1041,7 @@ async def main():
         price=2900,
         deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
     )
-    listing = await client.listings.publish(listing.slug)
+    listing = await client.listings.publish(listing.id)
     print(listing.url)
 
     # Iterate all listings
@@ -1185,7 +1184,6 @@ webhook = client.webhooks.create(
     events=[
         WebhookEventType.ORDER_PAID,
         WebhookEventType.ORDER_FULFILLED,
-        WebhookEventType.ORDER_SHIPPED,
         WebhookEventType.ORDER_REFUNDED,
         WebhookEventType.LISTING_CREATED,
     ],
