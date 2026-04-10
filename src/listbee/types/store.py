@@ -16,7 +16,7 @@ class StoreReadiness(BaseModel):
     )
     actions: list[Action] = Field(  # pyright: ignore[reportUnknownVariableType]
         default_factory=list,
-        description="What\'s needed to make this store sellable. Empty when sellable is true.",
+        description="What's needed to make this store sellable. Empty when sellable is true.",
     )
     next: str | None = Field(
         default=None,
@@ -65,5 +65,5 @@ class StoreResponse(BaseModel):
         examples=["lb_abc123"],
     )
     readiness: StoreReadiness = Field(
-        description="Store readiness. Check `actions` for what\'s needed before you can sell.",
+        description="Store readiness. Check `actions` for what's needed before you can sell.",
     )
