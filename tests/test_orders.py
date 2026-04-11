@@ -39,6 +39,7 @@ ORDER_JSON = {
     "disputed_at": None,
     "platform_fee": 0,
     "created_at": "2026-03-28T12:00:00Z",
+    "readiness": None,
 }
 
 ORDER_WITH_CHECKOUT_DATA_JSON = {

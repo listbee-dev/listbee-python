@@ -362,3 +362,41 @@ class WebhookReadiness(BaseModel):
     def actions_by_kind(self, kind: str) -> list[Action]:
         """Return all actions of the given kind ('api' or 'human')."""
         return [a for a in self.actions if a.kind == kind]
+
+
+class OrderReadiness(BaseModel):
+    """Fulfillment readiness state for an order."""
+
+    model_config = ConfigDict(frozen=True)
+
+    fulfilled: bool = Field(
+        description="True when the order has been fulfilled. False means fulfillment is pending.",
+        examples=[True],
+    )
+    actions: list[Action] = Field(
+        default=[],
+        description="Actions available or needed for this order (e.g. refund). Empty when fulfilled.",
+    )
+    next: str | None = Field(
+        default=None,
+        description="Code of the highest-priority action. Null when fulfilled.",
+    )
+
+    @property
+    def is_ready(self) -> bool:
+        """True when the order has been fulfilled."""
+        return self.fulfilled
+
+    @property
+    def next_action(self) -> Action | None:
+        """Return the Action object for the highest-priority action, or None if fulfilled."""
+        if self.next is None:
+            return None
+        for action in self.actions:
+            if action.code == self.next:
+                return action
+        return None
+
+    def actions_by_kind(self, kind: str) -> list[Action]:
+        """Return all actions of the given kind ('api' or 'human')."""
+        return [a for a in self.actions if a.kind == kind]

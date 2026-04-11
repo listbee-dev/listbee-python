@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `OrderReadiness` model with `fulfilled`, `actions`, and `next` fields
+- `readiness` field on `OrderResponse`
+
 ## [0.18.0] - 2026-04-10
 
 ### Added

@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from listbee.types.shared import Action, DeliverableResponse, OrderStatus
+from listbee.types.shared import Action, DeliverableResponse, OrderReadiness, OrderStatus
 
 
 class OrderResponse(BaseModel):
@@ -131,6 +131,10 @@ class OrderResponse(BaseModel):
     )
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the order was created.",
+    )
+    readiness: OrderReadiness | None = Field(
+        default=None,
+        description="Fulfillment readiness state for this order. Includes available actions and next priority.",
     )
 
     @property
