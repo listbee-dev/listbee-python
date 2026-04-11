@@ -87,28 +87,77 @@ class TestCreateWebhook:
 
 
 class TestListWebhooks:
-    def test_list_webhooks_returns_list(self, webhooks):
+    def test_list_webhooks_returns_page(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/webhooks").mock(return_value=httpx.Response(200, json={"data": [WEBHOOK_JSON]}))
-            results = webhooks.list()
-        assert isinstance(results, list)
-        assert len(results) == 1
-        assert isinstance(results[0], WebhookResponse)
-        assert results[0].id == "wh_3mK8nP2qR5tW7xY1"
+            mock.get("/v1/webhooks").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "object": "list",
+                        "data": [WEBHOOK_JSON],
+                        "has_more": False,
+                        "cursor": None,
+                    },
+                )
+            )
+            page = webhooks.list()
+        assert isinstance(page, SyncCursorPage)
+        assert len(page.data) == 1
+        assert isinstance(page.data[0], WebhookResponse)
+        assert page.data[0].id == "wh_3mK8nP2qR5tW7xY1"
+        assert page.has_more is False
 
-    def test_list_webhooks_falls_back_to_items_key(self, webhooks):
-        """Backwards compatibility: if 'data' key is absent, try 'items'."""
+    def test_list_webhooks_with_limit_parameter(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/webhooks").mock(return_value=httpx.Response(200, json={"items": [WEBHOOK_JSON]}))
-            results = webhooks.list()
-        assert len(results) == 1
-        assert results[0].id == "wh_3mK8nP2qR5tW7xY1"
+            route = mock.get("/v1/webhooks").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "object": "list",
+                        "data": [WEBHOOK_JSON],
+                        "has_more": False,
+                        "cursor": None,
+                    },
+                )
+            )
+            webhooks.list(limit=50)
+        assert route.called
+        assert "limit=50" in str(route.calls[0].request.url)
+
+    def test_list_webhooks_with_cursor_pagination(self, webhooks):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.get("/v1/webhooks").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "object": "list",
+                        "data": [WEBHOOK_JSON],
+                        "has_more": False,
+                        "cursor": None,
+                    },
+                )
+            )
+            webhooks.list(cursor="wh_cursor_abc")
+        assert route.called
+        assert "cursor=wh_cursor_abc" in str(route.calls[0].request.url)
 
     def test_list_webhooks_empty(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/webhooks").mock(return_value=httpx.Response(200, json={"data": []}))
-            results = webhooks.list()
-        assert results == []
+            mock.get("/v1/webhooks").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "object": "list",
+                        "data": [],
+                        "has_more": False,
+                        "cursor": None,
+                    },
+                )
+            )
+            page = webhooks.list()
+        assert isinstance(page, SyncCursorPage)
+        assert page.data == []
+        assert page.has_more is False
 
 
 class TestUpdateWebhook:

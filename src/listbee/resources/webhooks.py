@@ -109,19 +109,34 @@ class Webhooks:
         response = self._client.post("/v1/webhooks", json=body)
         return WebhookResponse.model_validate(response.json())
 
-    def list(self) -> list[WebhookResponse]:
-        """Return all webhook endpoints for the account.
+    def list(
+        self, *, limit: int = 20, cursor: str | None = None
+    ) -> SyncCursorPage[WebhookResponse]:
+        """Return a paginated list of webhook endpoints for the account.
 
-        This endpoint returns a plain list (not paginated).
+        Iterating the returned page automatically fetches subsequent pages:
+
+        .. code-block:: python
+
+            for webhook in client.webhooks.list():
+                print(webhook.id)
+
+        Args:
+            limit: Maximum number of webhooks per page (default 20, max 100).
+            cursor: Pagination cursor from a previous response.
 
         Returns:
-            A list of :class:`~listbee.types.webhook.WebhookResponse` objects.
+            A :class:`~listbee._pagination.SyncCursorPage` of
+            :class:`~listbee.types.webhook.WebhookResponse` objects.
         """
-        response = self._client.get("/v1/webhooks")
-        body = response.json()
-        # Try "data" key first; fall back to "items" for backwards compat
-        items = body.get("data") if body.get("data") is not None else body.get("items", [])
-        return [WebhookResponse.model_validate(item) for item in items]
+        params: dict[str, Any] = {"limit": limit}
+        if cursor is not None:
+            params["cursor"] = cursor
+        return self._client.get_page(
+            path="/v1/webhooks",
+            params=params,
+            model=WebhookResponse,
+        )
 
     def update(
         self,
@@ -265,19 +280,34 @@ class AsyncWebhooks:
         response = await self._client.post("/v1/webhooks", json=body)
         return WebhookResponse.model_validate(response.json())
 
-    async def list(self) -> list[WebhookResponse]:
-        """Return all webhook endpoints for the account (async).
+    async def list(
+        self, *, limit: int = 20, cursor: str | None = None
+    ) -> AsyncCursorPage[WebhookResponse]:
+        """Return a paginated list of webhook endpoints for the account (async).
 
-        This endpoint returns a plain list (not paginated).
+        Async-iterate the returned page to transparently fetch subsequent pages:
+
+        .. code-block:: python
+
+            async for webhook in await client.webhooks.list():
+                print(webhook.id)
+
+        Args:
+            limit: Maximum number of webhooks per page (default 20, max 100).
+            cursor: Pagination cursor from a previous response.
 
         Returns:
-            A list of :class:`~listbee.types.webhook.WebhookResponse` objects.
+            An :class:`~listbee._pagination.AsyncCursorPage` of
+            :class:`~listbee.types.webhook.WebhookResponse` objects.
         """
-        response = await self._client.get("/v1/webhooks")
-        body = response.json()
-        # Try "data" key first; fall back to "items" for backwards compat
-        items = body.get("data") if body.get("data") is not None else body.get("items", [])
-        return [WebhookResponse.model_validate(item) for item in items]
+        params: dict[str, Any] = {"limit": limit}
+        if cursor is not None:
+            params["cursor"] = cursor
+        return await self._client.get_page(
+            path="/v1/webhooks",
+            params=params,
+            model=WebhookResponse,
+        )
 
     async def update(
         self,
