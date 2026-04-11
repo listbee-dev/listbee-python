@@ -109,9 +109,7 @@ class Webhooks:
         response = self._client.post("/v1/webhooks", json=body)
         return WebhookResponse.model_validate(response.json())
 
-    def list(
-        self, *, limit: int = 20, cursor: str | None = None
-    ) -> SyncCursorPage[WebhookResponse]:
+    def list(self, *, limit: int = 20, cursor: str | None = None) -> SyncCursorPage[WebhookResponse]:
         """Return a paginated list of webhook endpoints for the account.
 
         Iterating the returned page automatically fetches subsequent pages:
@@ -280,9 +278,7 @@ class AsyncWebhooks:
         response = await self._client.post("/v1/webhooks", json=body)
         return WebhookResponse.model_validate(response.json())
 
-    async def list(
-        self, *, limit: int = 20, cursor: str | None = None
-    ) -> AsyncCursorPage[WebhookResponse]:
+    async def list(self, *, limit: int = 20, cursor: str | None = None) -> AsyncCursorPage[WebhookResponse]:
         """Return a paginated list of webhook endpoints for the account (async).
 
         Async-iterate the returned page to transparently fetch subsequent pages:
