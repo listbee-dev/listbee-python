@@ -99,3 +99,26 @@ class WebhookResponse(BaseModel):
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the webhook endpoint was created.",
     )
+
+
+class WebhookListResponse(BaseModel):
+    """List of webhook endpoints."""
+
+    object: Literal["list"] = Field(
+        default="list",
+        description="Object type discriminator. Always `list`.",
+        examples=["list"],
+    )
+    data: list[WebhookResponse] = Field(
+        description="Array of webhook objects.",
+    )
+    cursor: str | None = Field(
+        default=None,
+        description="Pass as `cursor` query param to fetch the next page.",
+        examples=["wh_3mK8nP2qR5tW7xY1"],
+    )
+    has_more: bool = Field(
+        default=False,
+        description="True if more results exist beyond this page.",
+        examples=[False],
+    )

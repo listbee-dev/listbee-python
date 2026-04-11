@@ -35,7 +35,7 @@ from listbee.types.shared import (
 from listbee.types.store import StoreReadiness, StoreResponse
 from listbee.types.stripe import StripeConnectSessionResponse
 from listbee.types.utility import PingResponse
-from listbee.types.webhook import WebhookEventResponse, WebhookResponse, WebhookTestResponse
+from listbee.types.webhook import WebhookEventResponse, WebhookListResponse, WebhookResponse, WebhookTestResponse
 
 __all__ = [
     # Enums
@@ -72,6 +72,7 @@ __all__ = [
     "WebhookEventResponse",
     "WebhookResponse",
     "WebhookTestResponse",
+    "WebhookListResponse",
     # Account
     "AccountResponse",
     "AccountStats",

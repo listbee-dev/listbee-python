@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `OrderReadiness` model with `fulfilled`, `actions`, and `next` fields
 - `readiness` field on `OrderResponse`
+- `WebhookListResponse` type for list webhook responses
+
+### Changed
+- `PlanListResponse` now includes `cursor` and `has_more` fields (standard list envelope)
+- `WebhookListResponse` now includes `cursor` and `has_more` fields (standard list envelope)
 
 ## [0.18.0] - 2026-04-10
 

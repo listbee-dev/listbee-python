@@ -48,3 +48,13 @@ class PlanListResponse(BaseModel):
     data: list[PlanResponse] = Field(
         description="Array of plan objects.",
     )
+    cursor: str | None = Field(
+        default=None,
+        description="Pass as `cursor` query param to fetch the next page.",
+        examples=[None],
+    )
+    has_more: bool = Field(
+        default=False,
+        description="True if more results exist beyond this page.",
+        examples=[False],
+    )
