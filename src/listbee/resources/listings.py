@@ -9,7 +9,7 @@ from listbee._constants import LISTING_CREATE_TIMEOUT
 from listbee._exceptions import ListBeeError
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee._raw_response import RawResponse
-from listbee.types.listing import ListingResponse
+from listbee.types.listing import ListingResponse, ListingSummary
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -332,8 +332,12 @@ class Listings:
 
     def list(
         self, *, limit: int = 20, cursor: str | None = None, status: str | None = None
-    ) -> SyncCursorPage[ListingResponse]:
+    ) -> SyncCursorPage[ListingSummary]:
         """Return a paginated list of listings.
+
+        Each item is a :class:`~listbee.types.listing.ListingSummary` with the core fields
+        needed to display listing cards. Call :meth:`get` with the listing ID for the full
+        :class:`~listbee.types.listing.ListingResponse` including deliverables, reviews, and FAQs.
 
         Iterating the returned page automatically fetches subsequent pages:
 
@@ -349,14 +353,14 @@ class Listings:
 
         Returns:
             A :class:`~listbee._pagination.SyncCursorPage` of
-            :class:`~listbee.types.listing.ListingResponse` objects.
+            :class:`~listbee.types.listing.ListingSummary` objects.
         """
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
             params["cursor"] = cursor
         if status is not None:
             params["status"] = status
-        return self._client.get_page("/v1/listings", params, ListingResponse)
+        return self._client.get_page("/v1/listings", params, ListingSummary)
 
     def update(
         self,
@@ -856,8 +860,12 @@ class AsyncListings:
 
     async def list(
         self, *, limit: int = 20, cursor: str | None = None, status: str | None = None
-    ) -> AsyncCursorPage[ListingResponse]:
+    ) -> AsyncCursorPage[ListingSummary]:
         """Return a paginated list of listings (async).
+
+        Each item is a :class:`~listbee.types.listing.ListingSummary` with the core fields
+        needed to display listing cards. Call :meth:`get` with the listing ID for the full
+        :class:`~listbee.types.listing.ListingResponse` including deliverables, reviews, and FAQs.
 
         Async-iterate the returned page to transparently fetch subsequent pages:
 
@@ -873,14 +881,14 @@ class AsyncListings:
 
         Returns:
             An :class:`~listbee._pagination.AsyncCursorPage` of
-            :class:`~listbee.types.listing.ListingResponse` objects.
+            :class:`~listbee.types.listing.ListingSummary` objects.
         """
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
             params["cursor"] = cursor
         if status is not None:
             params["status"] = status
-        return await self._client.get_page("/v1/listings", params, ListingResponse)
+        return await self._client.get_page("/v1/listings", params, ListingSummary)
 
     async def update(
         self,

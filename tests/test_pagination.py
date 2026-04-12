@@ -14,7 +14,6 @@ class TestSyncCursorPage:
         page = SyncCursorPage(
             data=[FakeItem(name="a"), FakeItem(name="b")],
             has_more=False,
-            total_count=2,
             cursor=None,
             client=MagicMock(),
             path="/test",
@@ -29,7 +28,6 @@ class TestSyncCursorPage:
         page2 = SyncCursorPage(
             data=[FakeItem(name="c")],
             has_more=False,
-            total_count=3,
             cursor=None,
             client=mock_client,
             path="/test",
@@ -41,7 +39,6 @@ class TestSyncCursorPage:
         page1 = SyncCursorPage(
             data=[FakeItem(name="a"), FakeItem(name="b")],
             has_more=True,
-            total_count=3,
             cursor="cursor_abc",
             client=mock_client,
             path="/test",
@@ -60,7 +57,6 @@ class TestSyncCursorPage:
         page = SyncCursorPage(
             data=[],
             has_more=False,
-            total_count=0,
             cursor=None,
             client=MagicMock(),
             path="/test",
@@ -73,7 +69,6 @@ class TestSyncCursorPage:
         page = SyncCursorPage(
             data=[FakeItem(name="x")],
             has_more=True,
-            total_count=10,
             cursor="next",
             client=MagicMock(),
             path="/test",
@@ -82,6 +77,5 @@ class TestSyncCursorPage:
         )
         assert len(page.data) == 1
         assert page.has_more is True
-        assert page.total_count == 10
         assert page.cursor == "next"
         assert page.object == "list"

@@ -11,7 +11,7 @@ import respx
 from listbee._base_client import SyncClient
 from listbee.deliverable import Deliverable
 from listbee.resources.orders import Orders
-from listbee.types.order import OrderResponse
+from listbee.types.order import OrderResponse, OrderSummary
 
 ORDER_JSON = {
     "object": "order",
@@ -68,6 +68,24 @@ FULFILLED_ORDER_JSON = {
     "fulfilled_at": "2026-03-28T13:00:00Z",
 }
 
+ORDER_SUMMARY_JSON = {
+    "object": "order",
+    "id": "ord_9xM4kP7nR2qT5wY1",
+    "listing_id": "lst_abc123",
+    "buyer_email": "buyer@example.com",
+    "amount": 2999,
+    "currency": "USD",
+    "status": "paid",
+    "has_deliverables": False,
+    "payment_status": "paid",
+    "platform_fee": 0,
+    "refund_amount": 0,
+    "dispute_status": None,
+    "paid_at": "2026-03-28T12:00:01Z",
+    "fulfilled_at": None,
+    "created_at": "2026-03-28T12:00:00Z",
+}
+
 
 @pytest.fixture
 def sync_client():
@@ -105,43 +123,42 @@ class TestGetOrder:
 
 
 class TestListOrders:
-    def test_list_orders_returns_items(self, orders):
+    def test_list_orders_returns_summary_items(self, orders):
         page_json = {
-            "data": [ORDER_JSON],
+            "data": [ORDER_SUMMARY_JSON],
             "has_more": False,
-            "total_count": 1,
             "cursor": None,
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             results = list(orders.list())
         assert len(results) == 1
-        assert isinstance(results[0], OrderResponse)
+        assert isinstance(results[0], OrderSummary)
         assert results[0].id == "ord_9xM4kP7nR2qT5wY1"
 
     def test_list_orders_with_status_filter(self, orders):
-        page_json = {"data": [ORDER_JSON], "has_more": False, "total_count": 1, "cursor": None}
+        page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list(status="paid"))
         assert "status=paid" in str(route.calls[0].request.url)
 
     def test_list_orders_without_status_filter_omits_param(self, orders):
-        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        page_json = {"data": [], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list())
         assert "status" not in str(route.calls[0].request.url)
 
     def test_list_orders_with_listing_filter(self, orders):
-        page_json = {"data": [ORDER_JSON], "has_more": False, "total_count": 1, "cursor": None}
+        page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list(listing="seo-playbook"))
         assert "listing=seo-playbook" in str(route.calls[0].request.url)
 
     def test_list_orders_with_created_after_string(self, orders):
-        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        page_json = {"data": [], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list(created_after="2026-01-01T00:00:00Z"))
@@ -150,22 +167,23 @@ class TestListOrders:
     def test_list_orders_with_created_before_datetime(self, orders):
         from datetime import datetime, timezone
 
-        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        page_json = {"data": [], "has_more": False, "cursor": None}
         dt = datetime(2026, 3, 30, 12, 0, 0, tzinfo=timezone.utc)
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list(created_before=dt))
         assert "created_before=2026-03-30T12" in str(route.calls[0].request.url)
 
-    def test_list_orders_total_count(self, orders):
-        page_json = {"data": [ORDER_JSON], "has_more": False, "total_count": 99, "cursor": None}
+    def test_list_orders_has_more_and_cursor(self, orders):
+        page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": True, "cursor": "next_cur"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             page = orders.list()
-        assert page.total_count == 99
+        assert page.has_more is True
+        assert page.cursor == "next_cur"
 
     def test_list_orders_with_buyer_email_filter(self, orders):
-        page_json = {"data": [ORDER_JSON], "has_more": False, "total_count": 1, "cursor": None}
+        page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list(buyer_email="buyer@example.com"))
@@ -174,11 +192,25 @@ class TestListOrders:
         ) or "buyer_email=buyer@example.com" in str(route.calls[0].request.url)
 
     def test_list_orders_without_buyer_email_omits_param(self, orders):
-        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        page_json = {"data": [], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
             list(orders.list())
         assert "buyer_email" not in str(route.calls[0].request.url)
+
+    def test_list_orders_summary_fields(self, orders):
+        page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": False, "cursor": None}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
+            results = list(orders.list())
+        item = results[0]
+        assert item.listing_id == "lst_abc123"
+        assert item.buyer_email == "buyer@example.com"
+        assert item.amount == 2999
+        assert item.currency == "USD"
+        assert item.payment_status == "paid"
+        assert item.platform_fee == 0
+        assert item.refund_amount == 0
 
 
 class TestOrderStatus:

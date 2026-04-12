@@ -13,7 +13,7 @@ from listbee._base_client import SyncClient
 from listbee._exceptions import ListBeeError
 from listbee.deliverable import Deliverable
 from listbee.resources.listings import Listings
-from listbee.types.listing import ListingResponse
+from listbee.types.listing import ListingResponse, ListingSummary
 
 LISTING_JSON = {
     "object": "listing",
@@ -83,6 +83,25 @@ WEBHOOK_LISTING_JSON = {
 
 # Keep EXTERNAL_LISTING_JSON as an alias for backwards compatibility in tests
 EXTERNAL_LISTING_JSON = WEBHOOK_LISTING_JSON
+
+LISTING_SUMMARY_JSON = {
+    "object": "listing",
+    "id": "lst_abc123",
+    "slug": "seo-playbook",
+    "name": "SEO Playbook",
+    "tagline": None,
+    "price": 2900,
+    "compare_at_price": None,
+    "cta": None,
+    "badges": [],
+    "highlights": [],
+    "status": "published",
+    "stock": None,
+    "has_deliverables": True,
+    "has_cover": True,
+    "url": "https://buy.listbee.so/seo-playbook",
+    "created_at": "2026-03-30T12:00:00Z",
+}
 
 
 @pytest.fixture
@@ -233,34 +252,33 @@ class TestGetListing:
 
 
 class TestListListings:
-    def test_list_listings_returns_items_via_auto_iteration(self, listings):
+    def test_list_listings_returns_summary_items_via_auto_iteration(self, listings):
         page_json = {
-            "data": [LISTING_JSON],
+            "data": [LISTING_SUMMARY_JSON],
             "has_more": False,
-            "total_count": 1,
             "cursor": None,
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
             results = list(listings.list())
         assert len(results) == 1
-        assert isinstance(results[0], ListingResponse)
+        assert isinstance(results[0], ListingSummary)
         assert results[0].id == "lst_abc123"
 
-    def test_list_listings_total_count(self, listings):
+    def test_list_listings_has_more_and_cursor(self, listings):
         page_json = {
-            "data": [LISTING_JSON],
+            "data": [LISTING_SUMMARY_JSON],
             "has_more": True,
-            "total_count": 42,
             "cursor": "next_cursor",
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
             page = listings.list()
-        assert page.total_count == 42
+        assert page.has_more is True
+        assert page.cursor == "next_cursor"
 
     def test_list_listings_empty(self, listings):
-        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        page_json = {"data": [], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
             results = list(listings.list())
@@ -269,24 +287,37 @@ class TestListListings:
     def test_list_listings_passes_limit_param(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/listings").mock(
-                return_value=httpx.Response(200, json={"data": [], "has_more": False, "total_count": 0, "cursor": None})
+                return_value=httpx.Response(200, json={"data": [], "has_more": False, "cursor": None})
             )
             list(listings.list(limit=5))
         assert "limit=5" in str(route.calls[0].request.url)
 
     def test_list_listings_with_status_filter(self, listings):
-        page_json = {"data": [LISTING_JSON], "has_more": False, "total_count": 1, "cursor": None}
+        page_json = {"data": [LISTING_SUMMARY_JSON], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
             list(listings.list(status="published"))
         assert "status=published" in str(route.calls[0].request.url)
 
     def test_list_listings_without_status_omits_param(self, listings):
-        page_json = {"data": [], "has_more": False, "total_count": 0, "cursor": None}
+        page_json = {"data": [], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
             list(listings.list())
         assert "status" not in str(route.calls[0].request.url)
+
+    def test_list_listings_summary_fields(self, listings):
+        page_json = {"data": [LISTING_SUMMARY_JSON], "has_more": False, "cursor": None}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
+            results = list(listings.list())
+        item = results[0]
+        assert item.slug == "seo-playbook"
+        assert item.price == 2900
+        assert item.status == "published"
+        assert item.has_deliverables is True
+        assert item.has_cover is True
+        assert item.url == "https://buy.listbee.so/seo-playbook"
 
 
 class TestUpdateListing:

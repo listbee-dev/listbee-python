@@ -663,16 +663,23 @@ print(response.status)  # "ok"
 
 ## Pagination
 
-`listings.list()` and `orders.list()` return a `CursorPage` that auto-fetches subsequent pages when iterated.
+`listings.list()` and `orders.list()` return a cursor-paginated page that auto-fetches subsequent pages when iterated.
+
+List endpoints return **slim summary objects** (`ListingSummary` / `OrderSummary`) with core fields for display. Call `.get(id)` to retrieve the full object with all fields.
 
 ```python
 # Auto-pagination — iterates all pages transparently
+# Each item is a ListingSummary (slim: id, slug, name, price, status, url, ...)
 for listing in client.listings.list():
-    print(listing.name)
+    print(listing.name, listing.url)
+
+# Need full details? Fetch by ID
+full = client.listings.get(listing.id)
+print(full.deliverables, full.reviews, full.faqs)
 
 # Manual page control — access current page directly
 page = client.listings.list(limit=10)
-print(page.data)       # list of ListingResponse on this page
+print(page.data)       # list of ListingSummary on this page
 print(page.has_more)   # True if more pages exist
 print(page.cursor)     # cursor string for the next page
 
@@ -1112,8 +1119,10 @@ from listbee import (
     AsyncListBee,
 
     # Response models
-    ListingResponse,
-    OrderResponse,
+    ListingResponse,   # full listing (returned by get())
+    ListingSummary,    # slim listing (returned by list())
+    OrderResponse,     # full order (returned by get())
+    OrderSummary,      # slim order (returned by list())
     WebhookResponse,
     AccountResponse,
     StoreResponse,

@@ -29,10 +29,6 @@ class CursorPage(BaseModel, Generic[T]):
         description="`true` if more results exist beyond this page.",
         examples=[False],
     )
-    total_count: int = Field(
-        description="Total number of items across all pages.",
-        examples=[42],
-    )
     cursor: str | None = Field(
         default=None,
         description="Pass as the `cursor` query parameter to fetch the next page. `null` on the last page.",

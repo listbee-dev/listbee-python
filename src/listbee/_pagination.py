@@ -32,7 +32,6 @@ class SyncCursorPage(Generic[T]):
         *,
         data: list[T],
         has_more: bool,
-        total_count: int,
         cursor: str | None,
         client: SyncClient,
         path: str,
@@ -41,7 +40,6 @@ class SyncCursorPage(Generic[T]):
     ) -> None:
         self.data = data
         self.has_more = has_more
-        self.total_count = total_count
         self.cursor = cursor
         self._client = client
         self._path = path
@@ -87,7 +85,6 @@ class AsyncCursorPage(Generic[T]):
         *,
         data: list[T],
         has_more: bool,
-        total_count: int,
         cursor: str | None,
         client: AsyncClient,
         path: str,
@@ -96,7 +93,6 @@ class AsyncCursorPage(Generic[T]):
     ) -> None:
         self.data = data
         self.has_more = has_more
-        self.total_count = total_count
         self.cursor = cursor
         self._client = client
         self._path = path

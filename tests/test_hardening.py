@@ -116,7 +116,6 @@ class TestToList:
         return SyncCursorPage(
             data=[FakeItem(name=n) for n in names],
             has_more=has_more,
-            total_count=len(names),
             cursor=cursor,
             client=MagicMock(),
             path="/test",
@@ -144,7 +143,6 @@ class TestToList:
         page2 = SyncCursorPage(
             data=[FakeItem(name="c")],
             has_more=False,
-            total_count=1,
             cursor=None,
             client=mock_client,
             path="/test",
@@ -156,7 +154,6 @@ class TestToList:
         page1 = SyncCursorPage(
             data=[FakeItem(name="a"), FakeItem(name="b")],
             has_more=True,
-            total_count=3,
             cursor="cur_next",
             client=mock_client,
             path="/test",
@@ -171,7 +168,6 @@ class TestToList:
         page2 = SyncCursorPage(
             data=[FakeItem(name="c"), FakeItem(name="d")],
             has_more=False,
-            total_count=2,
             cursor=None,
             client=mock_client,
             path="/test",
@@ -183,7 +179,6 @@ class TestToList:
         page1 = SyncCursorPage(
             data=[FakeItem(name="a"), FakeItem(name="b")],
             has_more=True,
-            total_count=4,
             cursor="cur_next",
             client=mock_client,
             path="/test",
@@ -204,7 +199,6 @@ class TestAsyncToList:
         return AsyncCursorPage(
             data=[FakeItem(name=n) for n in names],
             has_more=False,
-            total_count=len(names),
             cursor=None,
             client=mock_client,
             path="/test",

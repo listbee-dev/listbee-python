@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee._raw_response import RawResponse
-from listbee.types.order import OrderResponse
+from listbee.types.order import OrderResponse, OrderSummary
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -90,8 +90,12 @@ class Orders:
         created_before: datetime | str | None = None,
         limit: int = 20,
         cursor: str | None = None,
-    ) -> SyncCursorPage[OrderResponse]:
+    ) -> SyncCursorPage[OrderSummary]:
         """Return a paginated list of orders.
+
+        Each item is an :class:`~listbee.types.order.OrderSummary` with the core fields
+        needed to display order lists. Call :meth:`get` with the order ID for the full
+        :class:`~listbee.types.order.OrderResponse` including checkout data and snapshots.
 
         Iterating the returned page automatically fetches subsequent pages:
 
@@ -111,7 +115,7 @@ class Orders:
 
         Returns:
             A :class:`~listbee._pagination.SyncCursorPage` of
-            :class:`~listbee.types.order.OrderResponse` objects.
+            :class:`~listbee.types.order.OrderSummary` objects.
         """
         params: dict[str, Any] = {"limit": limit}
         if status is not None:
@@ -130,7 +134,7 @@ class Orders:
             )
         if cursor is not None:
             params["cursor"] = cursor
-        return self._client.get_page("/v1/orders", params, OrderResponse)
+        return self._client.get_page("/v1/orders", params, OrderSummary)
 
     def fulfill(
         self,
@@ -238,8 +242,12 @@ class AsyncOrders:
         created_before: datetime | str | None = None,
         limit: int = 20,
         cursor: str | None = None,
-    ) -> AsyncCursorPage[OrderResponse]:
+    ) -> AsyncCursorPage[OrderSummary]:
         """Return a paginated list of orders (async).
+
+        Each item is an :class:`~listbee.types.order.OrderSummary` with the core fields
+        needed to display order lists. Call :meth:`get` with the order ID for the full
+        :class:`~listbee.types.order.OrderResponse` including checkout data and snapshots.
 
         Async-iterate the returned page to transparently fetch subsequent pages:
 
@@ -259,7 +267,7 @@ class AsyncOrders:
 
         Returns:
             An :class:`~listbee._pagination.AsyncCursorPage` of
-            :class:`~listbee.types.order.OrderResponse` objects.
+            :class:`~listbee.types.order.OrderSummary` objects.
         """
         params: dict[str, Any] = {"limit": limit}
         if status is not None:
@@ -278,7 +286,7 @@ class AsyncOrders:
             )
         if cursor is not None:
             params["cursor"] = cursor
-        return await self._client.get_page("/v1/orders", params, OrderResponse)
+        return await self._client.get_page("/v1/orders", params, OrderSummary)
 
     async def fulfill(
         self,

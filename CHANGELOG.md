@@ -11,11 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `OrderReadiness` model with `fulfilled`, `actions`, and `next` fields
 - `readiness` field on `OrderResponse`
 - `WebhookListResponse` type for list webhook responses
+- `ListingSummary` model for listing list responses — slim object with core fields for display
+- `OrderSummary` model for order list responses — slim object with core fields for display
 
 ### Changed
 - `PlanListResponse` now includes `cursor` and `has_more` fields (standard list envelope)
 - `WebhookListResponse` now includes `cursor` and `has_more` fields (standard list envelope)
 - `webhooks.list()` now accepts optional `cursor` and `limit` parameters for pagination
+- `listings.list()` now returns `ListingSummary` objects instead of full `Listing`; call `listings.get(id)` for the full object
+- `orders.list()` now returns `OrderSummary` objects instead of full `Order`; call `orders.get(id)` for the full object
+
+### Removed
+- `total_count` field from `ListingListResponse` and `OrderListResponse` — use cursor pagination via `has_more` and `cursor`
 
 ## [0.18.0] - 2026-04-10
 

@@ -213,7 +213,6 @@ class TestListWebhookEvents:
         assert isinstance(page.data[0], WebhookEventResponse)
         assert page.data[0].status == "delivered"
         assert page.has_more is False
-        assert page.total_count == 1
 
     def test_list_events_with_status_filter(self, webhooks):
         with respx.mock(base_url="https://api.listbee.so") as mock:

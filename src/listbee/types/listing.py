@@ -16,6 +16,100 @@ from listbee.types.shared import (
 )
 
 
+class ListingSummary(BaseModel):
+    """Slim listing object returned in list responses.
+
+    Use :meth:`~listbee.resources.listings.Listings.get` to retrieve the full
+    :class:`ListingResponse` with deliverables, reviews, FAQs, and all other fields.
+    """
+
+    object: Literal["listing"] = Field(
+        default="listing",
+        description="Object type discriminator. Always `listing`.",
+        examples=["listing"],
+    )
+    id: str = Field(
+        description="Unique listing identifier.",
+        examples=["lst_7kQ2xY9mN3pR5tW1vB8a"],
+    )
+    slug: str = Field(
+        description="URL slug used on the product page.",
+        examples=["seo-playbook"],
+    )
+    name: str = Field(
+        description="Product name shown on the product page.",
+        examples=["SEO Playbook 2026"],
+    )
+    tagline: str | None = Field(
+        default=None,
+        description="Short line shown below the product name.",
+        examples=["Updated for 2026 algorithm changes"],
+    )
+    price: int = Field(
+        description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
+        examples=[2900],
+    )
+    compare_at_price: int | None = Field(
+        default=None,
+        description="Strikethrough price in smallest currency unit.",
+        examples=[3900],
+    )
+    cta: str | None = Field(
+        default=None,
+        description="Buy button text. Defaults to 'Buy Now' when not set.",
+        examples=["Get Instant Access"],
+    )
+    badges: list[str] = Field(
+        default_factory=list,
+        description="Short promotional badges shown on the product page.",
+        examples=[["Limited time", "Best seller"]],
+    )
+    highlights: list[str] = Field(
+        default_factory=list,
+        description="Bullet-point feature badges shown on the product page.",
+        examples=[["50+ pages", "Actionable tips", "Free updates"]],
+    )
+    status: ListingStatus = Field(
+        description="Current listing status.",
+        examples=["draft"],
+    )
+    stock: int | None = Field(
+        default=None,
+        description="Available stock quantity. Null means unlimited.",
+    )
+    has_deliverables: bool = Field(
+        description="`true` if one or more deliverables are attached to this listing.",
+        examples=[True],
+    )
+    has_cover: bool = Field(
+        description="`true` if a cover image exists (uploaded or auto-generated).",
+        examples=[True],
+    )
+    url: str | None = Field(
+        default=None,
+        description="Full product page URL — share this with buyers.",
+        examples=["https://buy.listbee.so/seo-playbook"],
+    )
+    created_at: datetime = Field(
+        description="ISO 8601 timestamp of when the listing was created.",
+    )
+
+    @property
+    def is_draft(self) -> bool:
+        """True when the listing is in draft state (not visible to buyers)."""
+        return self.status == "draft"
+
+    @property
+    def is_published(self) -> bool:
+        """True when the listing is published and visible to buyers."""
+        return self.status == "published"
+
+    @property
+    def is_in_stock(self) -> bool:
+        """True when the listing has available stock (or unlimited stock when stock is None)."""
+        return self.stock is None or self.stock > 0
+
+
 class Review(BaseModel):
     """A single buyer review card displayed on the listing product page."""
 
