@@ -271,7 +271,7 @@ OP_ID_OVERRIDES: dict[str, str] = {
     "disconnect_stripe": "disconnect",
     "bootstrap_start": "start",
     "bootstrap_verify": "verify",
-    "bootstrap_store": "create_store",
+    "bootstrap_complete": "complete",
 }
 
 # Multi-word resource names (operation ID resource part → SDK resource file stem)

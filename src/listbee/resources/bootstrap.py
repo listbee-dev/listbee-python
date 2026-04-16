@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from listbee.types.bootstrap import BootstrapResponse, BootstrapVerifyResponse
-from listbee.types.store import StoreResponse
+from listbee.types.bootstrap import BootstrapCompleteResponse, BootstrapResponse, BootstrapVerifyResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -18,10 +17,9 @@ class Bootstrap:
 
     1. ``start(email)`` — sends an OTP to the email address, returns a session ID
     2. ``verify(session, code)`` — verifies the OTP, returns a verified session ID
-    3. ``create_store(session, store_name)`` — creates the store, returns a
-       :class:`~listbee.types.store.StoreResponse` with ``api_key`` set once
+    3. ``complete(session)`` — creates the account and returns the API key (shown once)
 
-    The ``api_key`` in the :class:`~listbee.types.store.StoreResponse` is only
+    The ``api_key`` in the :class:`~listbee.types.bootstrap.BootstrapCompleteResponse` is only
     returned once. Store it immediately and use it as the Bearer token for all
     subsequent API calls.
 
@@ -34,11 +32,8 @@ class Bootstrap:
 
         session = client.bootstrap.start(email="seller@example.com")
         verified = client.bootstrap.verify(session=session.session, code="123456")
-        store = client.bootstrap.create_store(
-            session=verified.session,
-            store_name="Acme Agency",
-        )
-        print(store.api_key)  # lb_... — save this immediately
+        result = client.bootstrap.complete(session=verified.session)
+        print(result.api_key)  # lb_... — save this immediately
     """
 
     def __init__(self, client: SyncClient) -> None:
@@ -71,7 +66,7 @@ class Bootstrap:
 
         Returns:
             A :class:`~listbee.types.bootstrap.BootstrapVerifyResponse` with
-            a verified session ID to pass to :meth:`create_store`.
+            a verified session ID to pass to :meth:`complete`.
         """
         response = self._client.post(
             "/v1/bootstrap/verify",
@@ -79,25 +74,24 @@ class Bootstrap:
         )
         return BootstrapVerifyResponse.model_validate(response.json())
 
-    def create_store(self, *, session: str, store_name: str) -> StoreResponse:
-        """Create the store — final step of bootstrap.
+    def complete(self, *, session: str) -> BootstrapCompleteResponse:
+        """Complete bootstrap — creates the account and returns the API key.
 
-        This is step 3 of 3. Creates the account, store, and API key.
-        The ``api_key`` in the response is shown **once** — store it immediately.
+        This is step 3 of 3. The ``api_key`` in the response is shown **once** —
+        store it immediately and use it as the Bearer token for all future API calls.
 
         Args:
             session: Verified session ID from :meth:`verify`.
-            store_name: Display name for the store (shown to buyers).
 
         Returns:
-            A :class:`~listbee.types.store.StoreResponse` with ``api_key`` set.
-            Use the ``api_key`` value as the Bearer token for all future API calls.
+            A :class:`~listbee.types.bootstrap.BootstrapCompleteResponse` with
+            ``account_id`` and ``api_key`` set.
         """
         response = self._client.post(
-            "/v1/bootstrap/store",
-            json={"session": session, "store_name": store_name},
+            "/v1/bootstrap/complete",
+            json={"session": session},
         )
-        return StoreResponse.model_validate(response.json())
+        return BootstrapCompleteResponse.model_validate(response.json())
 
 
 class AsyncBootstrap:
@@ -107,8 +101,7 @@ class AsyncBootstrap:
 
     1. ``start(email)`` — sends an OTP to the email address, returns a session ID
     2. ``verify(session, code)`` — verifies the OTP, returns a verified session ID
-    3. ``create_store(session, store_name)`` — creates the store, returns a
-       :class:`~listbee.types.store.StoreResponse` with ``api_key`` set once
+    3. ``complete(session)`` — creates the account and returns the API key (shown once)
 
     Example::
 
@@ -118,11 +111,8 @@ class AsyncBootstrap:
 
         session = await client.bootstrap.start(email="seller@example.com")
         verified = await client.bootstrap.verify(session=session.session, code="123456")
-        store = await client.bootstrap.create_store(
-            session=verified.session,
-            store_name="Acme Agency",
-        )
-        print(store.api_key)  # lb_... — save this immediately
+        result = await client.bootstrap.complete(session=verified.session)
+        print(result.api_key)  # lb_... — save this immediately
     """
 
     def __init__(self, client: AsyncClient) -> None:
@@ -154,7 +144,7 @@ class AsyncBootstrap:
 
         Returns:
             A :class:`~listbee.types.bootstrap.BootstrapVerifyResponse` with
-            a verified session ID to pass to :meth:`create_store`.
+            a verified session ID to pass to :meth:`complete`.
         """
         response = await self._client.post(
             "/v1/bootstrap/verify",
@@ -162,21 +152,21 @@ class AsyncBootstrap:
         )
         return BootstrapVerifyResponse.model_validate(response.json())
 
-    async def create_store(self, *, session: str, store_name: str) -> StoreResponse:
-        """Create the store — final step of bootstrap (async).
+    async def complete(self, *, session: str) -> BootstrapCompleteResponse:
+        """Complete bootstrap — creates the account and returns the API key (async).
 
-        The ``api_key`` in the response is shown **once** — store it immediately.
+        This is step 3 of 3. The ``api_key`` in the response is shown **once** —
+        store it immediately and use it as the Bearer token for all future API calls.
 
         Args:
             session: Verified session ID from :meth:`verify`.
-            store_name: Display name for the store.
 
         Returns:
-            A :class:`~listbee.types.store.StoreResponse` with ``api_key`` set.
-            Use the ``api_key`` value as the Bearer token for all future API calls.
+            A :class:`~listbee.types.bootstrap.BootstrapCompleteResponse` with
+            ``account_id`` and ``api_key`` set.
         """
         response = await self._client.post(
-            "/v1/bootstrap/store",
-            json={"session": session, "store_name": store_name},
+            "/v1/bootstrap/complete",
+            json={"session": session},
         )
-        return StoreResponse.model_validate(response.json())
+        return BootstrapCompleteResponse.model_validate(response.json())

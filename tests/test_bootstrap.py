@@ -10,8 +10,7 @@ import respx
 
 from listbee._base_client import SyncClient
 from listbee.resources.bootstrap import Bootstrap
-from listbee.types.bootstrap import BootstrapResponse, BootstrapVerifyResponse
-from listbee.types.store import StoreResponse
+from listbee.types.bootstrap import BootstrapCompleteResponse, BootstrapResponse, BootstrapVerifyResponse
 
 BOOTSTRAP_RESPONSE_JSON = {
     "object": "bootstrap_session",
@@ -25,32 +24,10 @@ BOOTSTRAP_VERIFY_JSON = {
     "session": "sess_abc123_verified",
 }
 
-STORE_JSON = {
-    "object": "store",
-    "id": "st_new1234567890",
-    "display_name": "Acme Agency",
-    "slug": "acme-agency",
-    "bio": None,
-    "avatar_url": None,
-    "url": "https://buy.listbee.so/acme-agency",
+BOOTSTRAP_COMPLETE_JSON = {
+    "object": "bootstrap",
+    "account_id": "acc_new1234567890",
     "api_key": "lb_new_apikey_abc123",
-    "readiness": {
-        "sellable": False,
-        "actions": [
-            {
-                "code": "connect_stripe",
-                "kind": "human",
-                "message": "Connect a Stripe account to accept payments",
-                "resolve": {
-                    "method": "GET",
-                    "endpoint": None,
-                    "url": "https://listbee.so/connect/stripe",
-                    "params": None,
-                },
-            }
-        ],
-        "next": "connect_stripe",
-    },
 }
 
 
@@ -102,37 +79,32 @@ class TestBootstrapVerify:
         assert result.object == "bootstrap_session"
 
 
-class TestBootstrapCreateStore:
-    def test_create_store_sends_session_and_name(self, bootstrap):
+class TestBootstrapComplete:
+    def test_complete_sends_session(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/bootstrap/store").mock(return_value=httpx.Response(200, json=STORE_JSON))
-            result = bootstrap.create_store(
-                session="sess_abc123_verified",
-                store_name="Acme Agency",
+            route = mock.post("/v1/bootstrap/complete").mock(
+                return_value=httpx.Response(201, json=BOOTSTRAP_COMPLETE_JSON)
             )
+            result = bootstrap.complete(session="sess_abc123_verified")
         body = json.loads(route.calls[0].request.content)
-        assert body == {"session": "sess_abc123_verified", "store_name": "Acme Agency"}
-        assert isinstance(result, StoreResponse)
+        assert body == {"session": "sess_abc123_verified"}
+        assert isinstance(result, BootstrapCompleteResponse)
 
-    def test_create_store_returns_store_with_api_key(self, bootstrap):
+    def test_complete_returns_account_id_and_api_key(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/bootstrap/store").mock(return_value=httpx.Response(200, json=STORE_JSON))
-            result = bootstrap.create_store(
-                session="sess_abc123_verified",
-                store_name="Acme Agency",
-            )
-        assert isinstance(result, StoreResponse)
-        assert result.id == "st_new1234567890"
-        assert result.display_name == "Acme Agency"
+            mock.post("/v1/bootstrap/complete").mock(return_value=httpx.Response(201, json=BOOTSTRAP_COMPLETE_JSON))
+            result = bootstrap.complete(session="sess_abc123_verified")
+        assert isinstance(result, BootstrapCompleteResponse)
+        assert result.object == "bootstrap"
+        assert result.account_id == "acc_new1234567890"
         assert result.api_key == "lb_new_apikey_abc123"
-        assert result.readiness.sellable is False
 
     def test_full_bootstrap_flow(self, bootstrap):
         """Integration-style test: full 3-step bootstrap flow."""
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.post("/v1/bootstrap").mock(return_value=httpx.Response(200, json=BOOTSTRAP_RESPONSE_JSON))
             mock.post("/v1/bootstrap/verify").mock(return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON))
-            mock.post("/v1/bootstrap/store").mock(return_value=httpx.Response(200, json=STORE_JSON))
+            mock.post("/v1/bootstrap/complete").mock(return_value=httpx.Response(201, json=BOOTSTRAP_COMPLETE_JSON))
 
             # Step 1: start
             step1 = bootstrap.start(email="seller@example.com")
@@ -142,9 +114,7 @@ class TestBootstrapCreateStore:
             step2 = bootstrap.verify(session=step1.session, code="123456")
             assert step2.verified is True
 
-            # Step 3: create store
-            store = bootstrap.create_store(
-                session=step2.session,
-                store_name="Acme Agency",
-            )
-            assert store.api_key == "lb_new_apikey_abc123"
+            # Step 3: complete
+            result = bootstrap.complete(session=step2.session)
+            assert result.api_key == "lb_new_apikey_abc123"
+            assert result.account_id == "acc_new1234567890"

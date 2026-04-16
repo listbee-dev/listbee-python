@@ -29,8 +29,7 @@ client = ListBee(api_key="lb_...")
 
 | Resource | Methods |
 |----------|---------|
-| Bootstrap | start, verify, create_store |
-| Store | get, update |
+| Bootstrap | start, verify, complete |
 | Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, add_deliverable, remove_deliverable, create_complete, publish |
 | Orders | get, list, fulfill, refund |
 | Customers | get, list |
@@ -111,16 +110,13 @@ print(session.session)   # sess_abc123
 verified = client.bootstrap.verify(session=session.session, code="123456")
 print(verified.verified)   # True
 
-# Step 3 — create store and get API key (shown once — save immediately)
-store = client.bootstrap.create_store(
-    session=verified.session,
-    store_name="Acme Agency",
-)
-print(store.api_key)   # lb_... — store this securely
-print(store.url)       # https://buy.listbee.so/acme-agency
+# Step 3 — complete bootstrap and get API key (shown once — save immediately)
+result = client.bootstrap.complete(session=verified.session)
+print(result.api_key)       # lb_... — store this securely
+print(result.account_id)    # acc_7kQ2xY9mN3pR5tW1
 ```
 
-The `api_key` in the `StoreResponse` is returned **only once**. Store it in your secrets manager before continuing.
+The `api_key` in the `BootstrapCompleteResponse` is returned **only once**. Store it in your secrets manager before continuing.
 
 ### Existing key
 
@@ -203,18 +199,19 @@ client.listings.set_deliverables(
     deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
 )
 listing = client.listings.publish(listing.id)
-print(listing.url)   # https://buy.listbee.so/m3pr5tw1
+print(listing.url)          # https://buy.listbee.so/r7kq2xy
+print(listing.short_code)   # r7kq2xy — 7-char code used in the listing URL
 
-# Get by slug
-listing = client.listings.get("m3pr5tw1")
+# Get by ID
+listing = client.listings.get("lst_r7kq2xy9m3pR5tW1")
 
 # List — auto-paginates
 for listing in client.listings.list():
-    print(listing.slug, listing.name)
+    print(listing.short_code, listing.name)
 
 # Update — partial updates
 updated = client.listings.update(
-    "r7kq2xy9",
+    "lst_r7kq2xy9m3pR5tW1",
     name="SEO Playbook 2026 Updated",
     price=3900,
 )
@@ -223,7 +220,7 @@ updated = client.listings.update(
 from listbee import CheckoutField
 
 updated = client.listings.update(
-    "r7kq2xy9",
+    "lst_r7kq2xy9m3pR5tW1",
     fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
     checkout_schema=[
         CheckoutField.text("notes", label="Special Instructions", sort_order=0),
@@ -232,7 +229,7 @@ updated = client.listings.update(
 
 # Raw dicts also accepted for backward compatibility:
 updated = client.listings.update(
-    "r7kq2xy9",
+    "lst_r7kq2xy9m3pR5tW1",
     checkout_schema=[
         {"key": "notes", "label": "Special Instructions", "type": "text", "sort_order": 0},
     ],
@@ -240,25 +237,25 @@ updated = client.listings.update(
 
 # Set deliverables on a draft listing (one or more)
 client.listings.set_deliverables(
-    "r7kq2xy9",
+    "lst_r7kq2xy9m3pR5tW1",
     deliverables=[
         Deliverable.url("https://example.com/seo-playbook.pdf"),
     ],
 )
 
 # Remove all deliverables from a draft listing
-client.listings.remove_deliverables("r7kq2xy9")
+client.listings.remove_deliverables("lst_r7kq2xy9m3pR5tW1")
 
 # Add a single deliverable
-client.listings.add_deliverable("r7kq2xy9", Deliverable.url("https://example.com/playbook.pdf"))
-client.listings.add_deliverable("r7kq2xy9", Deliverable.text("Your license key: XXXX-XXXX"))
+client.listings.add_deliverable("lst_r7kq2xy9m3pR5tW1", Deliverable.url("https://example.com/playbook.pdf"))
+client.listings.add_deliverable("lst_r7kq2xy9m3pR5tW1", Deliverable.text("Your license key: XXXX-XXXX"))
 
 with open("guide.pdf", "rb") as f:
     file = client.files.upload(file=f, filename="guide.pdf")
-client.listings.add_deliverable("r7kq2xy9", Deliverable.from_token(file.id))
+client.listings.add_deliverable("lst_r7kq2xy9m3pR5tW1", Deliverable.from_token(file.id))
 
 # Remove a single deliverable by del_ ID
-client.listings.remove_deliverable("r7kq2xy9", "del_4hR9nK2mQ7tV5wX1")
+client.listings.remove_deliverable("lst_r7kq2xy9m3pR5tW1", "del_4hR9nK2mQ7tV5wX1")
 
 # Create a listing and attach deliverables in one call
 listing = client.listings.create_complete(
@@ -271,7 +268,7 @@ listing = client.listings.create_complete(
 listing = client.listings.publish(listing.id)
 
 # Publish a draft listing — makes it live and purchasable
-listing = client.listings.publish("r7kq2xy9")
+listing = client.listings.publish("lst_r7kq2xy9m3pR5tW1")
 print(listing.status)    # "published"
 
 # Set cover image — accepts a file_ token, image URL, bytes, or BinaryIO
@@ -405,37 +402,6 @@ client.account.update(ga_measurement_id=None)  # clear GA ID
 client.account.delete()
 ```
 
-Brand information (display name, bio, avatar, slug) lives on the Store — see the [Store](#store) section.
-
-### Store
-
-```python
-store = client.store.get()
-print(store.id)            # st_7kQ2xY9mN3pR5tW1vB8a
-print(store.display_name)  # Acme Agency
-print(store.slug)          # acme-agency
-print(store.url)           # https://buy.listbee.so/acme-agency
-print(store.has_avatar)    # True when an avatar has been uploaded
-print(store.readiness.sellable)
-
-# Update brand information
-store = client.store.update(display_name="New Agency Name")
-store = client.store.update(bio="We help teams ship faster.")
-store = client.store.update(slug="new-slug")
-
-# Set avatar — one-step helper: accepts a file token, URL, bytes, or BinaryIO
-# From a URL (fetched, validated as image, uploaded, then applied):
-store = client.store.set_avatar("https://example.com/avatar.png")
-
-# From local file bytes:
-with open("avatar.png", "rb") as f:
-    store = client.store.set_avatar(f)
-
-# From a pre-uploaded file token:
-file = client.files.upload(file=("avatar.png", img_bytes, "image/png"), purpose="avatar")
-store = client.store.update(avatar=file.id)
-```
-
 ### Customers
 
 ```python
@@ -478,9 +444,8 @@ client.listings.set_deliverables(
     deliverables=[Deliverable.from_token(file.id)],
 )
 
-# Or use set_cover / set_avatar convenience helpers (handle upload automatically)
+# Or use set_cover convenience helper (handles upload automatically)
 client.listings.set_cover("lst_r7kq2xy9", cover.id)   # token
-client.store.set_avatar(avatar.id)                      # token
 ```
 
 ### Stripe
@@ -669,7 +634,7 @@ List endpoints return **slim summary objects** (`ListingSummary` / `OrderSummary
 
 ```python
 # Auto-pagination — iterates all pages transparently
-# Each item is a ListingSummary (slim: id, slug, name, price, status, url, ...)
+# Each item is a ListingSummary (slim: id, short_code, name, price, status, url, ...)
 for listing in client.listings.list():
     print(listing.name, listing.url)
 
@@ -1053,7 +1018,7 @@ async def main():
 
     # Iterate all listings
     async for listing in await client.listings.list():
-        print(listing.slug, listing.name)
+        print(listing.short_code, listing.name)
 
     # Filter paid orders
     async for order in await client.orders.list(status="paid"):
@@ -1125,10 +1090,9 @@ from listbee import (
     OrderSummary,      # slim order (returned by list())
     WebhookResponse,
     AccountResponse,
-    StoreResponse,
-    StoreReadiness,
     BootstrapResponse,
     BootstrapVerifyResponse,
+    BootstrapCompleteResponse,
     CustomerResponse,
     FileResponse,
     ListingReadiness,
@@ -1208,31 +1172,42 @@ for action in listing.readiness.actions:
 
 ## Migration Guide
 
-### From v0.16.x to Unreleased
+### From v0.19.x to Unreleased
+
+**Breaking Change: Store resource removed**
+
+`client.store` no longer exists. `StoreResponse` and `StoreReadiness` types are removed.
+
+**Breaking Change: Bootstrap step 3 changed — `create_store()` replaced by `complete()`**
+
+```python
+# Old (v0.19.x)
+store = client.bootstrap.create_store(session=verified.session, store_name="Acme Agency")
+print(store.api_key)   # lb_...
+
+# New — complete() takes only session, returns BootstrapCompleteResponse
+result = client.bootstrap.complete(session=verified.session)
+print(result.api_key)       # lb_... — store immediately
+print(result.account_id)    # acc_...
+```
+
+**Breaking Change: Listing `slug` field replaced by `short_code`**
+
+```python
+# Old (v0.19.x)
+listing = client.listings.get("lst_abc123")
+print(listing.slug)   # "seo-playbook"
+
+# New
+listing = client.listings.get("lst_abc123")
+print(listing.short_code)   # "r7kq2xy" — 7-char base62 code
+```
+
+### From v0.16.x to v0.19.x
 
 **Breaking Change: Store `avatar_url` field removed — use `has_avatar` bool**
 
 `StoreResponse.avatar_url` is replaced by `StoreResponse.has_avatar` (bool). To set the avatar, upload a file token and pass it to `update(avatar=...)` or use the `set_avatar()` helper.
-
-```python
-# Old (v0.16.x)
-store = client.store.get()
-print(store.avatar_url)   # URL or None
-
-client.store.update(avatar_url="https://example.com/avatar.png")
-
-# New
-store = client.store.get()
-print(store.has_avatar)   # True / False
-
-# One-step helper: URL, bytes, BinaryIO, or file_ token
-client.store.set_avatar("https://example.com/avatar.png")
-client.store.set_avatar(open("avatar.png", "rb"))
-
-# Or upload manually and pass the token
-file = client.files.upload(file=("avatar.png", img_bytes, "image/png"), purpose="avatar")
-client.store.update(avatar=file.id)
-```
 
 **New: `set_cover()` on listings — one-step cover image upload**
 
@@ -1258,30 +1233,12 @@ The `client.api_keys` resource has been removed. Use the bootstrap flow to creat
 new_key = client.api_keys.create(name="CI pipeline")
 print(new_key.key)
 
-# New (v0.16.x) — bootstrap creates the account and issues the key
+# New (v0.16.x+) — bootstrap creates the account and issues the key
 client = ListBee(api_key="")
 session = client.bootstrap.start(email="seller@example.com")
 verified = client.bootstrap.verify(session=session.session, code="123456")
-store = client.bootstrap.create_store(session=verified.session, store_name="Acme Agency")
-print(store.api_key)  # lb_... — save immediately
-```
-
-**Breaking Change: Brand fields moved from Account to Store**
-
-`display_name`, `bio`, and `has_avatar` are no longer on `AccountResponse`. They now live on `StoreResponse`.
-
-```python
-# Old (v0.15.x)
-account = client.account.get()
-print(account.display_name)
-
-client.account.update(display_name="New Name", bio="Short bio")
-
-# New (v0.16.x)
-store = client.store.get()
-print(store.display_name)
-
-client.store.update(display_name="New Name", bio="Short bio")
+result = client.bootstrap.complete(session=verified.session)
+print(result.api_key)  # lb_... — save immediately
 ```
 
 ### From v0.14.x to v0.15.x

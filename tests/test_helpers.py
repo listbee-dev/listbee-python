@@ -314,7 +314,7 @@ class TestOrderStateHelpers:
 BASE_LISTING = {
     "object": "listing",
     "id": "lst_abc123",
-    "slug": "seo-playbook",
+    "short_code": "r7kq2xy",
     "name": "SEO Playbook",
     "description": None,
     "tagline": None,

@@ -18,7 +18,7 @@ from listbee.types.listing import ListingResponse, ListingSummary
 LISTING_JSON = {
     "object": "listing",
     "id": "lst_abc123",
-    "slug": "seo-playbook",
+    "short_code": "r7kq2xy",
     "name": "SEO Playbook",
     "description": None,
     "tagline": None,
@@ -64,7 +64,7 @@ LISTING_JSON = {
 WEBHOOK_LISTING_JSON = {
     **LISTING_JSON,
     "id": "lst_ext456",
-    "slug": "custom-service",
+    "short_code": "m3pr5tw",
     "name": "Custom Service",
     "fulfillment_url": "https://yourapp.com/webhooks/fulfill",
     "has_deliverables": False,
@@ -87,7 +87,7 @@ EXTERNAL_LISTING_JSON = WEBHOOK_LISTING_JSON
 LISTING_SUMMARY_JSON = {
     "object": "listing",
     "id": "lst_abc123",
-    "slug": "seo-playbook",
+    "short_code": "r7kq2xy",
     "name": "SEO Playbook",
     "tagline": None,
     "price": 2900,
@@ -121,7 +121,7 @@ class TestCreateListing:
             result = listings.create(name="SEO Playbook", price=2999, deliverable="https://example.com/file.pdf")
         assert isinstance(result, ListingResponse)
         assert result.id == "lst_abc123"
-        assert result.slug == "seo-playbook"
+        assert result.short_code == "r7kq2xy"
         assert result.name == "SEO Playbook"
         assert result.price == 2900
         assert result.status == "published"
@@ -241,7 +241,7 @@ class TestGetListing:
             mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_JSON))
             result = listings.get("lst_abc123")
         assert isinstance(result, ListingResponse)
-        assert result.slug == "seo-playbook"
+        assert result.short_code == "r7kq2xy"
         assert result.id == "lst_abc123"
 
     def test_get_listing_sends_correct_path(self, listings):
@@ -312,7 +312,7 @@ class TestListListings:
             mock.get("/v1/listings").mock(return_value=httpx.Response(200, json=page_json))
             results = list(listings.list())
         item = results[0]
-        assert item.slug == "seo-playbook"
+        assert item.short_code == "r7kq2xy"
         assert item.price == 2900
         assert item.status == "published"
         assert item.has_deliverables is True

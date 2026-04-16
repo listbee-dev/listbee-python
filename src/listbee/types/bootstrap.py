@@ -38,6 +38,28 @@ class BootstrapVerifyResponse(BaseModel):
         examples=[True],
     )
     session: str = Field(
-        description="Verified session ID. Pass to POST /v1/bootstrap/store.",
+        description="Verified session ID. Pass to POST /v1/bootstrap/complete.",
         examples=["sess_abc123"],
+    )
+
+
+class BootstrapCompleteResponse(BaseModel):
+    """Response from POST /v1/bootstrap/complete — step 3 of the bootstrap flow.
+
+    The ``api_key`` is returned **only once** — store it immediately in your secrets
+    manager before making any other API calls.
+    """
+
+    object: Literal["bootstrap"] = Field(
+        default="bootstrap",
+        description="Object type identifier. Always `bootstrap`.",
+        examples=["bootstrap"],
+    )
+    account_id: str = Field(
+        description="Newly created account ID (acc_ prefixed).",
+        examples=["acc_7kQ2xY9mN3pR5tW1"],
+    )
+    api_key: str = Field(
+        description="Raw API key shown once at creation. Use as `Authorization: Bearer lb_...`.",
+        examples=["lb_abc123"],
     )

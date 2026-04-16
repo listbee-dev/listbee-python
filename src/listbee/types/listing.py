@@ -32,9 +32,9 @@ class ListingSummary(BaseModel):
         description="Unique listing identifier.",
         examples=["lst_7kQ2xY9mN3pR5tW1vB8a"],
     )
-    slug: str = Field(
-        description="URL slug used on the product page.",
-        examples=["seo-playbook"],
+    short_code: str = Field(
+        description="7-character base62 short code used in product page URLs.",
+        examples=["r7kq2xy"],
     )
     name: str = Field(
         description="Product name shown on the product page.",
@@ -152,9 +152,9 @@ class ListingResponse(BaseModel):
         description="Unique listing identifier.",
         examples=["lst_7kQ2xY9mN3pR5tW1vB8a"],
     )
-    slug: str = Field(
-        description="URL slug used on the product page.",
-        examples=["seo-playbook"],
+    short_code: str = Field(
+        description="7-character base62 short code used in product page URLs.",
+        examples=["r7kq2xy"],
     )
     name: str = Field(
         description="Product name shown on the product page.",

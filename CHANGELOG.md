@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `complete()` method on `Bootstrap` and `AsyncBootstrap` resources (POST /v1/bootstrap/complete)
+- `BootstrapCompleteResponse` type with `account_id` and `api_key` fields
+- `short_code` field on `ListingResponse` and `ListingSummary` — 7-character base62 code used in product page URLs
+
+### Changed
+- Bootstrap flow: `create_store()` replaced by `complete(session)` — step 3 now calls `/v1/bootstrap/complete` and returns `BootstrapCompleteResponse` instead of `StoreResponse`
+- `BootstrapVerifyResponse.session` description updated to reference `/v1/bootstrap/complete`
+
+### Removed
+- `Store` resource (`Store`, `AsyncStore` classes) — `client.store` no longer exists
+- `StoreResponse`, `StoreReadiness` types
+- `create_store()` method from `Bootstrap` and `AsyncBootstrap` (replaced by `complete()`)
+- `slug` field from `ListingResponse`, `ListingSummary`, and `UpdateListingRequest`
+- `BootstrapStoreRequest`, `StoreUpdateRequest` schema types (not previously exported but now absent from API)
+
 ## [0.19.0] - 2026-04-12
 
 ### Added

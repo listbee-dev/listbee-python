@@ -6,10 +6,10 @@ Usage:
     client = ListBee(api_key="lb_...")
     listing = client.listings.create(name="SEO Playbook", price=2999)
     client.listings.set_deliverables(
-        listing.slug,
+        listing.id,
         deliverables=[{"type": "url", "value": "https://example.com/ebook.pdf"}],
     )
-    listing = client.listings.publish(listing.slug)
+    listing = client.listings.publish(listing.id)
     print(listing.url)
 """
 
@@ -55,6 +55,7 @@ from listbee.types import (
     ActionPriority,
     ActionResolve,
     BlurMode,
+    BootstrapCompleteResponse,
     BootstrapResponse,
     BootstrapVerifyResponse,
     CheckoutFieldResponse,
@@ -76,8 +77,6 @@ from listbee.types import (
     PaymentStatus,
     PlanListResponse,
     Review,
-    StoreReadiness,
-    StoreResponse,
     StripeConnectSessionResponse,
     WebhookEventResponse,
     WebhookEventType,
@@ -126,6 +125,7 @@ __all__ = [
     "ActionPriority",
     "ActionResolve",
     "BlurMode",
+    "BootstrapCompleteResponse",
     "BootstrapResponse",
     "BootstrapVerifyResponse",
     "CheckoutField",
@@ -148,8 +148,6 @@ __all__ = [
     "PaymentStatus",
     "PlanListResponse",
     "Review",
-    "StoreReadiness",
-    "StoreResponse",
     "StripeConnectSessionResponse",
     "WebhookEventResponse",
     "WebhookEventType",
