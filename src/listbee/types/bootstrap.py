@@ -46,20 +46,26 @@ class BootstrapVerifyResponse(BaseModel):
 class BootstrapCompleteResponse(BaseModel):
     """Response from POST /v1/bootstrap/complete — step 3 of the bootstrap flow.
 
-    The ``api_key`` is returned **only once** — store it immediately in your secrets
-    manager before making any other API calls.
+    The ``api_key`` is a one-time secret — store it immediately in your secrets
+    manager. It is re-retrievable within 10 minutes by calling this endpoint again
+    with the same session, after which it is permanently hidden.
     """
 
     object: Literal["bootstrap"] = Field(
         default="bootstrap",
-        description="Object type identifier. Always `bootstrap`.",
+        description="Object type identifier.",
         examples=["bootstrap"],
     )
     account_id: str = Field(
-        description="Newly created account ID (acc_ prefixed).",
-        examples=["acc_7kQ2xY9mN3pR5tW1"],
+        description="Newly created or existing account ID. Use as the owner identity for all API calls.",
+        examples=["acc_01J3K4M5N6P7Q8R9S0T1U2V3W4"],
     )
     api_key: str = Field(
-        description="Raw API key shown once at creation. Use as `Authorization: Bearer lb_...`.",
-        examples=["lb_abc123"],
+        description=(
+            "One-time API key — store it immediately. "
+            "Re-retrievable within 10 minutes by calling this endpoint again with the same session, "
+            "after which it will NOT be shown again. "
+            "Use as `Authorization: Bearer lb_...` on all subsequent API calls."
+        ),
+        examples=["lb_01J3K4M5N6P7Q8R9S0T1U2V3W4X5Y6Z7"],
     )

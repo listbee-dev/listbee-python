@@ -110,13 +110,13 @@ print(session.session)   # sess_abc123
 verified = client.bootstrap.verify(session=session.session, code="123456")
 print(verified.verified)   # True
 
-# Step 3 — complete bootstrap and get API key (shown once — save immediately)
+# Step 3 — complete bootstrap and get API key (re-retrievable within 10 min — save immediately)
 result = client.bootstrap.complete(session=verified.session)
 print(result.api_key)       # lb_... — store this securely
-print(result.account_id)    # acc_7kQ2xY9mN3pR5tW1
+print(result.account_id)    # acc_01J3K4M5N6P7Q8R9S0T1U2V3W4
 ```
 
-The `api_key` in the `BootstrapCompleteResponse` is returned **only once**. Store it in your secrets manager before continuing.
+The `api_key` in the `BootstrapCompleteResponse` is a one-time secret. Store it in your secrets manager immediately. It is re-retrievable within 10 minutes by calling `complete()` again with the same session — after that window it will not be shown again.
 
 ### Existing key
 
