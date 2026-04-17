@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-04-17
+
 ### Changed
 - `BootstrapCompleteResponse` now matches the upstream API schema exactly (`object`, `account_id`, `api_key`). Previously this type was hand-written with possible drift.
 - Documented that `bootstrap.complete()` is idempotent within 10 minutes via the same session (re-reveal path)
