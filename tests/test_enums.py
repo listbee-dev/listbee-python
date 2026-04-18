@@ -21,12 +21,11 @@ class TestWebhookEventType:
             "listing.published",
             "listing.out_of_stock",
             "listing.deleted",
-            "customer.created",
         }
         assert {e.value for e in WebhookEventType} == expected
 
     def test_no_stale_values(self):
-        stale = {"order.shipped", "listing.paused", "listing.resumed"}
+        stale = {"order.shipped", "listing.paused", "listing.resumed", "customer.created"}
         current = {e.value for e in WebhookEventType}
         assert stale.isdisjoint(current)
 
@@ -34,6 +33,19 @@ class TestWebhookEventType:
 class TestActionCode:
     def test_canonical_values(self):
         expected = {
+            "otp_verification_pending",
+            "stripe_connect_required",
+            "stripe_charges_disabled",
+            "account_deleted",
+            "listing_unpublished",
+            "listing_deliverable_missing",
+            "fulfillment_pending",
+            "dispute_open",
+        }
+        assert {e.value for e in ActionCode} == expected
+
+    def test_no_stale_values(self):
+        stale = {
             "connect_stripe",
             "enable_charges",
             "update_billing",
@@ -41,11 +53,10 @@ class TestActionCode:
             "configure_webhook",
             "publish_listing",
             "webhook_disabled",
+            "set_stripe_key",
         }
-        assert {e.value for e in ActionCode} == expected
-
-    def test_no_stale_values(self):
-        assert "set_stripe_key" not in {e.value for e in ActionCode}
+        current = {e.value for e in ActionCode}
+        assert stale.isdisjoint(current)
 
 
 class TestDeliverableStatus:

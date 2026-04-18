@@ -17,11 +17,22 @@ else:
 
 
 class DeliverableType(StrEnum):
-    """Type of digital deliverable attached to a listing."""
+    """Type of digital deliverable attached to a listing or order."""
 
-    FILE = "file"
     URL = "url"
     TEXT = "text"
+
+
+class FulfillmentMode(StrEnum):
+    """Fulfillment mode for a listing.
+
+    * ``static`` — ListBee delivers the attached ``deliverable`` automatically on payment.
+    * ``async`` — The external app receives ``order.paid`` via ``agent_callback_url``
+      and pushes generated content back via :meth:`~listbee.resources.orders.Orders.fulfill`.
+    """
+
+    STATIC = "static"
+    ASYNC = "async"
 
 
 class DeliverableStatus(StrEnum):
@@ -104,35 +115,22 @@ class DeliverableResponse(BaseModel):
         examples=["del_7kQ2xY9mN3pR5tW1vB8a01"],
     )
     type: DeliverableType = Field(
-        description="Type of deliverable: `file`, `url`, or `text`.",
-        examples=["file"],
+        description="Type of deliverable: `url` or `text`.",
+        examples=["url"],
     )
     status: DeliverableStatus = Field(
         description="Deliverable status: `processing`, `ready`, or `failed`.",
         examples=["ready"],
     )
-    content: str | None = Field(
-        default=None,
-        description="Text content (for text-type deliverables).",
-    )
-    filename: str | None = Field(
-        default=None,
-        description="Original filename (for file-type deliverables).",
-        examples=["ebook.pdf"],
-    )
-    mime_type: str | None = Field(
-        default=None,
-        description="MIME type (for file-type deliverables).",
-        examples=["application/pdf"],
-    )
-    size: int | None = Field(
-        default=None,
-        description="File size in bytes (for file-type deliverables).",
-        examples=[2458631],
-    )
     url: str | None = Field(
         default=None,
-        description="URL (for url-type deliverables).",
+        description="Redirect URL (url type only).",
+        examples=["https://example.com/secret"],
+    )
+    content: str | None = Field(
+        default=None,
+        description="Text content (text type only).",
+        examples=["Buy signal: AAPL"],
     )
 
 
@@ -149,20 +147,18 @@ class ListingStatus(StrEnum):
 
     DRAFT = "draft"
     PUBLISHED = "published"
+    ARCHIVED = "archived"
 
 
 class OrderStatus(StrEnum):
     """Current status of an order."""
 
-    PENDING = "pending"
     PAID = "paid"
     FULFILLED = "fulfilled"
-    CANCELED = "canceled"
-    FAILED = "failed"
 
 
 class WebhookEventType(StrEnum):
-    """Event types that can be subscribed to on a webhook endpoint."""
+    """Event types delivered to the listing's agent_callback_url."""
 
     ORDER_PAID = "order.paid"
     ORDER_FULFILLED = "order.fulfilled"
@@ -175,7 +171,6 @@ class WebhookEventType(StrEnum):
     LISTING_PUBLISHED = "listing.published"
     LISTING_OUT_OF_STOCK = "listing.out_of_stock"
     LISTING_DELETED = "listing.deleted"
-    CUSTOMER_CREATED = "customer.created"
 
 
 class ActionKind(StrEnum):
@@ -188,13 +183,14 @@ class ActionKind(StrEnum):
 class ActionCode(StrEnum):
     """Machine-readable code identifying what action is needed."""
 
-    CONNECT_STRIPE = "connect_stripe"
-    ENABLE_CHARGES = "enable_charges"
-    UPDATE_BILLING = "update_billing"
-    ATTACH_DELIVERABLE = "attach_deliverable"
-    CONFIGURE_WEBHOOK = "configure_webhook"
-    PUBLISH_LISTING = "publish_listing"
-    WEBHOOK_DISABLED = "webhook_disabled"
+    OTP_VERIFICATION_PENDING = "otp_verification_pending"
+    STRIPE_CONNECT_REQUIRED = "stripe_connect_required"
+    STRIPE_CHARGES_DISABLED = "stripe_charges_disabled"
+    ACCOUNT_DELETED = "account_deleted"
+    LISTING_UNPUBLISHED = "listing_unpublished"
+    LISTING_DELIVERABLE_MISSING = "listing_deliverable_missing"
+    FULFILLMENT_PENDING = "fulfillment_pending"
+    DISPUTE_OPEN = "dispute_open"
 
 
 class ActionResolve(BaseModel):

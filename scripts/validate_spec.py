@@ -272,6 +272,8 @@ OP_ID_OVERRIDES: dict[str, str] = {
     "bootstrap_start": "start",
     "bootstrap_verify": "verify",
     "bootstrap_complete": "complete",
+    "bootstrap_poll": "poll",
+    "api_key_self_revoke": "self_revoke",
 }
 
 # Multi-word resource names (operation ID resource part → SDK resource file stem)

@@ -24,17 +24,20 @@ class TestActionKind:
 
 
 class TestActionCode:
-    def test_connect_stripe(self):
-        assert ActionCode.CONNECT_STRIPE == "connect_stripe"
+    def test_stripe_connect_required(self):
+        assert ActionCode.STRIPE_CONNECT_REQUIRED == "stripe_connect_required"
 
-    def test_enable_charges(self):
-        assert ActionCode.ENABLE_CHARGES == "enable_charges"
+    def test_stripe_charges_disabled(self):
+        assert ActionCode.STRIPE_CHARGES_DISABLED == "stripe_charges_disabled"
 
-    def test_update_billing(self):
-        assert ActionCode.UPDATE_BILLING == "update_billing"
+    def test_listing_deliverable_missing(self):
+        assert ActionCode.LISTING_DELIVERABLE_MISSING == "listing_deliverable_missing"
 
-    def test_attach_deliverable(self):
-        assert ActionCode.ATTACH_DELIVERABLE == "attach_deliverable"
+    def test_fulfillment_pending(self):
+        assert ActionCode.FULFILLMENT_PENDING == "fulfillment_pending"
+
+    def test_otp_verification_pending(self):
+        assert ActionCode.OTP_VERIFICATION_PENDING == "otp_verification_pending"
 
 
 class TestActionResolve:
@@ -71,7 +74,7 @@ class TestActionResolve:
 class TestAction:
     def test_api_action(self):
         action = Action(
-            code=ActionCode.CONNECT_STRIPE,
+            code=ActionCode.STRIPE_CONNECT_REQUIRED,
             kind=ActionKind.API,
             message="Connect your Stripe account via the API",
             resolve=ActionResolve(
@@ -81,13 +84,13 @@ class TestAction:
                 params={"return_url": "https://example.com"},
             ),
         )
-        assert action.code == ActionCode.CONNECT_STRIPE
+        assert action.code == ActionCode.STRIPE_CONNECT_REQUIRED
         assert action.kind == ActionKind.API
         assert action.resolve.endpoint == "/v1/account/stripe-connect-session"
 
     def test_human_action(self):
         action = Action(
-            code=ActionCode.ENABLE_CHARGES,
+            code=ActionCode.STRIPE_CHARGES_DISABLED,
             kind=ActionKind.HUMAN,
             message="Enable charges in your Stripe dashboard",
             resolve=ActionResolve(
@@ -97,19 +100,19 @@ class TestAction:
                 params=None,
             ),
         )
-        assert action.code == ActionCode.ENABLE_CHARGES
+        assert action.code == ActionCode.STRIPE_CHARGES_DISABLED
         assert action.kind == ActionKind.HUMAN
         assert action.resolve.url == "https://dashboard.stripe.com/settings/charges"
 
     def test_frozen(self):
         action = Action(
-            code=ActionCode.CONNECT_STRIPE,
+            code=ActionCode.STRIPE_CONNECT_REQUIRED,
             kind=ActionKind.API,
             message="test",
             resolve=ActionResolve(method="POST", endpoint="/v1/account/stripe-connect-session", url=None, params=None),
         )
         with pytest.raises(ValidationError):
-            action.code = ActionCode.ENABLE_CHARGES  # type: ignore[misc]
+            action.code = ActionCode.STRIPE_CHARGES_DISABLED  # type: ignore[misc]
 
 
 class TestListingReadiness:
@@ -121,15 +124,15 @@ class TestListingReadiness:
 
     def test_not_sellable_with_actions_and_next(self):
         action = Action(
-            code=ActionCode.ATTACH_DELIVERABLE,
+            code=ActionCode.LISTING_DELIVERABLE_MISSING,
             kind=ActionKind.API,
             message="Attach a deliverable to your listing",
-            resolve=ActionResolve(method="POST", endpoint="/v1/listings/slug/deliverables", url=None, params=None),
+            resolve=ActionResolve(method="PUT", endpoint="/v1/listings/lst_abc123", url=None, params=None),
         )
-        readiness = ListingReadiness(sellable=False, actions=[action], next="attach_deliverable")
+        readiness = ListingReadiness(sellable=False, actions=[action], next="listing_deliverable_missing")
         assert readiness.sellable is False
         assert len(readiness.actions) == 1
-        assert readiness.next == "attach_deliverable"
+        assert readiness.next == "listing_deliverable_missing"
 
 
 class TestAccountReadiness:
@@ -141,7 +144,7 @@ class TestAccountReadiness:
 
     def test_not_operational_with_actions_and_next(self):
         action = Action(
-            code=ActionCode.CONNECT_STRIPE,
+            code=ActionCode.STRIPE_CONNECT_REQUIRED,
             kind=ActionKind.HUMAN,
             message="Connect your Stripe account",
             resolve=ActionResolve(
@@ -151,10 +154,10 @@ class TestAccountReadiness:
                 params=None,
             ),
         )
-        readiness = AccountReadiness(operational=False, actions=[action], next="connect_stripe")
+        readiness = AccountReadiness(operational=False, actions=[action], next="stripe_connect_required")
         assert readiness.operational is False
         assert len(readiness.actions) == 1
-        assert readiness.next == "connect_stripe"
+        assert readiness.next == "stripe_connect_required"
 
 
 class TestOldBlockerTypesRemoved:

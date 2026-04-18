@@ -30,20 +30,15 @@ def _make_account_dict() -> dict:
         "plan": "free",
         "fee_rate": "0.10",
         "billing_status": "active",
-        "display_name": "Test",
-        "bio": None,
         "ga_measurement_id": None,
         "notify_orders": True,
+        "events_callback_url": None,
         "readiness": {
             "operational": False,
             "actions": [],
             "next": None,
         },
-        "stats": {
-            "total_revenue": 0,
-            "total_orders": 0,
-            "total_listings": 0,
-        },
+        "currency": "usd",
         "created_at": "2024-01-01T00:00:00Z",
     }
 
@@ -474,11 +469,6 @@ class TestWithRawResponse:
             "price": 1000,
             "status": "draft",
             "short_code": "tstlst1",
-            "currency": "USD",
-            "fulfillment_url": None,
-            "has_deliverables": False,
-            "checkout_url": "https://checkout.listbee.so/test-listing",
-            "cover_url": None,
             "description": None,
             "tagline": None,
             "highlights": [],
@@ -494,11 +484,13 @@ class TestWithRawResponse:
             "utm_source": None,
             "utm_medium": None,
             "utm_campaign": None,
-            "deliverables": [],
+            "deliverable": None,
+            "fulfillment_mode": "static",
+            "agent_callback_url": None,
+            "signing_secret_preview": "****",
             "has_cover": False,
             "readiness": {"sellable": False, "actions": [], "next": None},
             "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
         }
 
         with patch.object(client, "request_raw", return_value=mock_raw):
@@ -520,7 +512,6 @@ class TestWithRawResponse:
             "id": "ord_test",
             "status": "paid",
             "payment_status": "paid",
-            "has_deliverables": False,
             "actions": None,
             "listing_id": "lst_abc",
             "buyer_email": "buyer@example.com",
@@ -530,9 +521,10 @@ class TestWithRawResponse:
             "listing_snapshot": None,
             "seller_snapshot": None,
             "checkout_data": {},
-            "deliverables": [],
+            "deliverable": None,
+            "metadata": None,
+            "unlock_url": None,
             "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
         }
 
         with patch.object(client, "request_raw", return_value=mock_raw):
@@ -543,48 +535,47 @@ class TestWithRawResponse:
         order = raw.parse()
         assert order.id == "ord_test"
 
-    def test_webhooks_with_raw_response_proxy(self):
-        """with_raw_response on Webhooks calls request_raw and returns RawResponse."""
+    def test_api_keys_with_raw_response_proxy(self):
+        """with_raw_response on ApiKeys calls request_raw and returns RawResponse."""
+
         client = ListBee(api_key="lb_test")
         mock_raw = MagicMock()
         mock_raw.status_code = 200
-        mock_raw.headers = {"x-request-id": "req_webhook"}
+        mock_raw.headers = {"x-request-id": "req_apikey"}
         mock_raw.json.return_value = {
-            "object": "webhook_test",
-            "status": "delivered",
-            "delivered_at": "2024-01-01T00:00:00Z",
-        }
-
-        with patch.object(client, "request_raw", return_value=mock_raw):
-            raw = client.webhooks.with_raw_response.test("wh_abc")
-
-        assert isinstance(raw, RawResponse)
-        assert raw.request_id == "req_webhook"
-
-    def test_customers_with_raw_response_proxy(self):
-        """with_raw_response on Customers calls request_raw and returns RawResponse."""
-        client = ListBee(api_key="lb_test")
-        mock_raw = MagicMock()
-        mock_raw.status_code = 200
-        mock_raw.headers = {"x-request-id": "req_customer"}
-        mock_raw.json.return_value = {
-            "object": "customer",
-            "id": "cus_test",
-            "email": "buyer@example.com",
-            "order_count": 3,
-            "total_orders": 3,
-            "total_spent": 9900,
-            "currency": "USD",
+            "object": "api_key",
+            "id": "lbk_test",
+            "name": "Test key",
+            "prefix": "lb_te",
+            "last_used_at": None,
+            "revoked_at": None,
             "created_at": "2024-01-01T00:00:00Z",
         }
 
         with patch.object(client, "request_raw", return_value=mock_raw):
-            raw = client.customers.with_raw_response.get("cus_test")
+            raw = client.api_keys.with_raw_response.self_revoke()
 
         assert isinstance(raw, RawResponse)
-        assert raw.request_id == "req_customer"
-        customer = raw.parse()
-        assert customer.id == "cus_test"
+        assert raw.request_id == "req_apikey"
+
+    def test_events_with_raw_response_proxy(self):
+        """with_raw_response on Events calls request_raw and returns RawResponse."""
+        client = ListBee(api_key="lb_test")
+        mock_raw = MagicMock()
+        mock_raw.status_code = 200
+        mock_raw.headers = {"x-request-id": "req_event"}
+        mock_raw.json.return_value = {
+            "object": "list",
+            "data": [],
+            "has_more": False,
+            "cursor": None,
+        }
+
+        with patch.object(client, "request_raw", return_value=mock_raw):
+            raw = client.events.with_raw_response.list()
+
+        assert isinstance(raw, RawResponse)
+        assert raw.request_id == "req_event"
 
     def test_stripe_with_raw_response_proxy(self):
         """with_raw_response on Stripe calls request_raw and returns RawResponse."""

@@ -10,23 +10,6 @@ from pydantic import BaseModel, Field
 from listbee.types.shared import AccountReadiness
 
 
-class AccountStats(BaseModel):
-    """Aggregate statistics for an account."""
-
-    total_revenue: int = Field(
-        description="Total revenue in the smallest currency unit across all orders.",
-        examples=[125000],
-    )
-    total_orders: int = Field(
-        description="Total number of orders across all listings.",
-        examples=[47],
-    )
-    total_listings: int = Field(
-        description="Total number of listings on the account.",
-        examples=[5],
-    )
-
-
 class AccountResponse(BaseModel):
     """Full account object returned by the ListBee API."""
 
@@ -53,7 +36,10 @@ class AccountResponse(BaseModel):
     )
     currency: str | None = Field(
         default=None,
-        description="Account currency (ISO 4217, lowercase). Set automatically from Stripe Connect. Cannot be changed after connection.",
+        description=(
+            "Account currency (ISO 4217, lowercase). Set automatically from Stripe Connect. "
+            "Cannot be changed after connection."
+        ),
         examples=["usd", "eur"],
     )
     billing_status: str = Field(
@@ -62,20 +48,29 @@ class AccountResponse(BaseModel):
     )
     ga_measurement_id: str | None = Field(
         default=None,
-        description="Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). Used to track conversions on checkout pages.",
+        description=(
+            "Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). "
+            "Used to track conversions on checkout pages."
+        ),
         examples=["G-XXXXXXXXXX"],
     )
     notify_orders: bool = Field(
         default=True,
         description="Whether the account receives email notifications for new orders.",
     )
-    stats: AccountStats = Field(
-        description="Aggregate statistics for this account.",
+    events_callback_url: str | None = Field(
+        default=None,
+        description=(
+            "Optional account-level webhook URL for non-order events. "
+            "Set to null to remove."
+        ),
+        examples=["https://agent.example.com/events"],
     )
     readiness: AccountReadiness = Field(
         description=(
             "Account operational readiness. `operational` is true when the account can sell. "
-            "If false, `actions` lists what's needed with resolve details and `next` points to the highest-priority action."
+            "If false, `actions` lists what's needed with resolve details and `next` points to "
+            "the highest-priority action."
         ),
     )
     created_at: datetime = Field(

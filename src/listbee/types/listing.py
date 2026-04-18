@@ -11,6 +11,7 @@ from listbee.types.shared import (
     BlurMode,
     CheckoutFieldResponse,
     DeliverableResponse,
+    FulfillmentMode,
     ListingReadiness,
     ListingStatus,
 )
@@ -20,7 +21,7 @@ class ListingSummary(BaseModel):
     """Slim listing object returned in list responses.
 
     Use :meth:`~listbee.resources.listings.Listings.get` to retrieve the full
-    :class:`ListingResponse` with deliverables, reviews, FAQs, and all other fields.
+    :class:`ListingResponse` with the deliverable, reviews, FAQs, and all other fields.
     """
 
     object: Literal["listing"] = Field(
@@ -73,13 +74,13 @@ class ListingSummary(BaseModel):
         description="Current listing status.",
         examples=["draft"],
     )
-    stock: int | None = Field(
-        default=None,
-        description="Available stock quantity. Null means unlimited.",
-    )
-    has_deliverables: bool = Field(
-        description="`true` if one or more deliverables are attached to this listing.",
-        examples=[True],
+    fulfillment_mode: FulfillmentMode = Field(
+        default=FulfillmentMode.STATIC,
+        description=(
+            "Fulfillment mode: `static` (ListBee delivers attached deliverable automatically) "
+            "or `async` (agent receives order.paid and pushes generated content)."
+        ),
+        examples=["static"],
     )
     has_cover: bool = Field(
         description="`true` if a cover image exists (uploaded or auto-generated).",
@@ -97,17 +98,17 @@ class ListingSummary(BaseModel):
     @property
     def is_draft(self) -> bool:
         """True when the listing is in draft state (not visible to buyers)."""
-        return self.status == "draft"
+        return self.status == ListingStatus.DRAFT
 
     @property
     def is_published(self) -> bool:
         """True when the listing is published and visible to buyers."""
-        return self.status == "published"
+        return self.status == ListingStatus.PUBLISHED
 
     @property
-    def is_in_stock(self) -> bool:
-        """True when the listing has available stock (or unlimited stock when stock is None)."""
-        return self.stock is None or self.stock > 0
+    def is_archived(self) -> bool:
+        """True when the listing is archived and no longer active."""
+        return self.status == ListingStatus.ARCHIVED
 
 
 class Review(BaseModel):
@@ -184,26 +185,36 @@ class ListingResponse(BaseModel):
         description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
         examples=[2900],
     )
-    fulfillment_url: str | None = Field(
+    fulfillment_mode: FulfillmentMode = Field(
+        default=FulfillmentMode.STATIC,
+        description=(
+            "Fulfillment mode: `static` (ListBee delivers attached deliverable automatically) "
+            "or `async` (agent receives order.paid via agent_callback_url and pushes content)."
+        ),
+        examples=["static"],
+    )
+    deliverable: DeliverableResponse | None = Field(
         default=None,
         description=(
-            "Optional URL called after payment to trigger external fulfillment. "
-            "When set, ListBee POSTs the order to this URL after the buyer pays. "
-            "Null means ListBee handles delivery via attached deliverables."
+            "Single digital deliverable attached to this listing. "
+            "Present for static-mode listings. Null for async-mode listings."
         ),
-        examples=["https://yourapp.com/webhooks/listbee/fulfill"],
     )
-    has_deliverables: bool = Field(
-        description="`true` if one or more deliverables are attached to this listing.",
-        examples=[True],
-    )
-    deliverables: list[DeliverableResponse] = Field(
-        default=[],
+    agent_callback_url: str | None = Field(
+        default=None,
         description=(
-            "Digital deliverables attached to this listing. "
-            "When present, ListBee delivers these to buyers on payment. "
-            "Empty for listings where the seller handles delivery externally."
+            "Optional HTTPS URL that receives order.paid and order.fulfilled webhooks. "
+            "Set for async-mode listings where the agent handles fulfillment."
         ),
+        examples=["https://yourapp.com/webhooks/listbee"],
+    )
+    signing_secret_preview: str = Field(
+        default="****",
+        description=(
+            "Last 4 characters of the listing's webhook signing secret. "
+            "The full secret is only shown once at creation time."
+        ),
+        examples=["a1b2"],
     )
     has_cover: bool = Field(
         description="`true` if a cover image exists (uploaded or auto-generated).",
@@ -248,7 +259,10 @@ class ListingResponse(BaseModel):
     )
     metadata: dict[str, Any] | None = Field(
         default=None,
-        description="Arbitrary key-value pairs forwarded in webhook events.",
+        description=(
+            "Arbitrary key-value pairs forwarded in webhook events. "
+            "Stripe-aligned limits: max 50 keys, keys ≤ 40 chars, string values ≤ 500 chars."
+        ),
         examples=[{"source": "n8n", "campaign": "launch-week"}],
     )
     utm_source: str | None = Field(
@@ -275,10 +289,6 @@ class ListingResponse(BaseModel):
         description="Full product page URL — share this with buyers.",
         examples=["https://buy.listbee.so/seo-playbook"],
     )
-    stock: int | None = Field(
-        default=None,
-        description="Available stock quantity. Null means unlimited.",
-    )
     embed_url: str | None = Field(
         default=None,
         description="Embeddable checkout URL for this listing.",
@@ -296,17 +306,17 @@ class ListingResponse(BaseModel):
     @property
     def is_draft(self) -> bool:
         """True when the listing is in draft state (not visible to buyers)."""
-        return self.status == "draft"
+        return self.status == ListingStatus.DRAFT
 
     @property
     def is_published(self) -> bool:
         """True when the listing is published and visible to buyers."""
-        return self.status == "published"
+        return self.status == ListingStatus.PUBLISHED
 
     @property
-    def is_in_stock(self) -> bool:
-        """True when the listing has available stock (or unlimited stock when stock is None)."""
-        return self.stock is None or self.stock > 0
+    def is_archived(self) -> bool:
+        """True when the listing is archived and no longer active."""
+        return self.status == ListingStatus.ARCHIVED
 
     @property
     def checkout_url(self) -> str | None:

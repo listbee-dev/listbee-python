@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee._raw_response import RawResponse
 from listbee.types.order import OrderResponse, OrderSummary
+from listbee.types.order_redeliver import RedeliveryAck
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -34,6 +35,11 @@ class _RawOrdersProxy:
         response = self._client.request_raw("POST", f"/v1/orders/{order_id}/refund")
         return RawResponse(response, OrderResponse)
 
+    def redeliver(self, order_id: str) -> RawResponse[RedeliveryAck]:
+        """Re-queue order webhooks and return the raw response."""
+        response = self._client.request_raw("POST", f"/v1/orders/{order_id}/redeliver")
+        return RawResponse(response, RedeliveryAck)
+
 
 class _AsyncRawOrdersProxy:
     """Async proxy that calls Orders methods but returns RawResponse instead of parsed models."""
@@ -55,6 +61,11 @@ class _AsyncRawOrdersProxy:
         """Issue a refund and return the raw response (async)."""
         response = await self._client.request_raw("POST", f"/v1/orders/{order_id}/refund")
         return RawResponse(response, OrderResponse)
+
+    async def redeliver(self, order_id: str) -> RawResponse[RedeliveryAck]:
+        """Re-queue order webhooks and return the raw response (async)."""
+        response = await self._client.request_raw("POST", f"/v1/orders/{order_id}/redeliver")
+        return RawResponse(response, RedeliveryAck)
 
 
 class Orders:
@@ -106,7 +117,7 @@ class Orders:
 
         Args:
             status: Filter orders by status (e.g. "paid", "fulfilled").
-            listing: Filter orders by listing slug (e.g. "seo-playbook").
+            listing: Filter orders by listing ID.
             buyer_email: Filter orders by buyer email address.
             created_after: Only return orders created after this ISO datetime.
             created_before: Only return orders created before this ISO datetime.
@@ -140,20 +151,23 @@ class Orders:
         self,
         order_id: str,
         *,
-        deliverables: list[Any] | None = None,
+        deliverable: Any | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> OrderResponse:
-        """Fulfill an order, optionally pushing deliverables for ListBee to deliver.
+        """Fulfill an order, optionally pushing generated content for ListBee to deliver.
 
-        Call without ``deliverables`` to close out an external fulfillment order.
-        Pass ``deliverables`` to push content for ListBee to deliver (dynamic fulfillment).
-
-        Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
-        Files are uploaded transparently before fulfilling.
+        Call without ``deliverable`` to close out an external fulfillment order.
+        Pass ``deliverable`` to push AI-generated or dynamic content for ListBee to deliver
+        (async fulfillment mode).
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverables: Optional list of Deliverable objects or dicts. Omit to close
-                out the order without pushing additional content.
+            deliverable: Generated content to deliver to the buyer. Use
+                :class:`~listbee.Deliverable` builder:
+                ``Deliverable.url("https://...")`` or ``Deliverable.text("...")``.
+                Required for ``fulfillment_mode="async"`` listings.
+            metadata: Arbitrary key-value pairs to attach to this order.
+                Stripe-aligned limits: max 50 keys, keys ≤ 40 chars, string values ≤ 500 chars.
 
         Returns:
             The fulfilled :class:`~listbee.types.order.OrderResponse`.
@@ -169,26 +183,17 @@ class Orders:
 
                 order = client.orders.fulfill(
                     "ord_9xM4kP7nR2qT5wY1",
-                    deliverables=[Deliverable.text("Your personalized report...")],
+                    deliverable=Deliverable.text("Your personalized report..."),
                 )
         """
-        from listbee.deliverable import Deliverable as DeliverableInput
-        from listbee.resources.files import Files
-
         body: dict[str, Any] = {}
-        if deliverables is not None:
-            resolved: list[dict[str, Any]] = []
-            files_resource = Files(self._client)
-            for d in deliverables:
-                if isinstance(d, DeliverableInput):
-                    token = None
-                    if d.needs_upload:
-                        file_resp = files_resource.upload(file=d.to_upload_tuple())
-                        token = file_resp.id
-                    resolved.append(d.to_api_body(token=token))
-                else:
-                    resolved.append(d)
-            body["deliverables"] = resolved
+        if deliverable is not None:
+            if hasattr(deliverable, "to_api_body"):
+                body["deliverable"] = deliverable.to_api_body()
+            else:
+                body["deliverable"] = deliverable
+        if metadata is not None:
+            body["metadata"] = metadata
 
         response = self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
         return OrderResponse.model_validate(response.json())
@@ -207,6 +212,22 @@ class Orders:
         """
         response = self._client.post(f"/v1/orders/{order_id}/refund")
         return OrderResponse.model_validate(response.json())
+
+    def redeliver(self, order_id: str) -> RedeliveryAck:
+        """Re-queue ``order.paid`` and ``order.fulfilled`` webhooks for delivery.
+
+        Use when the ``agent_callback_url`` missed a delivery and you need to
+        re-trigger fulfillment. Both events are scheduled for immediate re-delivery.
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+
+        Returns:
+            A :class:`~listbee.types.order_redeliver.RedeliveryAck` with
+            ``scheduled_attempts`` set to the number of events queued.
+        """
+        response = self._client.post(f"/v1/orders/{order_id}/redeliver")
+        return RedeliveryAck.model_validate(response.json())
 
 
 class AsyncOrders:
@@ -245,10 +266,6 @@ class AsyncOrders:
     ) -> AsyncCursorPage[OrderSummary]:
         """Return a paginated list of orders (async).
 
-        Each item is an :class:`~listbee.types.order.OrderSummary` with the core fields
-        needed to display order lists. Call :meth:`get` with the order ID for the full
-        :class:`~listbee.types.order.OrderResponse` including checkout data and snapshots.
-
         Async-iterate the returned page to transparently fetch subsequent pages:
 
         .. code-block:: python
@@ -258,7 +275,7 @@ class AsyncOrders:
 
         Args:
             status: Filter orders by status (e.g. "paid", "fulfilled").
-            listing: Filter orders by listing slug (e.g. "seo-playbook").
+            listing: Filter orders by listing ID.
             buyer_email: Filter orders by buyer email address.
             created_after: Only return orders created after this ISO datetime.
             created_before: Only return orders created before this ISO datetime.
@@ -292,55 +309,38 @@ class AsyncOrders:
         self,
         order_id: str,
         *,
-        deliverables: list[Any] | None = None,
+        deliverable: Any | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> OrderResponse:
-        """Fulfill an order, optionally pushing deliverables for ListBee to deliver (async).
-
-        Call without ``deliverables`` to close out an external fulfillment order.
-        Pass ``deliverables`` to push content for ListBee to deliver (dynamic fulfillment).
-
-        Accepts :class:`~listbee.deliverable.Deliverable` objects or raw dicts.
-        Files are uploaded transparently before fulfilling.
+        """Fulfill an order, optionally pushing generated content (async).
 
         Args:
             order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
-            deliverables: Optional list of Deliverable objects or dicts. Omit to close
-                out the order without pushing additional content.
+            deliverable: Generated content to deliver. Use :class:`~listbee.Deliverable`
+                builder: ``Deliverable.url(...)`` or ``Deliverable.text(...)``.
+            metadata: Arbitrary key-value pairs to attach to this order.
 
         Returns:
             The fulfilled :class:`~listbee.types.order.OrderResponse`.
 
         Examples:
-            Close out an external fulfillment order::
-
-                order = await client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
-
             Push AI-generated content::
 
                 from listbee import Deliverable
 
                 order = await client.orders.fulfill(
                     "ord_9xM4kP7nR2qT5wY1",
-                    deliverables=[Deliverable.text("Your personalized report...")],
+                    deliverable=Deliverable.text("Your personalized report..."),
                 )
         """
-        from listbee.deliverable import Deliverable as DeliverableInput
-        from listbee.resources.files import AsyncFiles
-
         body: dict[str, Any] = {}
-        if deliverables is not None:
-            resolved: list[dict[str, Any]] = []
-            files_resource = AsyncFiles(self._client)
-            for d in deliverables:
-                if isinstance(d, DeliverableInput):
-                    token = None
-                    if d.needs_upload:
-                        file_resp = await files_resource.upload(file=d.to_upload_tuple())
-                        token = file_resp.id
-                    resolved.append(d.to_api_body(token=token))
-                else:
-                    resolved.append(d)
-            body["deliverables"] = resolved
+        if deliverable is not None:
+            if hasattr(deliverable, "to_api_body"):
+                body["deliverable"] = deliverable.to_api_body()
+            else:
+                body["deliverable"] = deliverable
+        if metadata is not None:
+            body["metadata"] = metadata
 
         response = await self._client.post(f"/v1/orders/{order_id}/fulfill", json=body)
         return OrderResponse.model_validate(response.json())
@@ -359,3 +359,16 @@ class AsyncOrders:
         """
         response = await self._client.post(f"/v1/orders/{order_id}/refund")
         return OrderResponse.model_validate(response.json())
+
+    async def redeliver(self, order_id: str) -> RedeliveryAck:
+        """Re-queue ``order.paid`` and ``order.fulfilled`` webhooks for delivery (async).
+
+        Args:
+            order_id: The order's unique identifier (e.g. "ord_9xM4kP7nR2qT5wY1").
+
+        Returns:
+            A :class:`~listbee.types.order_redeliver.RedeliveryAck` with
+            ``scheduled_attempts`` set to the number of events queued.
+        """
+        response = await self._client.post(f"/v1/orders/{order_id}/redeliver")
+        return RedeliveryAck.model_validate(response.json())

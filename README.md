@@ -29,12 +29,11 @@ client = ListBee(api_key="lb_...")
 
 | Resource | Methods |
 |----------|---------|
-| Bootstrap | start, verify, complete |
-| Listings | create, get, list, update, delete, set_deliverables, remove_deliverables, add_deliverable, remove_deliverable, create_complete, publish |
-| Orders | get, list, fulfill, refund |
-| Customers | get, list |
-| Files | upload |
-| Webhooks | create, list, update, delete, list_events, retry_event, test |
+| Bootstrap | start, verify, poll, run |
+| Listings | create, get, list, update, delete, publish, unpublish, archive |
+| Orders | get, list, fulfill, refund, redeliver |
+| Events | list |
+| ApiKeys | self_revoke |
 | Account | get, update, delete |
 | Stripe | connect, disconnect |
 | Utility | ping, plans |
@@ -44,23 +43,24 @@ from listbee import ListBee, Deliverable
 
 client = ListBee(api_key="lb_...")
 
-# Static content — ListBee delivers pre-attached file automatically
-# One-shot: create listing + attach deliverable + publish
-listing = client.listings.create_complete(
+# Static mode — ListBee delivers the attached deliverable automatically on payment
+listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
+    fulfillment_mode="static",
+    deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
 listing = client.listings.publish(listing.id)
 print(listing.url)   # https://buy.listbee.so/r7kq2xy9
 
-# External fulfillment — set a URL and you handle delivery
+# Async mode — your agent receives order.paid and calls fulfill() to push content
 from listbee import CheckoutField
 
 listing = client.listings.create(
     name="Custom Consulting",
     price=3500,
-    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
+    fulfillment_mode="async",
+    agent_callback_url="https://yourapp.com/webhooks/listbee",
     checkout_schema=[
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
@@ -75,16 +75,15 @@ export LISTBEE_API_KEY="lb_..."
 ```
 
 ```python
-from listbee import ListBee
-
 from listbee import ListBee, Deliverable
 
 client = ListBee()  # reads LISTBEE_API_KEY automatically
 
-listing = client.listings.create_complete(
+listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
+    fulfillment_mode="static",
+    deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
 listing = client.listings.publish(listing.id)
 print(listing.url)
@@ -94,7 +93,7 @@ print(listing.url)
 
 ### Bootstrap (programmatic account creation)
 
-Use the 3-step bootstrap flow to create a new account and obtain an API key entirely via the SDK — no Console visit required.
+Use the 2-step bootstrap flow to create a new account and obtain an API key entirely via the SDK — no Console visit required.
 
 ```python
 from listbee import ListBee
@@ -104,19 +103,54 @@ client = ListBee(api_key="")
 
 # Step 1 — send OTP to email
 session = client.bootstrap.start(email="seller@example.com")
-print(session.session)   # sess_abc123
+print(session.bootstrap_token)   # bst_abc123def456
 
-# Step 2 — verify OTP from email
-verified = client.bootstrap.verify(session=session.session, code="123456")
-print(verified.verified)   # True
-
-# Step 3 — complete bootstrap and get API key (re-retrievable within 10 min — save immediately)
-result = client.bootstrap.complete(session=verified.session)
-print(result.api_key)       # lb_... — store this securely
+# Step 2 — verify OTP and get API key immediately
+result = client.bootstrap.verify(
+    bootstrap_token=session.bootstrap_token,
+    otp_code="123456",   # 6-digit code from email
+)
+print(result.api_key)       # lb_... — store this securely (shown once)
 print(result.account_id)    # acc_01J3K4M5N6P7Q8R9S0T1U2V3W4
+print(result.readiness.operational)   # True if Stripe already connected
 ```
 
-The `api_key` in the `BootstrapCompleteResponse` is a one-time secret. Store it in your secrets manager immediately. It is re-retrievable within 10 minutes by calling `complete()` again with the same session — after that window it will not be shown again.
+The `api_key` in the `BootstrapVerifyResponse` is shown **once** — store it in your secrets manager immediately.
+
+If Stripe Connect onboarding is required, `stripe_onboarding_url` will be non-null and `readiness.operational` will be `False`. Poll `bootstrap.poll(account_id)` until `ready` is `True`.
+
+**High-level helper (recommended for agents)**
+
+```python
+# Handles the full flow: start → OTP → verify → Stripe onboarding → poll
+api_key = client.bootstrap.run(
+    "seller@example.com",
+    on_otp=lambda: input("Enter OTP: ").strip(),
+    on_human_action=lambda url: print(f"Complete Stripe setup: {url}"),
+    poll_interval=5.0,
+)
+# api_key is ready to use
+```
+
+**Manual poll loop (if not using run())**
+
+```python
+import time
+
+result = client.bootstrap.verify(
+    bootstrap_token=session.bootstrap_token,
+    otp_code="123456",
+)
+api_key = result.api_key
+
+if not result.readiness.operational:
+    print(f"Complete Stripe setup: {result.stripe_onboarding_url}")
+    while True:
+        poll = client.bootstrap.poll(result.account_id)
+        if poll.ready:
+            break
+        time.sleep(5)
+```
 
 ### Existing key
 
@@ -145,24 +179,29 @@ API keys start with `lb_`.
 ### Listings
 
 ```python
-from listbee import ListBee
+from listbee import ListBee, Deliverable
 
 client = ListBee(api_key="lb_...")
 
-# Create — managed delivery (ListBee delivers pre-attached deliverables)
-# Listings start as drafts. Attach deliverables then publish.
+# Create — static mode (ListBee delivers the deliverable automatically on payment)
 listing = client.listings.create(
     name="SEO Playbook",
     price=2900,       # $29.00 in cents
+    fulfillment_mode="static",
+    deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
+listing = client.listings.publish(listing.id)
+print(listing.url)          # https://buy.listbee.so/r7kq2xy
+print(listing.short_code)   # r7kq2xy — 7-char code used in the listing URL
 
-# Create — external fulfillment (your system handles delivery via fulfillment_url)
+# Create — async mode (agent receives order.paid via agent_callback_url and calls fulfill())
 from listbee import CheckoutField
 
 listing = client.listings.create(
     name="Custom Consulting",
     price=3500,
-    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
+    fulfillment_mode="async",
+    agent_callback_url="https://yourapp.com/webhooks/listbee",
     checkout_schema=[
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
@@ -172,11 +211,12 @@ listing = client.listings.create(
 listing = client.listings.create(
     name="SEO Playbook 2026",
     price=2900,
+    fulfillment_mode="static",
+    deliverable=Deliverable.text("License key: ABCD-1234"),
     description="A comprehensive guide to modern SEO techniques.",
     tagline="Updated for 2026 algorithm changes",
     highlights=["50+ pages", "Actionable tips", "Free updates"],
     cta="Get Instant Access",          # buy button text; defaults to "Buy Now"
-    cover_url="https://example.com/cover.png",
     compare_at_price=3900,             # strikethrough price
     badges=["Limited time", "Best seller"],
     cover_blur="auto",                 # "auto" | "true" | "false"
@@ -191,16 +231,6 @@ listing = client.listings.create(
     metadata={"source": "n8n", "campaign": "launch-week"},
 )
 print(listing.id)    # lst_r7kq2xy9m3pR5tW1
-# Attach deliverables and publish when ready
-from listbee import Deliverable
-
-client.listings.set_deliverables(
-    listing.id,
-    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
-)
-listing = client.listings.publish(listing.id)
-print(listing.url)          # https://buy.listbee.so/r7kq2xy
-print(listing.short_code)   # r7kq2xy — 7-char code used in the listing URL
 
 # Get by ID
 listing = client.listings.get("lst_r7kq2xy9m3pR5tW1")
@@ -216,75 +246,44 @@ updated = client.listings.update(
     price=3900,
 )
 
-# Update fulfillment URL and checkout schema
+# Update deliverable (static mode)
 from listbee import CheckoutField
 
 updated = client.listings.update(
     "lst_r7kq2xy9m3pR5tW1",
-    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
+    deliverable=Deliverable.url("https://example.com/new-version.pdf"),
+)
+
+# Switch to async mode
+updated = client.listings.update(
+    "lst_r7kq2xy9m3pR5tW1",
+    fulfillment_mode="async",
+    agent_callback_url="https://yourapp.com/webhooks/listbee",
+)
+
+# Update checkout schema
+updated = client.listings.update(
+    "lst_r7kq2xy9m3pR5tW1",
     checkout_schema=[
         CheckoutField.text("notes", label="Special Instructions", sort_order=0),
     ],
 )
 
-# Raw dicts also accepted for backward compatibility:
-updated = client.listings.update(
-    "lst_r7kq2xy9m3pR5tW1",
-    checkout_schema=[
-        {"key": "notes", "label": "Special Instructions", "type": "text", "sort_order": 0},
-    ],
-)
-
-# Set deliverables on a draft listing (one or more)
-client.listings.set_deliverables(
-    "lst_r7kq2xy9m3pR5tW1",
-    deliverables=[
-        Deliverable.url("https://example.com/seo-playbook.pdf"),
-    ],
-)
-
-# Remove all deliverables from a draft listing
-client.listings.remove_deliverables("lst_r7kq2xy9m3pR5tW1")
-
-# Add a single deliverable
-client.listings.add_deliverable("lst_r7kq2xy9m3pR5tW1", Deliverable.url("https://example.com/playbook.pdf"))
-client.listings.add_deliverable("lst_r7kq2xy9m3pR5tW1", Deliverable.text("Your license key: XXXX-XXXX"))
-
-with open("guide.pdf", "rb") as f:
-    file = client.files.upload(file=f, filename="guide.pdf")
-client.listings.add_deliverable("lst_r7kq2xy9m3pR5tW1", Deliverable.from_token(file.id))
-
-# Remove a single deliverable by del_ ID
-client.listings.remove_deliverable("lst_r7kq2xy9m3pR5tW1", "del_4hR9nK2mQ7tV5wX1")
-
-# Create a listing and attach deliverables in one call
-listing = client.listings.create_complete(
-    name="SEO Playbook",
-    price=2900,
-    deliverables=[
-        Deliverable.url("https://example.com/seo-playbook.pdf"),
-    ],
-)
-listing = client.listings.publish(listing.id)
-
 # Publish a draft listing — makes it live and purchasable
 listing = client.listings.publish("lst_r7kq2xy9m3pR5tW1")
 print(listing.status)    # "published"
 
-# Set cover image — accepts a file_ token, image URL, bytes, or BinaryIO
-# From a URL (fetched, validated as image, uploaded, then applied):
-listing = client.listings.set_cover("lst_r7kq2xy9", "https://example.com/cover.jpg")
+# Unpublish a published listing — moves it back to draft
+listing = client.listings.unpublish("lst_r7kq2xy9m3pR5tW1")
+print(listing.status)    # "draft"
 
-# From local file bytes:
-with open("cover.png", "rb") as f:
-    listing = client.listings.set_cover("lst_r7kq2xy9", f)
-
-# From a pre-uploaded file token:
-file = client.files.upload(file=("cover.jpg", img_bytes, "image/jpeg"), purpose="cover")
-listing = client.listings.update("lst_r7kq2xy9", cover_url=file.id)
+# Archive a listing — permanently removes it from public view
+listing = client.listings.archive("lst_r7kq2xy9m3pR5tW1")
+print(listing.status)    # "archived"
+print(listing.is_archived)   # True
 
 # Delete
-client.listings.delete("m3pr5tw1")
+client.listings.delete("lst_r7kq2xy9m3pR5tW1")
 ```
 
 ### Orders
@@ -303,84 +302,73 @@ order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
 print(order.listing_id, order.amount)
 print(order.checkout_data)        # custom fields from checkout
 print(order.payment_status)       # "unpaid" | "paid" | "refunded"
-print(order.has_deliverables)     # True if deliverables are attached
+print(order.deliverable)          # single deliverable after fulfillment (or None)
+print(order.unlock_url)           # permanent bearer link for buyer to access content
+print(order.metadata)             # key-value pairs attached to the order
 print(order.actions)              # list of available actions (with priority)
 print(order.listing_snapshot)     # listing data at time of purchase
 print(order.seller_snapshot)      # seller data at time of purchase
 print(order.paid_at)              # when payment was confirmed
 
-# Fulfill a generated order — push deliverables for ListBee to deliver
-order = client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
-print(order.status)               # "fulfilled"
-
-# Fulfill with dynamic content — push deliverables for ListBee to deliver
+# Fulfill an async-mode order — push generated content to ListBee for delivery
 from listbee import Deliverable
 
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    deliverables=[
-        Deliverable.text("Here is your personalized report..."),
-    ],
+    deliverable=Deliverable.text("Here is your personalized report..."),
+    metadata={"generated_by": "my-agent", "version": "1"},
 )
 print(order.status)               # "fulfilled"
+print(order.unlock_url)           # buyer's download link
 
 # Fulfill with a URL
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    deliverables=[
-        Deliverable.url("https://example.com/generated-report.pdf"),
-    ],
+    deliverable=Deliverable.url("https://example.com/generated-report.pdf"),
 )
 
-# Refund an order — issues a full refund and marks order canceled
+# Close out an external-fulfillment order without pushing content
+order = client.orders.fulfill("ord_9xM4kP7nR2qT5wY1")
+
+# Refund an order — issues a full refund
 order = client.orders.refund("ord_9xM4kP7nR2qT5wY1")
-print(order.status)               # "canceled"
+
+# Re-queue webhook delivery (useful for retrying failed agent_callback_url deliveries)
+ack = client.orders.redeliver("ord_9xM4kP7nR2qT5wY1")
+print(ack.scheduled_attempts)    # number of re-delivery attempts queued
 ```
 
-### Webhooks
+### Events
 
 ```python
-from listbee import WebhookEventType
+# List all events (newest first, cursor-paginated)
+for event in client.events.list():
+    print(event.id, event.type, event.created_at)
 
-# Create — subscribe to specific events
-webhook = client.webhooks.create(
-    name="Production endpoint",
-    url="https://example.com/webhooks/listbee",
-    events=[
-        WebhookEventType.ORDER_PAID,
-        WebhookEventType.ORDER_FULFILLED,
-        WebhookEventType.ORDER_REFUNDED,
-    ],
-)
-print(webhook.id)    # wh_3mK8nP2qR5tW7xY1
-print(webhook.secret)
+# Filter by type
+for event in client.events.list(type="order.paid"):
+    print(event.order_id, event.data)
 
-# Create — receive all events (omit events param)
-webhook = client.webhooks.create(
-    name="Catch-all",
-    url="https://example.com/webhooks/listbee-all",
-)
+# Filter by listing or order
+for event in client.events.list(listing_id="lst_abc123"):
+    print(event.type, event.data)
 
-# List
-webhooks = client.webhooks.list()
-for wh in webhooks:
-    print(wh.id, wh.name, wh.enabled)
+for event in client.events.list(order_id="ord_9xM4kP7nR2qT5wY1"):
+    print(event.type)
 
-# Update — disable without deleting
-webhook = client.webhooks.update("wh_3mK8nP2qR5tW7xY1", enabled=False)
+# Paginate
+page = client.events.list(limit=10)
+if page.has_more:
+    next_page = client.events.list(cursor=page.cursor)
+```
 
-# Update — change URL and events
-webhook = client.webhooks.update(
-    "wh_3mK8nP2qR5tW7xY1",
-    url="https://example.com/webhooks/v2",
-    events=[WebhookEventType.ORDER_PAID],
-)
+### ApiKeys
 
-# Retry a failed webhook event delivery
-client.webhooks.retry_event("wh_3mK8nP2qR5tW7xY1", event_id="evt_2nL9oQ3rS6uX8zV2")
-
-# Delete
-client.webhooks.delete("wh_3mK8nP2qR5tW7xY1")
+```python
+# Self-revoke the calling API key — immediately invalidates it
+result = client.api_keys.self_revoke()
+print(result.id)           # lbk_...
+print(result.revoked_at)   # datetime when revoked
 ```
 
 ### Account
@@ -396,56 +384,11 @@ print(account.readiness.operational)
 # Update account settings
 client.account.update(ga_measurement_id="G-XXXXXXXXXX")
 client.account.update(notify_orders=False)
+client.account.update(events_callback_url="https://yourapp.com/events")
 client.account.update(ga_measurement_id=None)  # clear GA ID
 
 # Delete account — irreversible
 client.account.delete()
-```
-
-### Customers
-
-```python
-# List all customers (buyers who have placed orders)
-for customer in client.customers.list():
-    print(customer.email, customer.total_orders)
-
-# Get a customer by ID
-customer = client.customers.get("acc_4hR9nK2mQ7tV5wX1")
-print(customer.email)
-print(customer.total_spent)    # total amount in cents
-print(customer.total_orders)
-```
-
-### Files
-
-```python
-from listbee import Deliverable
-
-# Upload a file as a deliverable (default purpose)
-with open("playbook.pdf", "rb") as f:
-    content = f.read()
-file = client.files.upload(file=("playbook.pdf", content, "application/pdf"))
-print(file.id)      # file_ token — valid for 24 hours
-print(file.purpose) # "deliverable"
-
-# Upload with explicit purpose
-cover = client.files.upload(
-    file=("cover.jpg", img_bytes, "image/jpeg"),
-    purpose="cover",       # "deliverable" | "cover" | "avatar"
-)
-avatar = client.files.upload(
-    file=("avatar.png", img_bytes, "image/png"),
-    purpose="avatar",
-)
-
-# Then attach to a listing using the uploaded file token
-client.listings.set_deliverables(
-    "lst_r7kq2xy9",
-    deliverables=[Deliverable.from_token(file.id)],
-)
-
-# Or use set_cover convenience helper (handles upload automatically)
-client.listings.set_cover("lst_r7kq2xy9", cover.id)   # token
 ```
 
 ### Stripe
@@ -474,37 +417,32 @@ for plan in plans.data:
 
 ## Fulfillment Modes
 
-ListBee supports two fulfillment modes determined by the listing's deliverables and `fulfillment_url`.
+ListBee supports two fulfillment modes set via `fulfillment_mode` on each listing.
 
-**Managed** — ListBee delivers pre-attached digital content (files, URLs, text) automatically on payment. Attach deliverables to the listing before publishing.
+**Static** (`fulfillment_mode="static"`) — ListBee delivers a pre-attached digital deliverable (URL, text, or file) automatically when the buyer pays. Attach a single deliverable to the listing before publishing.
 
 ```python
 from listbee import Deliverable
 
-# One-shot: create listing + attach deliverables + publish
-listing = client.listings.create_complete(
+# Attach a URL deliverable
+listing = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    deliverables=[
-        Deliverable.url("https://example.com/seo-playbook.pdf"),
-    ],
+    fulfillment_mode="static",
+    deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
 listing = client.listings.publish(listing.id)
 
-# Add or remove individual deliverables after creation
-client.listings.add_deliverable(listing.id, Deliverable.text("Bonus: license key XXXX-XXXX"))
-client.listings.remove_deliverable(listing.id, "del_4hR9nK2mQ7tV5wX1")
+# Attach a text deliverable (license key, access code, etc.)
+listing = client.listings.create(
+    name="Plugin License",
+    price=4900,
+    fulfillment_mode="static",
+    deliverable=Deliverable.text("Your license key: ABCD-1234-EFGH-5678"),
+)
 ```
 
-Upload a file and use it as a deliverable:
-
-```python
-with open("playbook.pdf", "rb") as f:
-    file = client.files.upload(file=f, filename="playbook.pdf")
-client.listings.add_deliverable(listing.id, Deliverable.from_token(file.id))
-```
-
-**External** — Set `fulfillment_url` and ListBee POSTs the order to your URL after payment. Your system handles delivery. Use for physical goods, AI-generated content, services, or anything that requires custom logic.
+**Async** (`fulfillment_mode="async"`) — ListBee fires an `order.paid` event to your `agent_callback_url`. Your agent generates content and pushes it back via `orders.fulfill()`. Use for AI-generated content, physical goods, services, or anything requiring custom logic.
 
 ```python
 from listbee import CheckoutField, Deliverable
@@ -513,31 +451,26 @@ from listbee import CheckoutField, Deliverable
 listing = client.listings.create(
     name="Custom AI Report",
     price=4900,
-    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
+    fulfillment_mode="async",
+    agent_callback_url="https://yourapp.com/webhooks/listbee",
     checkout_schema=[
         CheckoutField.text("topic", label="Report Topic", sort_order=0),
     ],
 )
 listing = client.listings.publish(listing.id)
 
-# When your endpoint receives the order, generate content and push back:
+# When your endpoint receives the order.paid event, generate and push back:
 order = client.orders.fulfill(
     "ord_9xM4kP7nR2qT5wY1",
-    deliverables=[
-        Deliverable.text("Your personalized report..."),
-    ],
+    deliverable=Deliverable.text("Your personalized report..."),
 )
 ```
 
-Use `order.has_deliverables` and `order.actions` to branch post-payment logic:
+Use `order.actions` to check what's needed after payment:
 
 ```python
 order = client.orders.get("ord_9xM4kP7nR2qT5wY1")
-if order.has_deliverables:
-    # ListBee has deliverables ready for the buyer
-    pass
 if order.actions:
-    # There are actions to take — check priority
     for action in order.actions:
         print(f"{action.priority}: {action.code} — {action.message}")
 ```
@@ -579,16 +512,20 @@ if not listing.readiness.sellable:
 
 | Code | Meaning |
 |------|---------|
-| `connect_stripe` | No Stripe account connected — start Connect onboarding |
-| `enable_charges` | Stripe charges are disabled — complete Stripe onboarding |
-| `update_billing` | ListBee subscription payment failed or unpaid |
-| `configure_webhook` | Listing with `fulfillment_url` needs a webhook endpoint configured |
-| `publish_listing` | Listing is a draft — publish to make it purchasable |
-| `webhook_disabled` | Webhook endpoint is disabled |
+| `otp_verification_pending` | OTP has been sent but not yet verified |
+| `stripe_connect_required` | No Stripe account connected — start Connect onboarding |
+| `stripe_charges_disabled` | Stripe charges disabled — complete Stripe onboarding |
+| `account_deleted` | Account has been deleted |
+| `listing_unpublished` | Listing is a draft — publish to make it purchasable |
+| `listing_deliverable_missing` | Static-mode listing has no deliverable attached |
+| `fulfillment_pending` | Async-mode order is awaiting fulfillment via `orders.fulfill()` |
+| `dispute_open` | Order has an open dispute requiring attention |
 
 ## Webhook Signature Verification
 
 Verify that incoming webhook requests genuinely come from ListBee before processing them.
+
+Each listing has a signing secret. Retrieve it from the listing's `signing_secret_preview` field or use the full secret stored at listing creation time.
 
 ```python
 from listbee import verify_signature, WebhookVerificationError
@@ -596,7 +533,7 @@ from listbee import verify_signature, WebhookVerificationError
 # In your webhook handler (e.g. FastAPI, Flask, Django):
 payload = request.body      # raw bytes — do not parse first
 signature = request.headers["listbee-signature"]
-secret = "whsec_..."        # from webhook.secret at creation time
+secret = "whsec_..."        # listing signing secret
 
 try:
     verify_signature(payload=payload, signature=signature, secret=secret)
@@ -640,7 +577,7 @@ for listing in client.listings.list():
 
 # Need full details? Fetch by ID
 full = client.listings.get(listing.id)
-print(full.deliverables, full.reviews, full.faqs)
+print(full.deliverable, full.reviews, full.faqs)
 
 # Manual page control — access current page directly
 page = client.listings.list(limit=10)
@@ -679,13 +616,13 @@ if order.is_disputed:
 if order.needs_fulfillment:
     print("Call orders.fulfill() to push content")
 if order.is_terminal:
-    print("Order is in a final state (fulfilled, canceled, or failed)")
+    print("Order is in a final state (fulfilled)")
 
 # Fulfill a paid order — push content for ListBee to deliver
 if order.needs_fulfillment:
     order = client.orders.fulfill(
         order.id,
-        deliverables=[Deliverable.text("Your generated report...")]
+        deliverable=Deliverable.text("Your generated report..."),
     )
 ```
 
@@ -699,14 +636,12 @@ if listing.is_draft:
     print("Listing is not yet publishable")
 if listing.is_published:
     print("Listing is live and purchasable")
+if listing.is_archived:
+    print("Listing has been archived")
 
-# Stock state
-if listing.is_in_stock:
-    print("Stock available for purchase")
-
-# Content state
-if listing.has_deliverables:
-    print(f"Listing has {len(listing.deliverables)} deliverables")
+# Deliverable state (static mode)
+if listing.deliverable:
+    print(f"Has deliverable: {listing.deliverable.type}")
 
 # Checkout link
 print(f"Share: {listing.checkout_url}")
@@ -791,6 +726,7 @@ import json
 
 payload = request.body
 signature = request.headers["listbee-signature"]
+secret = "whsec_..."    # listing signing secret
 
 try:
     verify_signature(payload=payload, signature=signature, secret=secret)
@@ -1007,11 +943,12 @@ from listbee import AsyncListBee, Deliverable
 async def main():
     client = AsyncListBee(api_key="lb_...")
 
-    # Create a listing, attach deliverable, publish
-    listing = await client.listings.create_complete(
+    # Create a listing and publish
+    listing = await client.listings.create(
         name="SEO Playbook",
         price=2900,
-        deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
+        fulfillment_mode="static",
+        deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
     )
     listing = await client.listings.publish(listing.id)
     print(listing.url)
@@ -1024,10 +961,10 @@ async def main():
     async for order in await client.orders.list(status="paid"):
         print(order.id)
 
-    # Fulfill an order (async)
+    # Fulfill an async-mode order — push generated content
     order = await client.orders.fulfill(
         "ord_9xM4kP7nR2qT5wY1",
-        deliverables=[Deliverable.text("Generated content here")],
+        deliverable=Deliverable.text("Generated content here"),
     )
 
 asyncio.run(main())
@@ -1084,17 +1021,17 @@ from listbee import (
     AsyncListBee,
 
     # Response models
-    ListingResponse,   # full listing (returned by get())
-    ListingSummary,    # slim listing (returned by list())
-    OrderResponse,     # full order (returned by get())
-    OrderSummary,      # slim order (returned by list())
-    WebhookResponse,
+    ListingResponse,         # full listing (returned by get())
+    ListingSummary,          # slim listing (returned by list())
+    OrderResponse,           # full order (returned by get())
+    OrderSummary,            # slim order (returned by list())
     AccountResponse,
-    BootstrapResponse,
+    BootstrapStartResponse,
     BootstrapVerifyResponse,
-    BootstrapCompleteResponse,
-    CustomerResponse,
-    FileResponse,
+    BootstrapPollResponse,
+    ApiKeyResponse,
+    EventResponse,
+    DeliverableResponse,
     ListingReadiness,
     AccountReadiness,
     Action,
@@ -1106,18 +1043,19 @@ from listbee import (
 
     # Builder classes
     CheckoutField,       # input class: .text() | .select() | .date()
-    Deliverable,         # input class: .file() | .url() | .text() | .from_token()
+    Deliverable,         # input class: .url() | .text()
 
     # Enums
     ActionPriority,      # "required" | "suggested"
-    DeliverableType,     # "file" | "url" | "text"
+    DeliverableType,     # "url" | "text"
+    FulfillmentMode,     # "static" | "async"
     PaymentStatus,       # "unpaid" | "paid" | "refunded"
     CheckoutFieldType,   # "text" | "select" | "date"
     BlurMode,            # "auto" | "true" | "false"
-    ListingStatus,       # "draft" | "published"
-    OrderStatus,         # "pending" | "paid" | "fulfilled" | "canceled" | "failed"
+    ListingStatus,       # "draft" | "published" | "archived"
+    OrderStatus,         # "paid" | "fulfilled"
     WebhookEventType,    # "order.paid" | "order.fulfilled" | "order.refunded" | ...
-    ActionCode,          # "connect_stripe" | "configure_webhook" | ...
+    ActionCode,          # "stripe_connect_required" | "listing_deliverable_missing" | ...
     ActionKind,          # "api" | "human"
 
     # Exceptions
@@ -1131,18 +1069,17 @@ from listbee import (
     ValidationError,
     RateLimitError,
     InternalServerError,
-    PartialCreationError,  # listing created but deliverable attachment failed
 )
 ```
 
 Use enums to avoid magic strings:
 
 ```python
-from listbee import ActionPriority, DeliverableType, PaymentStatus, ActionCode, ActionKind, WebhookEventType
+from listbee import ActionPriority, DeliverableType, FulfillmentMode, ActionCode, ActionKind, WebhookEventType
 
-# Check if managed delivery has been configured
-if listing.has_deliverables:
-    print(f"Delivers {listing.deliverables[0].type} file")
+# Check fulfillment mode
+if listing.fulfillment_mode == FulfillmentMode.STATIC:
+    print(f"Delivers: {listing.deliverable.type if listing.deliverable else 'none'}")
 
 # Check for required actions on an order
 if order.actions:
@@ -1150,152 +1087,151 @@ if order.actions:
     for action in required:
         print(f"Required: {action.code} — {action.message}")
 
-# Subscribe to specific events
-webhook = client.webhooks.create(
-    name="Orders only",
-    url="https://example.com/hooks",
-    events=[
-        WebhookEventType.ORDER_PAID,
-        WebhookEventType.ORDER_FULFILLED,
-        WebhookEventType.ORDER_REFUNDED,
-        WebhookEventType.LISTING_CREATED,
-    ],
-)
-
 # Branch on action code
 for action in listing.readiness.actions:
-    if action.code == ActionCode.CONFIGURE_WEBHOOK:
-        print(f"Create a webhook: {action.resolve.endpoint}")
-    elif action.code == ActionCode.CONNECT_STRIPE:
+    if action.code == ActionCode.LISTING_DELIVERABLE_MISSING:
+        print(f"Attach a deliverable: {action.resolve.endpoint}")
+    elif action.code == ActionCode.STRIPE_CONNECT_REQUIRED:
         print(f"Connect Stripe: {action.resolve.url}")
 ```
 
 ## Migration Guide
 
-### From v0.19.x to Unreleased
+### From v0.19.x to v0.22.0
+
+**Breaking Change: Bootstrap flow changed — now 2-step (start → verify)**
+
+```python
+# Old (v0.19.x — 3-step flow)
+session = client.bootstrap.start(email="seller@example.com")
+verified = client.bootstrap.verify(session=session.session, code="123456")
+result = client.bootstrap.complete(session=verified.session)
+print(result.api_key)
+
+# New (v0.22.0 — 2-step: start → verify returns api_key directly)
+session = client.bootstrap.start(email="seller@example.com")
+result = client.bootstrap.verify(
+    bootstrap_token=session.bootstrap_token,
+    otp_code="123456",
+)
+print(result.api_key)   # lb_... — returned immediately, store securely
+```
+
+**Breaking Change: Fulfillment model — `fulfillment_url` replaced by `fulfillment_mode` + `agent_callback_url`**
+
+```python
+# Old (v0.19.x)
+listing = client.listings.create(
+    name="Custom Report",
+    price=4900,
+    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
+)
+
+# New (v0.22.0)
+listing = client.listings.create(
+    name="Custom Report",
+    price=4900,
+    fulfillment_mode="async",
+    agent_callback_url="https://yourapp.com/webhooks/listbee",
+)
+```
+
+**Breaking Change: Single deliverable — `deliverables` (list) replaced by `deliverable` (single object)**
+
+```python
+# Old (v0.19.x)
+listing = client.listings.create_complete(
+    name="SEO Playbook",
+    price=2900,
+    deliverables=[Deliverable.url("https://example.com/seo-playbook.pdf")],
+)
+
+# New (v0.22.0)
+listing = client.listings.create(
+    name="SEO Playbook",
+    price=2900,
+    fulfillment_mode="static",
+    deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
+)
+```
+
+**Breaking Change: `orders.fulfill()` now takes `deliverable=` (single) not `deliverables=` (list)**
+
+```python
+# Old (v0.19.x)
+order = client.orders.fulfill(
+    "ord_9xM4kP7nR2qT5wY1",
+    deliverables=[Deliverable.text("Your report...")],
+)
+
+# New (v0.22.0)
+order = client.orders.fulfill(
+    "ord_9xM4kP7nR2qT5wY1",
+    deliverable=Deliverable.text("Your report..."),
+)
+```
+
+**Breaking Change: ActionCode values changed**
+
+```python
+# Old (v0.19.x) → New (v0.22.0)
+# ActionCode.CONNECT_STRIPE       → ActionCode.STRIPE_CONNECT_REQUIRED
+# ActionCode.ATTACH_DELIVERABLE   → ActionCode.LISTING_DELIVERABLE_MISSING
+# ActionCode.CONFIGURE_WEBHOOK    → ActionCode.FULFILLMENT_PENDING
+# ActionCode.PUBLISH_LISTING      → ActionCode.LISTING_UNPUBLISHED
+```
+
+**Breaking Change: OrderStatus simplified**
+
+`PENDING`, `CANCELED`, `FAILED` removed. Lifecycle is now `PAID → FULFILLED`.
+
+**Removed: Webhooks, Customers, Files resources**
+
+`client.webhooks`, `client.customers`, and `client.files` no longer exist. Deliverable access is handled via listing-level `agent_callback_url` and order events.
+
+**New: Events and ApiKeys resources**
+
+```python
+# List events
+for event in client.events.list():
+    print(event.type, event.data)
+
+# Self-revoke the current API key
+client.api_keys.self_revoke()
+```
+
+**New: `listings.unpublish()` and `listings.archive()`**
+
+```python
+listing = client.listings.unpublish("lst_abc123")   # draft again
+listing = client.listings.archive("lst_abc123")     # permanently archived
+```
+
+### From v0.15.x to v0.19.x
 
 **Breaking Change: Store resource removed**
 
 `client.store` no longer exists. `StoreResponse` and `StoreReadiness` types are removed.
 
-**Breaking Change: Bootstrap step 3 changed — `create_store()` replaced by `complete()`**
-
-```python
-# Old (v0.19.x)
-store = client.bootstrap.create_store(session=verified.session, store_name="Acme Agency")
-print(store.api_key)   # lb_...
-
-# New — complete() takes only session, returns BootstrapCompleteResponse
-result = client.bootstrap.complete(session=verified.session)
-print(result.api_key)       # lb_... — store immediately
-print(result.account_id)    # acc_...
-```
-
 **Breaking Change: Listing `slug` field replaced by `short_code`**
 
 ```python
-# Old (v0.19.x)
-listing = client.listings.get("lst_abc123")
-print(listing.slug)   # "seo-playbook"
+# Old
+print(listing.slug)        # "seo-playbook"
 
 # New
-listing = client.listings.get("lst_abc123")
-print(listing.short_code)   # "r7kq2xy" — 7-char base62 code
-```
-
-### From v0.16.x to v0.19.x
-
-**Breaking Change: Store `avatar_url` field removed — use `has_avatar` bool**
-
-`StoreResponse.avatar_url` is replaced by `StoreResponse.has_avatar` (bool). To set the avatar, upload a file token and pass it to `update(avatar=...)` or use the `set_avatar()` helper.
-
-**New: `set_cover()` on listings — one-step cover image upload**
-
-```python
-# Old: upload then update manually
-file = client.files.upload(file=("cover.jpg", img_bytes, "image/jpeg"))
-client.listings.update("lst_abc", cover_url=file.id)
-
-# New: one-step helper
-client.listings.set_cover("lst_abc", "https://example.com/cover.jpg")
-client.listings.set_cover("lst_abc", open("cover.jpg", "rb"))
-client.listings.set_cover("lst_abc", img_bytes)
-```
-
-### From v0.15.x to v0.16.x
-
-**Breaking Change: API Keys removed — use Bootstrap**
-
-The `client.api_keys` resource has been removed. Use the bootstrap flow to create accounts and obtain API keys programmatically.
-
-```python
-# Old (v0.15.x)
-new_key = client.api_keys.create(name="CI pipeline")
-print(new_key.key)
-
-# New (v0.16.x+) — bootstrap creates the account and issues the key
-client = ListBee(api_key="")
-session = client.bootstrap.start(email="seller@example.com")
-verified = client.bootstrap.verify(session=session.session, code="123456")
-result = client.bootstrap.complete(session=verified.session)
-print(result.api_key)  # lb_... — save immediately
+print(listing.short_code)  # "r7kq2xy" — 7-char base62 code
 ```
 
 ### From v0.14.x to v0.15.x
 
 **Breaking Change: Content Type → Implicit Fulfillment Model**
 
-The `content_type` field has been removed. Fulfillment is now determined implicitly:
-- Listings with deliverables attached → ListBee manages delivery
-- Listings with `fulfillment_url` set → Your system handles delivery
-
-```python
-# Old (v0.14.x)
-listing = client.listings.create(
-    name="Report",
-    price=2900,
-    content_type="static",
-)
-
-# New (v0.15.x)
-listing = client.listings.create(
-    name="Report",
-    price=2900,
-    # Attach deliverables after creation, or use create_complete()
-)
-
-# Old (external fulfillment)
-listing = client.listings.create(
-    name="Custom Service",
-    price=2900,
-    content_type="webhook",
-)
-
-# New (external fulfillment)
-listing = client.listings.create(
-    name="Custom Service",
-    price=2900,
-    fulfillment_url="https://yourapp.com/webhooks/listbee/fulfill",
-)
-```
-
-**Changed: Order fields**
-
-```python
-order = client.orders.get("ord_...")
-
-# Removed in v0.15.x
-# order.content_type     — removed
-# order.handed_off_at    — removed
-
-# New in v0.15.x
-print(order.has_deliverables)  # True if deliverables are attached
-print(order.actions)           # list of available actions with priority
-```
+The `content_type` field was removed. Fulfillment was determined implicitly by whether deliverables were attached or a `fulfillment_url` was set.
 
 **Changed: OrderStatus**
 
-`PROCESSING` and `HANDED_OFF` values removed from `OrderStatus`. Lifecycle is now `PENDING → PAID → FULFILLED`.
+`PROCESSING` and `HANDED_OFF` removed. Lifecycle was `PENDING → PAID → FULFILLED`.
 
 ### From v0.13.x to v0.14.0
 
@@ -1307,17 +1243,7 @@ The fulfillment concept was replaced with content types in v0.14.0. See v0.14.0 
 
 **Breaking Change: Removed signup resource**
 
-Account creation is now handled via the ListBee Console. The `client.signup` resource has been removed.
-
-```python
-# Old (v0.12.x)
-response = client.signup.send_otp("seller@example.com")
-token = client.signup.verify_otp("seller@example.com", "123456")
-
-# New (v0.13.x)
-# Use the Console at https://console.listbee.so to create accounts
-# Then use API key for subsequent API calls
-```
+Account creation moved to the ListBee Console. The `client.signup` resource was removed.
 
 ## Requirements
 

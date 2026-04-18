@@ -68,15 +68,17 @@ class Account:
         *,
         ga_measurement_id: str | None = None,
         notify_orders: bool | None = None,
+        events_callback_url: str | None = None,
     ) -> AccountResponse:
         """Update account settings.
-
-        Brand information (display name, bio, avatar) is managed via ``client.store.update()``.
 
         Args:
             ga_measurement_id: Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX').
                 Pass ``None`` to clear the existing value.
             notify_orders: Whether to receive email notifications for new orders.
+            events_callback_url: Account-level webhook URL for non-order events.
+                Set to an HTTPS URL to receive events; pass ``None`` to remove.
+                Omit entirely to leave the current value unchanged.
 
         Returns:
             The updated :class:`~listbee.types.account.AccountResponse`.
@@ -85,6 +87,8 @@ class Account:
         body["ga_measurement_id"] = ga_measurement_id
         if notify_orders is not None:
             body["notify_orders"] = notify_orders
+        if events_callback_url is not None:
+            body["events_callback_url"] = events_callback_url
         response = self._client.put("/v1/account", json=body)
         return AccountResponse.model_validate(response.json())
 
@@ -122,15 +126,17 @@ class AsyncAccount:
         *,
         ga_measurement_id: str | None = None,
         notify_orders: bool | None = None,
+        events_callback_url: str | None = None,
     ) -> AccountResponse:
         """Update account settings (async).
-
-        Brand information (display name, bio, avatar) is managed via ``client.store.update()``.
 
         Args:
             ga_measurement_id: Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX').
                 Pass ``None`` to clear the existing value.
             notify_orders: Whether to receive email notifications for new orders.
+            events_callback_url: Account-level webhook URL for non-order events.
+                Set to an HTTPS URL to receive events; pass ``None`` to remove.
+                Omit entirely to leave the current value unchanged.
 
         Returns:
             The updated :class:`~listbee.types.account.AccountResponse`.
@@ -139,5 +145,7 @@ class AsyncAccount:
         body["ga_measurement_id"] = ga_measurement_id
         if notify_orders is not None:
             body["notify_orders"] = notify_orders
+        if events_callback_url is not None:
+            body["events_callback_url"] = events_callback_url
         response = await self._client.put("/v1/account", json=body)
         return AccountResponse.model_validate(response.json())

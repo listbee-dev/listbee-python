@@ -14,7 +14,7 @@ class OrderSummary(BaseModel):
     """Slim order object returned in list responses.
 
     Use :meth:`~listbee.resources.orders.Orders.get` to retrieve the full
-    :class:`OrderResponse` with checkout data, snapshots, deliverables, and all other fields.
+    :class:`OrderResponse` with checkout data, snapshots, deliverable, and all other fields.
     """
 
     object: Literal["order"] = Field(
@@ -43,13 +43,12 @@ class OrderSummary(BaseModel):
         examples=["USD"],
     )
     status: OrderStatus = Field(
-        description=(
-            "Current order status. Lifecycle: PENDING → PAID → FULFILLED. Terminal error states: CANCELED, FAILED."
-        ),
+        description="Current order status. Lifecycle: PAID → FULFILLED.",
         examples=["paid"],
     )
     has_deliverables: bool = Field(
-        description="`true` if one or more deliverables are attached to this order.",
+        default=False,
+        description="`true` if auto-fulfilled by ListBee via static deliverable.",
         examples=[False],
     )
     payment_status: str = Field(
@@ -133,9 +132,7 @@ class OrderResponse(BaseModel):
         examples=["pi_3abc123def456"],
     )
     status: OrderStatus = Field(
-        description=(
-            "Current order status. Lifecycle: PENDING → PAID → FULFILLED. Terminal error states: CANCELED, FAILED."
-        ),
+        description="Current order status. Lifecycle: PENDING → PAID → FULFILLED.",
         examples=["paid"],
     )
     payment_status: str = Field(
@@ -155,7 +152,7 @@ class OrderResponse(BaseModel):
         description=(
             "Immutable snapshot of listing data captured at payment time. "
             "Contains name, price, slug, and other listing fields as they existed when the buyer paid. "
-            "Use this as the authoritative record of what was purchased — the listing may have changed since."
+            "Use this as the authoritative record of what was purchased."
         ),
         examples=[{"name": "SEO Playbook 2026", "price": 2900, "slug": "seo-playbook-2026"}],
     )
@@ -163,14 +160,37 @@ class OrderResponse(BaseModel):
         default=None,
         description=(
             "Immutable snapshot of seller identity captured at payment time. "
-            "Contains display_name and other account fields as they existed when the buyer paid. "
-            "Useful for receipts and audit trails when account details change later."
+            "Contains display_name and other account fields as they existed when the buyer paid."
         ),
         examples=[{"display_name": "Acme Agency", "email": "seller@example.com"}],
     )
     has_deliverables: bool = Field(
-        description="`true` if one or more deliverables are attached to this order.",
+        default=False,
+        description="`true` if a deliverable is attached to this order.",
         examples=[False],
+    )
+    deliverable: DeliverableResponse | None = Field(
+        default=None,
+        description=(
+            "Single digital deliverable attached to this order after fulfillment. "
+            "Null for external-fulfillment orders or before fulfillment."
+        ),
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Arbitrary key-value pairs attached to this order. "
+            "Stripe-aligned limits: max 50 keys, keys ≤ 40 chars, string values ≤ 500 chars."
+        ),
+        examples=[{"generated_by": "my-agent", "version": "1"}],
+    )
+    unlock_url: str | None = Field(
+        default=None,
+        description=(
+            "Permanent bearer link sent to the buyer. "
+            "The buyer uses this to access their purchased content."
+        ),
+        examples=["https://buy.listbee.so/dl/ord_9xM4kP7nR2qT5wY1?token=..."],
     )
     actions: list[Action] | None = Field(
         default=None,
@@ -179,9 +199,9 @@ class OrderResponse(BaseModel):
             "Each action has a `priority` field indicating whether it is `required` or `suggested`."
         ),
     )
-    deliverables: list[DeliverableResponse] = Field(
-        default=[],
-        description="Deliverables attached to this order.",
+    readiness: OrderReadiness | None = Field(
+        default=None,
+        description="Fulfillment readiness state for this order. Includes available actions and next priority.",
     )
     paid_at: datetime | None = Field(
         default=None,
@@ -222,10 +242,6 @@ class OrderResponse(BaseModel):
     created_at: datetime = Field(
         description="ISO 8601 timestamp of when the order was created.",
     )
-    readiness: OrderReadiness | None = Field(
-        default=None,
-        description="Fulfillment readiness state for this order. Includes available actions and next priority.",
-    )
 
     @property
     def is_paid(self) -> bool:
@@ -249,5 +265,5 @@ class OrderResponse(BaseModel):
 
     @property
     def is_terminal(self) -> bool:
-        """True when the order has reached a terminal state (fulfilled, canceled, or failed)."""
-        return self.status in ("fulfilled", "canceled", "failed")
+        """True when the order has reached a terminal state (fulfilled)."""
+        return self.status == "fulfilled"

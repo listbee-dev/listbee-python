@@ -30,7 +30,6 @@ from listbee.types.shared import (
     ActionResolve,
     ListingReadiness,
     WebhookEventType,
-    WebhookReadiness,
 )
 
 SECRET = "whsec_testsecret123"
@@ -122,14 +121,14 @@ class TestFromMinor:
 # ---------------------------------------------------------------------------
 
 API_ACTION = Action(
-    code=ActionCode.ATTACH_DELIVERABLE,
+    code=ActionCode.LISTING_DELIVERABLE_MISSING,
     kind=ActionKind.API,
-    message="Attach a deliverable",
-    resolve=ActionResolve(method="POST", endpoint="/v1/listings/slug/deliverables", url=None, params=None),
+    message="Attach a deliverable to this listing",
+    resolve=ActionResolve(method="PUT", endpoint="/v1/listings/lst_abc123", url=None, params=None),
 )
 
 HUMAN_ACTION = Action(
-    code=ActionCode.CONNECT_STRIPE,
+    code=ActionCode.STRIPE_CONNECT_REQUIRED,
     kind=ActionKind.HUMAN,
     message="Connect Stripe in the dashboard",
     resolve=ActionResolve(method="GET", endpoint=None, url="https://listbee.so/connect/stripe", params=None),
@@ -142,11 +141,11 @@ class TestListingReadiness:
         assert r.is_ready is True
 
     def test_is_ready_when_not_sellable(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="attach_deliverable")
+        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="listing_deliverable_missing")
         assert r.is_ready is False
 
     def test_next_action_returns_matching_action(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="attach_deliverable")
+        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="listing_deliverable_missing")
         assert r.next_action is API_ACTION
 
     def test_next_action_returns_none_when_ready(self):
@@ -158,12 +157,12 @@ class TestListingReadiness:
         assert r.next_action is None
 
     def test_actions_by_kind_api(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION, HUMAN_ACTION], next="attach_deliverable")
+        r = ListingReadiness(sellable=False, actions=[API_ACTION, HUMAN_ACTION], next="listing_deliverable_missing")
         result = r.actions_by_kind("api")
         assert result == [API_ACTION]
 
     def test_actions_by_kind_human(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION, HUMAN_ACTION], next="attach_deliverable")
+        r = ListingReadiness(sellable=False, actions=[API_ACTION, HUMAN_ACTION], next="listing_deliverable_missing")
         result = r.actions_by_kind("human")
         assert result == [HUMAN_ACTION]
 
@@ -178,11 +177,11 @@ class TestAccountReadiness:
         assert r.is_ready is True
 
     def test_is_ready_when_not_operational(self):
-        r = AccountReadiness(operational=False, actions=[HUMAN_ACTION], next="connect_stripe")
+        r = AccountReadiness(operational=False, actions=[HUMAN_ACTION], next="stripe_connect_required")
         assert r.is_ready is False
 
     def test_next_action_returns_matching_action(self):
-        r = AccountReadiness(operational=False, actions=[HUMAN_ACTION], next="connect_stripe")
+        r = AccountReadiness(operational=False, actions=[HUMAN_ACTION], next="stripe_connect_required")
         assert r.next_action is HUMAN_ACTION
 
     def test_next_action_returns_none_when_ready(self):
@@ -190,30 +189,8 @@ class TestAccountReadiness:
         assert r.next_action is None
 
     def test_actions_by_kind(self):
-        r = AccountReadiness(operational=False, actions=[API_ACTION, HUMAN_ACTION], next="connect_stripe")
+        r = AccountReadiness(operational=False, actions=[API_ACTION, HUMAN_ACTION], next="stripe_connect_required")
         assert r.actions_by_kind("human") == [HUMAN_ACTION]
-        assert r.actions_by_kind("api") == [API_ACTION]
-
-
-class TestWebhookReadiness:
-    def test_is_ready_when_ready(self):
-        r = WebhookReadiness(ready=True, actions=[], next=None)
-        assert r.is_ready is True
-
-    def test_is_ready_when_not_ready(self):
-        r = WebhookReadiness(ready=False, actions=[API_ACTION], next="attach_deliverable")
-        assert r.is_ready is False
-
-    def test_next_action_returns_matching_action(self):
-        r = WebhookReadiness(ready=False, actions=[API_ACTION], next="attach_deliverable")
-        assert r.next_action is API_ACTION
-
-    def test_next_action_returns_none_when_ready(self):
-        r = WebhookReadiness(ready=True, actions=[], next=None)
-        assert r.next_action is None
-
-    def test_actions_by_kind(self):
-        r = WebhookReadiness(ready=False, actions=[API_ACTION, HUMAN_ACTION], next="attach_deliverable")
         assert r.actions_by_kind("api") == [API_ACTION]
 
 
@@ -231,12 +208,13 @@ BASE_ORDER = {
     "stripe_payment_intent_id": "pi_3abc123def456",
     "status": "paid",
     "payment_status": "paid",
-    "has_deliverables": False,
     "actions": None,
     "checkout_data": None,
     "listing_snapshot": None,
     "seller_snapshot": None,
-    "deliverables": [],
+    "deliverable": None,
+    "metadata": None,
+    "unlock_url": None,
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
     "refund_amount": 0,
@@ -290,20 +268,8 @@ class TestOrderStateHelpers:
         order = self._make(status="fulfilled")
         assert order.is_terminal is True
 
-    def test_is_terminal_canceled(self):
-        order = self._make(status="canceled")
-        assert order.is_terminal is True
-
-    def test_is_terminal_failed(self):
-        order = self._make(status="failed")
-        assert order.is_terminal is True
-
     def test_is_terminal_false_for_paid(self):
         order = self._make(status="paid")
-        assert order.is_terminal is False
-
-    def test_is_terminal_false_for_pending(self):
-        order = self._make(status="pending")
         assert order.is_terminal is False
 
 
@@ -321,12 +287,11 @@ BASE_LISTING = {
     "highlights": [],
     "cta": None,
     "price": 2900,
-    "fulfillment_url": None,
-    "has_deliverables": False,
-    "deliverables": [],
+    "fulfillment_mode": "static",
+    "deliverable": None,
+    "agent_callback_url": None,
+    "signing_secret_preview": "****",
     "has_cover": False,
-    "stock": None,
-    "embed_url": None,
     "checkout_schema": None,
     "compare_at_price": None,
     "badges": [],
@@ -365,26 +330,6 @@ class TestListingLifecycleHelpers:
     def test_is_published_false(self):
         listing = self._make(status="draft")
         assert listing.is_published is False
-
-    def test_is_in_stock_unlimited(self):
-        listing = self._make(stock=None)
-        assert listing.is_in_stock is True
-
-    def test_is_in_stock_positive(self):
-        listing = self._make(stock=5)
-        assert listing.is_in_stock is True
-
-    def test_is_in_stock_zero(self):
-        listing = self._make(stock=0)
-        assert listing.is_in_stock is False
-
-    def test_has_deliverables_true(self):
-        listing = self._make(has_deliverables=True)
-        assert listing.has_deliverables is True
-
-    def test_has_deliverables_false(self):
-        listing = self._make(has_deliverables=False)
-        assert listing.has_deliverables is False
 
     def test_checkout_url_returns_url(self):
         listing = self._make(url="https://buy.listbee.so/seo-playbook")
@@ -463,7 +408,7 @@ class TestParseWebhookEvent:
 class TestResolveAction:
     def test_raises_for_human_action_with_no_endpoint(self):
         action = Action(
-            code=ActionCode.CONNECT_STRIPE,
+            code=ActionCode.STRIPE_CONNECT_REQUIRED,
             kind=ActionKind.HUMAN,
             message="Connect Stripe",
             resolve=ActionResolve(
@@ -479,7 +424,7 @@ class TestResolveAction:
 
     def test_post_action_calls_client_post(self):
         action = Action(
-            code=ActionCode.ATTACH_DELIVERABLE,
+            code=ActionCode.LISTING_DELIVERABLE_MISSING,
             kind=ActionKind.API,
             message="Attach a deliverable",
             resolve=ActionResolve(
@@ -500,7 +445,7 @@ class TestResolveAction:
 
     def test_get_action_calls_client_get(self):
         action = Action(
-            code=ActionCode.ATTACH_DELIVERABLE,
+            code=ActionCode.LISTING_DELIVERABLE_MISSING,
             kind=ActionKind.API,
             message="Get something",
             resolve=ActionResolve(
@@ -518,7 +463,7 @@ class TestResolveAction:
 
     def test_delete_action_returns_none(self):
         action = Action(
-            code=ActionCode.ATTACH_DELIVERABLE,
+            code=ActionCode.LISTING_DELIVERABLE_MISSING,
             kind=ActionKind.API,
             message="Delete something",
             resolve=ActionResolve(
@@ -535,7 +480,7 @@ class TestResolveAction:
 
     def test_put_action_calls_client_put(self):
         action = Action(
-            code=ActionCode.CONFIGURE_WEBHOOK,
+            code=ActionCode.FULFILLMENT_PENDING,
             kind=ActionKind.API,
             message="Configure webhook",
             resolve=ActionResolve(
@@ -556,7 +501,7 @@ class TestResolveAction:
 
     def test_post_action_with_no_params_sends_empty_dict(self):
         action = Action(
-            code=ActionCode.PUBLISH_LISTING,
+            code=ActionCode.LISTING_UNPUBLISHED,
             kind=ActionKind.API,
             message="Publish listing",
             resolve=ActionResolve(

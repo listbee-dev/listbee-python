@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-04-18
+
+### Added
+- `client.events.list()` — new `Events` resource for the `/v1/events` endpoint; returns cursor-paginated `EventResponse` objects with `id`, `type`, `account_id`, `listing_id`, `order_id`, `data`, `created_at`
+- `client.api_keys.self_revoke()` — new `ApiKeys` resource; immediately invalidates the calling API key (POST `/v1/api-keys/self-revoke`); returns `ApiKeyResponse`
+- `listings.unpublish(id)` — move a published listing back to draft (POST `/v1/listings/{id}/unpublish`)
+- `listings.archive(id)` — permanently archive a listing (POST `/v1/listings/{id}/archive`)
+- `orders.redeliver(id)` — re-queue webhook delivery for an order (POST `/v1/orders/{id}/redeliver`); returns `RedeliveryAck`
+- `bootstrap.poll(account_id)` — poll account readiness after verify (GET `/v1/bootstrap/{account_id}`); returns `BootstrapPollResponse`
+- `bootstrap.run()` — high-level orchestrator: start → OTP → verify → optional Stripe onboarding → poll until ready; returns `api_key`
+- `BootstrapStartResponse` — new type for step 1 (`bootstrap_token`, `account_id`, `otp_expires_at`)
+- `BootstrapVerifyResponse` — new type for step 2 (`account_id`, `api_key`, `stripe_onboarding_url`, `readiness`)
+- `BootstrapPollResponse` — new type for readiness polling (`ready`, `account_id`, `readiness`, `stripe_onboarding_url`)
+- `ApiKeyResponse` — new type for API key objects (`id`, `name`, `prefix`, `created_at`, `last_used_at`, `revoked_at`)
+- `EventResponse` — new type for event log objects (`id`, `type`, `account_id`, `listing_id`, `order_id`, `data`, `created_at`)
+- `CreateListingResponse` — one-time response wrapping `listing` + `signing_secret` (full secret shown once at creation)
+- `RotateSigningSecretResponse` — response for rotating a listing signing secret
+- `RedeliveryAck` — response for `orders.redeliver()` (`order_id`, `scheduled_attempts`)
+- `FulfillmentMode` enum — `static` (ListBee delivers) or `async` (agent handles delivery via `fulfill()`)
+- `fulfillment_mode` field on `ListingResponse` and `ListingSummary`
+- `deliverable` (single) field on `ListingResponse` — replaces list
+- `agent_callback_url` field on `ListingResponse` — HTTPS URL for async-mode webhook events
+- `signing_secret_preview` field on `ListingResponse` — last 4 chars of the signing secret
+- `deliverable` (single) field on `OrderResponse` — replaces list
+- `metadata` field on `OrderResponse`
+- `unlock_url` field on `OrderResponse` — permanent bearer link to buyer's content
+- `events_callback_url` field on `AccountResponse`
+- `is_archived` property on `ListingResponse` and `ListingSummary`
+- `ARCHIVED` value on `ListingStatus` enum
+- `with_raw_response` proxy on `ApiKeys` and `Events` resources (consistent with other resources)
+
+### Changed
+- Bootstrap flow: **2-step** (start → verify). `start()` now takes `email` (not `email`+metadata). `verify()` takes `bootstrap_token` + `otp_code` (not `session` + `code`). `verify()` now returns `api_key` directly.
+- `orders.fulfill()` now takes a single `deliverable` parameter (not `deliverables` list) plus optional `metadata`
+- `listings.create()` now accepts `fulfillment_mode`, `agent_callback_url`, `signing_secret` parameters
+- `listings.update()` now accepts `fulfillment_mode`, `agent_callback_url`, `signing_secret` parameters
+- `account.update()` now accepts `events_callback_url` parameter
+- `ActionCode` enum: new values (`otp_verification_pending`, `stripe_connect_required`, `stripe_charges_disabled`, `account_deleted`, `listing_unpublished`, `listing_deliverable_missing`, `fulfillment_pending`, `dispute_open`)
+- `WebhookEventType` enum: removed `customer.created`
+- `OrderStatus` enum: now only `paid` and `fulfilled` (removed `pending`, `canceled`, `failed`)
+- `DeliverableType` enum: removed `file` (file hosting discontinued)
+- `is_terminal` property on `OrderResponse`: now only true for `fulfilled` status
+
+### Removed
+- `bootstrap.complete()` method — step 3 no longer exists; bootstrap is now 2-step
+- `client.customers` resource and all customer methods (`list_customers`, `get_customer`)
+- `client.files` resource and all file methods (`upload_file`)
+- `client.webhooks` resource and all webhook CRUD methods (webhook management removed from API)
+- `listings.set_deliverables()`, `listings.add_deliverable()`, `listings.remove_deliverables()`, `listings.remove_deliverable()` — replaced by single `deliverable` on create/update
+- `listings.create_complete()`, `listings.set_cover()` — removed
+- `AccountStats` type and `stats` field on `AccountResponse`
+- `CustomerResponse`, `CustomerListResponse` types
+- `FileResponse` type
+- `WebhookResponse`, `WebhookEventResponse`, `WebhookTestResponse`, `WebhookReadiness` types
+- `BootstrapCompleteRequest`, `BootstrapCompleteResponse` (old 3-step) types — aliases kept for back-compat
+- `deliverables` list field on `ListingResponse` and `OrderResponse` — replaced by single `deliverable`
+- `has_deliverables` field on `ListingResponse`, `ListingSummary`, `OrderResponse`
+- `fulfillment_url`, `stock` fields on `ListingResponse` and `ListingSummary`
+
+### Compatibility
+- `BootstrapResponse` alias for `BootstrapStartResponse` (back-compat)
+- `BootstrapCompleteResponse` alias for `BootstrapVerifyResponse` (back-compat)
+
 ## [0.21.0] - 2026-04-17
 
 ### Changed

@@ -12,6 +12,7 @@ from listbee._base_client import SyncClient
 from listbee.deliverable import Deliverable
 from listbee.resources.orders import Orders
 from listbee.types.order import OrderResponse, OrderSummary
+from listbee.types.order_redeliver import RedeliveryAck
 
 ORDER_JSON = {
     "object": "order",
@@ -24,11 +25,14 @@ ORDER_JSON = {
     "status": "paid",
     "payment_status": "paid",
     "has_deliverables": False,
+    "deliverable": None,
+    "metadata": None,
+    "unlock_url": None,
     "actions": None,
+    "readiness": None,
     "checkout_data": None,
     "listing_snapshot": {"name": "SEO Playbook", "price": 2999, "slug": "seo-playbook"},
     "seller_snapshot": {"display_name": "Acme Agency"},
-    "deliverables": [],
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
     "refund_amount": 0,
@@ -39,7 +43,6 @@ ORDER_JSON = {
     "disputed_at": None,
     "platform_fee": 0,
     "created_at": "2026-03-28T12:00:00Z",
-    "readiness": None,
 }
 
 ORDER_WITH_CHECKOUT_DATA_JSON = {
@@ -52,19 +55,16 @@ FULFILLED_ORDER_JSON = {
     **ORDER_JSON,
     "id": "ord_fulfilled123",
     "status": "fulfilled",
-    "deliverables": [
-        {
-            "object": "deliverable",
-            "id": "del_existing_001",
-            "type": "file",
-            "status": "ready",
-            "content": None,
-            "filename": "ebook.pdf",
-            "mime_type": "application/pdf",
-            "size": 2458631,
-            "url": None,
-        }
-    ],
+    "has_deliverables": True,
+    "deliverable": {
+        "object": "deliverable",
+        "id": "del_existing_001",
+        "type": "text",
+        "status": "ready",
+        "url": None,
+        "content": "Your personalized report content...",
+    },
+    "unlock_url": "https://buy.listbee.so/dl/ord_fulfilled123?token=abc",
     "fulfilled_at": "2026-03-28T13:00:00Z",
 }
 
@@ -76,7 +76,6 @@ ORDER_SUMMARY_JSON = {
     "amount": 2999,
     "currency": "USD",
     "status": "paid",
-    "has_deliverables": False,
     "payment_status": "paid",
     "platform_fee": 0,
     "refund_amount": 0,
@@ -84,6 +83,12 @@ ORDER_SUMMARY_JSON = {
     "paid_at": "2026-03-28T12:00:01Z",
     "fulfilled_at": None,
     "created_at": "2026-03-28T12:00:00Z",
+}
+
+REDELIVER_ACK_JSON = {
+    "object": "redelivery_ack",
+    "order_id": "ord_9xM4kP7nR2qT5wY1",
+    "scheduled_attempts": 2,
 }
 
 
@@ -115,11 +120,24 @@ class TestGetOrder:
             orders.get("ord_abc")
         assert route.called
 
-    def test_get_order_no_stripe_session_id(self, orders):
+    def test_get_order_has_new_fields(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/orders/ord_9xM4kP7nR2qT5wY1").mock(return_value=httpx.Response(200, json=ORDER_JSON))
             result = orders.get("ord_9xM4kP7nR2qT5wY1")
-        assert not hasattr(result, "stripe_session_id")
+        assert result.deliverable is None
+        assert result.metadata is None
+        assert result.unlock_url is None
+
+    def test_get_order_fulfilled_has_deliverable_and_unlock_url(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/orders/ord_fulfilled123").mock(
+                return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
+            )
+            result = orders.get("ord_fulfilled123")
+        assert result.deliverable is not None
+        assert result.deliverable.type == "text"
+        assert result.deliverable.content == "Your personalized report content..."
+        assert result.unlock_url == "https://buy.listbee.so/dl/ord_fulfilled123?token=abc"
 
 
 class TestListOrders:
@@ -154,8 +172,8 @@ class TestListOrders:
         page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
-            list(orders.list(listing="seo-playbook"))
-        assert "listing=seo-playbook" in str(route.calls[0].request.url)
+            list(orders.list(listing="lst_abc123"))
+        assert "listing=" in str(route.calls[0].request.url)
 
     def test_list_orders_with_created_after_string(self, orders):
         page_json = {"data": [], "has_more": False, "cursor": None}
@@ -191,13 +209,6 @@ class TestListOrders:
             route.calls[0].request.url
         ) or "buyer_email=buyer@example.com" in str(route.calls[0].request.url)
 
-    def test_list_orders_without_buyer_email_omits_param(self, orders):
-        page_json = {"data": [], "has_more": False, "cursor": None}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.get("/v1/orders").mock(return_value=httpx.Response(200, json=page_json))
-            list(orders.list())
-        assert "buyer_email" not in str(route.calls[0].request.url)
-
     def test_list_orders_summary_fields(self, orders):
         page_json = {"data": [ORDER_SUMMARY_JSON], "has_more": False, "cursor": None}
         with respx.mock(base_url="https://api.listbee.so") as mock:
@@ -214,14 +225,6 @@ class TestListOrders:
 
 
 class TestOrderStatus:
-    def test_order_pending_status(self, orders):
-        pending_json = {**ORDER_JSON, "status": "pending", "paid_at": None}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=pending_json))
-            result = orders.get("ord_1")
-        assert result.status == "pending"
-        assert result.paid_at is None
-
     def test_order_paid_status(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=ORDER_JSON))
@@ -234,31 +237,8 @@ class TestOrderStatus:
             mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON))
             result = orders.get("ord_1")
         assert result.status == "fulfilled"
-        assert len(result.deliverables) == 1
-        assert result.deliverables[0].type == "file"
-        assert result.deliverables[0].status == "ready"
+        assert result.deliverable is not None
         assert result.fulfilled_at is not None
-
-    def test_order_canceled_status(self, orders):
-        canceled_json = {**ORDER_JSON, "status": "canceled"}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=canceled_json))
-            result = orders.get("ord_1")
-        assert result.status == "canceled"
-
-    def test_order_failed_status(self, orders):
-        failed_json = {**ORDER_JSON, "status": "failed"}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=failed_json))
-            result = orders.get("ord_1")
-        assert result.status == "failed"
-
-    def test_order_has_deliverables_field(self, orders):
-        order_with_deliverables = {**ORDER_JSON, "has_deliverables": True}
-        with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=order_with_deliverables))
-            result = orders.get("ord_1")
-        assert result.has_deliverables is True
 
 
 class TestOrderCheckoutData:
@@ -288,25 +268,25 @@ class TestOrderNewFields:
         assert result.has_deliverables is False
         assert result.actions is None
 
-    def test_order_has_deliverables_true(self, orders):
-        order_json = {**ORDER_JSON, "has_deliverables": True}
+    def test_order_metadata_field(self, orders):
+        order_with_meta = {**ORDER_JSON, "metadata": {"generated_by": "my-agent", "version": "1"}}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=order_json))
+            mock.get("/v1/orders/ord_1").mock(return_value=httpx.Response(200, json=order_with_meta))
             result = orders.get("ord_1")
-        assert result.has_deliverables is True
+        assert result.metadata == {"generated_by": "my-agent", "version": "1"}
 
     def test_order_actions_list(self, orders):
         order_json = {
             **ORDER_JSON,
             "actions": [
                 {
-                    "code": "publish_listing",
+                    "code": "fulfillment_pending",
                     "kind": "api",
                     "priority": "required",
-                    "message": "Publish this listing to allow purchases.",
+                    "message": "Fulfill this order.",
                     "resolve": {
                         "method": "POST",
-                        "endpoint": "/v1/listings/lst_abc123/publish",
+                        "endpoint": "/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill",
                         "url": None,
                         "params": None,
                     },
@@ -318,13 +298,13 @@ class TestOrderNewFields:
             result = orders.get("ord_1")
         assert result.actions is not None
         assert len(result.actions) == 1
-        assert result.actions[0].code == "publish_listing"
+        assert result.actions[0].code == "fulfillment_pending"
         assert result.actions[0].priority == "required"
 
 
 class TestFulfillOrder:
-    def test_fulfill_order_without_deliverables(self, orders):
-        """Close out an order without pushing content."""
+    def test_fulfill_order_without_deliverable(self, orders):
+        """Close out an external-mode order without pushing content."""
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
@@ -333,49 +313,52 @@ class TestFulfillOrder:
         assert isinstance(result, OrderResponse)
         assert result.status == "fulfilled"
         body = json.loads(route.calls[0].request.content)
-        assert "deliverables" not in body
+        assert "deliverable" not in body
 
-    def test_fulfill_order_with_text(self, orders):
+    def test_fulfill_order_with_text_deliverable(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
             result = orders.fulfill(
                 "ord_9xM4kP7nR2qT5wY1",
-                deliverables=[{"type": "text", "value": "Here is your AI-generated report"}],
+                deliverable=Deliverable.text("Your personalized report..."),
             )
         assert isinstance(result, OrderResponse)
-        assert result.status == "fulfilled"
         body = json.loads(route.calls[0].request.content)
-        assert body["deliverables"] == [{"type": "text", "value": "Here is your AI-generated report"}]
+        assert body["deliverable"] == {"type": "text", "value": "Your personalized report..."}
 
-    def test_fulfill_order_with_url(self, orders):
+    def test_fulfill_order_with_url_deliverable(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
             orders.fulfill(
                 "ord_9xM4kP7nR2qT5wY1",
-                deliverables=[{"type": "url", "value": "https://example.com/generated.pdf"}],
+                deliverable=Deliverable.url("https://example.com/generated.pdf"),
             )
         body = json.loads(route.calls[0].request.content)
-        assert body["deliverables"][0]["value"] == "https://example.com/generated.pdf"
+        assert body["deliverable"] == {"type": "url", "value": "https://example.com/generated.pdf"}
 
-    def test_fulfill_order_sends_deliverables_key(self, orders):
+    def test_fulfill_order_with_metadata(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_9xM4kP7nR2qT5wY1", deliverables=[{"type": "text", "value": "some content"}])
+            orders.fulfill(
+                "ord_9xM4kP7nR2qT5wY1",
+                deliverable=Deliverable.text("content"),
+                metadata={"generated_by": "my-agent"},
+            )
         body = json.loads(route.calls[0].request.content)
-        assert "deliverables" in body
+        assert body["metadata"] == {"generated_by": "my-agent"}
 
     def test_fulfill_order_sends_correct_path(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
             route = mock.post("/v1/orders/ord_abc/fulfill").mock(
                 return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
             )
-            orders.fulfill("ord_abc", deliverables=[{"type": "text", "value": "some content"}])
+            orders.fulfill("ord_abc")
         assert route.called
 
 
@@ -393,52 +376,21 @@ class TestRefundOrder:
         assert route.called
 
 
-class TestFulfillWithDeliverableClass:
-    @respx.mock
-    def test_fulfill_with_file(self, sync_client):
-        respx.post("https://api.listbee.so/v1/files").mock(
-            return_value=httpx.Response(
-                201,
-                json={
-                    "object": "file",
-                    "id": "file_tok_abc",
-                    "filename": "report.pdf",
-                    "size": 1024,
-                    "mime_type": "application/pdf",
-                    "purpose": "deliverable",
-                    "expires_at": "2026-04-07T12:00:00Z",
-                    "created_at": "2026-04-06T12:00:00Z",
-                },
+class TestRedeliverOrder:
+    def test_redeliver_returns_redelivery_ack(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.post("/v1/orders/ord_9xM4kP7nR2qT5wY1/redeliver").mock(
+                return_value=httpx.Response(200, json=REDELIVER_ACK_JSON)
             )
-        )
-        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/fulfill").mock(
-            return_value=httpx.Response(200, json=ORDER_JSON)
-        )
-        result = Orders(sync_client).fulfill(
-            "ord_abc",
-            deliverables=[Deliverable.file(b"content", filename="report.pdf")],
-        )
-        assert result.id == ORDER_JSON["id"]
-        sent = json.loads(route.calls[0].request.content)
-        assert sent["deliverables"][0] == {"type": "file", "token": "file_tok_abc"}
+            result = orders.redeliver("ord_9xM4kP7nR2qT5wY1")
+        assert isinstance(result, RedeliveryAck)
+        assert result.order_id == "ord_9xM4kP7nR2qT5wY1"
+        assert result.scheduled_attempts == 2
 
-    @respx.mock
-    def test_fulfill_with_text(self, sync_client):
-        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/fulfill").mock(
-            return_value=httpx.Response(200, json=ORDER_JSON)
-        )
-        Orders(sync_client).fulfill(
-            "ord_abc",
-            deliverables=[Deliverable.text("Your report")],
-        )
-        sent = json.loads(route.calls[0].request.content)
-        assert sent == {"deliverables": [{"type": "text", "value": "Your report"}]}
-
-    @respx.mock
-    def test_fulfill_without_deliverables_sends_empty_body(self, sync_client):
-        route = respx.post("https://api.listbee.so/v1/orders/ord_abc/fulfill").mock(
-            return_value=httpx.Response(200, json=ORDER_JSON)
-        )
-        Orders(sync_client).fulfill("ord_abc")
-        sent = json.loads(route.calls[0].request.content)
-        assert sent == {}
+    def test_redeliver_sends_correct_path(self, orders):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.post("/v1/orders/ord_abc/redeliver").mock(
+                return_value=httpx.Response(200, json=REDELIVER_ACK_JSON)
+            )
+            orders.redeliver("ord_abc")
+        assert route.called

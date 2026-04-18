@@ -22,7 +22,7 @@ ACCOUNT_JSON = {
     "billing_status": "active",
     "ga_measurement_id": None,
     "notify_orders": True,
-    "stats": {"total_revenue": 125000, "total_orders": 47, "total_listings": 5},
+    "events_callback_url": None,
     "readiness": {"operational": True, "actions": [], "next": None},
     "created_at": "2026-03-28T12:00:00Z",
 }
@@ -49,11 +49,22 @@ class TestGetAccount:
         assert result.plan == "free"
         assert result.fee_rate == "0.10"
         assert result.currency == "usd"
-        assert result.stats.total_revenue == 125000
-        assert result.stats.total_orders == 47
-        assert result.stats.total_listings == 5
         assert result.readiness.operational is True
         assert result.readiness.actions == []
+
+    def test_get_account_has_no_stats_field(self, account):
+        """AccountStats removed — stats field no longer exists."""
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            result = account.get()
+        assert not hasattr(result, "stats")
+
+    def test_get_account_events_callback_url(self, account):
+        with_callback = {**ACCOUNT_JSON, "events_callback_url": "https://agent.example.com/events"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            mock.get("/v1/account").mock(return_value=httpx.Response(200, json=with_callback))
+            result = account.get()
+        assert result.events_callback_url == "https://agent.example.com/events"
 
     def test_get_account_with_actions(self, account):
         json_with_actions = {
@@ -62,7 +73,7 @@ class TestGetAccount:
                 "operational": False,
                 "actions": [
                     {
-                        "code": "connect_stripe",
+                        "code": "stripe_connect_required",
                         "kind": "human",
                         "message": "Connect a Stripe account to accept payments",
                         "resolve": {
@@ -73,7 +84,7 @@ class TestGetAccount:
                         },
                     }
                 ],
-                "next": "connect_stripe",
+                "next": "stripe_connect_required",
             },
         }
         with respx.mock(base_url="https://api.listbee.so") as mock:
@@ -81,10 +92,10 @@ class TestGetAccount:
             result = account.get()
         assert result.readiness.operational is False
         assert len(result.readiness.actions) == 1
-        assert result.readiness.actions[0].code == "connect_stripe"
+        assert result.readiness.actions[0].code == "stripe_connect_required"
         assert result.readiness.actions[0].kind == "human"
         assert result.readiness.actions[0].resolve.url == "https://listbee.so/connect/stripe"
-        assert result.readiness.next == "connect_stripe"
+        assert result.readiness.next == "stripe_connect_required"
 
 
 class TestUpdateAccount:
@@ -142,6 +153,22 @@ class TestUpdateAccount:
             mock.get("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
             result = account.get()
         assert result.notify_orders is True
+
+    def test_update_account_sets_events_callback_url(self, account):
+        updated = {**ACCOUNT_JSON, "events_callback_url": "https://agent.example.com/events"}
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=updated))
+            result = account.update(events_callback_url="https://agent.example.com/events")
+        body = json.loads(route.calls[0].request.content)
+        assert body["events_callback_url"] == "https://agent.example.com/events"
+        assert result.events_callback_url == "https://agent.example.com/events"
+
+    def test_update_account_omits_events_callback_url_when_not_passed(self, account):
+        with respx.mock(base_url="https://api.listbee.so") as mock:
+            route = mock.put("/v1/account").mock(return_value=httpx.Response(200, json=ACCOUNT_JSON))
+            account.update(ga_measurement_id="G-TEST")
+        body = json.loads(route.calls[0].request.content)
+        assert "events_callback_url" not in body
 
 
 class TestDeleteAccount:
