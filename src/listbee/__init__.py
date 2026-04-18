@@ -5,13 +5,14 @@ Usage::
     from listbee import ListBee, Deliverable
 
     client = ListBee(api_key="lb_...")
-    listing = client.listings.create(
+    result = client.listings.create(
         name="SEO Playbook",
         price=2999,
         deliverable=Deliverable.url("https://example.com/download"),
-        fulfillment_mode="static",
     )
-    listing = client.listings.publish(listing.id)
+    # result.signing_secret — store this immediately, shown once
+    # result.listing — ListingBase object
+    listing = client.listings.publish(result.listing.id)
     print(listing.url)
 """
 
@@ -26,6 +27,7 @@ from listbee._exceptions import (
     AuthenticationError,
     BadRequestError,
     ConflictError,
+    FieldValidationError,
     ForbiddenError,
     InternalServerError,
     ListBeeError,
@@ -56,7 +58,6 @@ from listbee.types import (
     ActionPriority,
     ActionResolve,
     ApiKeyResponse,
-    BlurMode,
     BootstrapCompleteResponse,
     BootstrapPollResponse,
     BootstrapResponse,
@@ -64,18 +65,21 @@ from listbee.types import (
     BootstrapVerifyResponse,
     CheckoutFieldResponse,
     CheckoutFieldType,
-    CreateListingResponse,
     CursorPage,
+    DeliverableRequest,
     DeliverableResponse,
-    DeliverableStatus,
     DeliverableType,
     EventResponse,
     FaqItem,
     FulfillmentMode,
+    ListingBase,
+    ListingCreateResponse,
+    ListingDetailResponse,
     ListingReadiness,
-    ListingResponse,
+    ListingStats,
     ListingStatus,
     ListingSummary,
+    OrderReadiness,
     OrderResponse,
     OrderStatus,
     OrderSummary,
@@ -111,6 +115,7 @@ __all__ = [
     "InternalServerError",
     "PartialCreationError",
     "WebhookVerificationError",
+    "FieldValidationError",
     "verify_signature",
     "format_price",
     "to_minor",
@@ -123,9 +128,7 @@ __all__ = [
     "ActionCode",
     "ActionKind",
     "ActionPriority",
-    "BlurMode",
     "CheckoutFieldType",
-    "DeliverableStatus",
     "DeliverableType",
     "FulfillmentMode",
     "ListingStatus",
@@ -137,6 +140,7 @@ __all__ = [
     "Action",
     "ActionResolve",
     "ListingReadiness",
+    "OrderReadiness",
     # Response models
     "AccountResponse",
     "ApiKeyResponse",
@@ -146,12 +150,15 @@ __all__ = [
     "BootstrapResponse",
     "BootstrapCompleteResponse",
     "CheckoutFieldResponse",
-    "CreateListingResponse",
     "CursorPage",
+    "DeliverableRequest",
     "DeliverableResponse",
     "EventResponse",
     "FaqItem",
-    "ListingResponse",
+    "ListingBase",
+    "ListingCreateResponse",
+    "ListingDetailResponse",
+    "ListingStats",
     "ListingSummary",
     "OrderResponse",
     "OrderSummary",

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `image_url` field on `ListingBase`, `ListingDetailResponse`, `ListingSummary` (cover image URL, replaces removed cover system)
+- `currency` field on `ListingBase`, `ListingDetailResponse`, `ListingSummary` (ISO 4217 lowercase, e.g. `"usd"`)
+- `errors` list on `APIStatusError` and subclasses (`list[FieldValidationError]`) — per-field validation errors populated on 422 responses
+- `FieldValidationError` class (`loc`, `msg`, `type`) — represents one entry in the `errors` list
+- New response types: `ListingBase` (base listing fields, no stats), `ListingDetailResponse` (extends `ListingBase` with `stats`), `ListingStats` (`views`, `purchases`, `gmv_minor`), `DeliverableRequest` (strict input model with `extra=forbid`)
+- `buyable` field on `ListingReadiness` (replaces `sellable`)
+
+### Changed
+- `POST /v1/listings` now returns `ListingCreateResponse` envelope (`object: "listing_with_secret"`, `signing_secret`, `listing: ListingBase`) — not a flat listing
+- `GET /v1/listings/{id}` and `PUT /v1/listings/{id}` now return `ListingDetailResponse` (includes `stats`)
+- `listings.create()` and `listings.update()` return types updated accordingly
+- `PUT /v1/listings/{id}` with `signing_secret="rotate"` returns `RotateSigningSecretResponse` (envelope with new secret and `ListingDetailResponse`)
+- `ListingReadiness.sellable` renamed to `buyable`; `is_ready` property now checks `buyable`
+- `DeliverableResponse` simplified to `{type, content}` — removed `id`, `object`, `status`, `url` fields
+- `DeliverableRequest.value` renamed to `content` — `Deliverable.to_api_body()` now emits `{"type": ..., "content": ...}`
+- `FulfillmentMode` enum values changed to `MANAGED` / `ASYNC` (uppercase, computed server-side from deliverable presence)
+- `listings.create()` and `listings.update()` remove `fulfillment_mode`, `cover_blur`, `cover_url`, `utm_source`, `utm_medium`, `utm_campaign` params (all removed from API)
+- Listing URLs are now composite `/l/{id}/{slug?}` — `ListingSummary.url` is always populated
+- `raise_for_status` now parses `errors` array from 422 responses into `FieldValidationError` objects
+
+### Removed
+- `BlurMode` enum
+- `DeliverableStatus` enum
+- `ListingResponse` class (replaced by `ListingBase` / `ListingDetailResponse`)
+- `CreateListingResponse` alias (old envelope with `object: "listing_create"`)
+- `Deliverable` type in types (removed — was confusing with the builder class; use `DeliverableRequest` / `DeliverableResponse`)
+- `cover`, `cover_blur`, `utm_source`, `utm_medium`, `utm_campaign` fields from create/update request params
+- `fulfillment_mode` from request params (now computed server-side)
+- `has_cover`, `short_code`, `embed_url`, `signing_secret_preview` from listing response models
+- `id`, `object`, `status`, `url` from `DeliverableResponse`
+
 ## [0.22.0] - 2026-04-18
 
 ### Added

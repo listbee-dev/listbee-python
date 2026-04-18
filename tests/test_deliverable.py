@@ -70,11 +70,11 @@ class TestDeliverableUrl:
     def test_url(self):
         d = Deliverable.url("https://example.com/secret")
         assert d.needs_upload is False
-        assert d.to_api_body() == {"type": "url", "value": "https://example.com/secret"}
+        assert d.to_api_body() == {"type": "url", "content": "https://example.com/secret"}
 
 
 class TestDeliverableText:
     def test_text(self):
         d = Deliverable.text("License key: ABCD-1234")
         assert d.needs_upload is False
-        assert d.to_api_body() == {"type": "text", "value": "License key: ABCD-1234"}
+        assert d.to_api_body() == {"type": "text", "content": "License key: ABCD-1234"}

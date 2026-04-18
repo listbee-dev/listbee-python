@@ -20,7 +20,7 @@ from listbee.helpers import (
     resolve_action,
     to_minor,
 )
-from listbee.types.listing import ListingResponse
+from listbee.types.listing import ListingDetailResponse
 from listbee.types.order import OrderResponse
 from listbee.types.shared import (
     AccountReadiness,
@@ -136,38 +136,38 @@ HUMAN_ACTION = Action(
 
 
 class TestListingReadiness:
-    def test_is_ready_when_sellable(self):
-        r = ListingReadiness(sellable=True, actions=[], next=None)
+    def test_is_ready_when_buyable(self):
+        r = ListingReadiness(buyable=True, actions=[], next=None)
         assert r.is_ready is True
 
-    def test_is_ready_when_not_sellable(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="listing_deliverable_missing")
+    def test_is_ready_when_not_buyable(self):
+        r = ListingReadiness(buyable=False, actions=[API_ACTION], next="listing_deliverable_missing")
         assert r.is_ready is False
 
     def test_next_action_returns_matching_action(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="listing_deliverable_missing")
+        r = ListingReadiness(buyable=False, actions=[API_ACTION], next="listing_deliverable_missing")
         assert r.next_action is API_ACTION
 
     def test_next_action_returns_none_when_ready(self):
-        r = ListingReadiness(sellable=True, actions=[], next=None)
+        r = ListingReadiness(buyable=True, actions=[], next=None)
         assert r.next_action is None
 
     def test_next_action_returns_none_when_no_match(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION], next="nonexistent_code")
+        r = ListingReadiness(buyable=False, actions=[API_ACTION], next="nonexistent_code")
         assert r.next_action is None
 
     def test_actions_by_kind_api(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION, HUMAN_ACTION], next="listing_deliverable_missing")
+        r = ListingReadiness(buyable=False, actions=[API_ACTION, HUMAN_ACTION], next="listing_deliverable_missing")
         result = r.actions_by_kind("api")
         assert result == [API_ACTION]
 
     def test_actions_by_kind_human(self):
-        r = ListingReadiness(sellable=False, actions=[API_ACTION, HUMAN_ACTION], next="listing_deliverable_missing")
+        r = ListingReadiness(buyable=False, actions=[API_ACTION, HUMAN_ACTION], next="listing_deliverable_missing")
         result = r.actions_by_kind("human")
         assert result == [HUMAN_ACTION]
 
     def test_actions_by_kind_empty(self):
-        r = ListingReadiness(sellable=True, actions=[], next=None)
+        r = ListingReadiness(buyable=True, actions=[], next=None)
         assert r.actions_by_kind("api") == []
 
 
@@ -280,40 +280,36 @@ class TestOrderStateHelpers:
 BASE_LISTING = {
     "object": "listing",
     "id": "lst_abc123",
-    "short_code": "r7kq2xy",
+    "url": "https://buy.listbee.so/l/lst_abc123/seo-playbook",
     "name": "SEO Playbook",
     "description": None,
     "tagline": None,
     "highlights": [],
     "cta": None,
     "price": 2900,
-    "fulfillment_mode": "static",
+    "currency": "usd",
+    "fulfillment_mode": "MANAGED",
+    "image_url": None,
     "deliverable": None,
     "agent_callback_url": None,
-    "signing_secret_preview": "****",
-    "has_cover": False,
     "checkout_schema": None,
     "compare_at_price": None,
     "badges": [],
-    "cover_blur": "auto",
     "rating": None,
     "rating_count": None,
     "reviews": [],
     "faqs": [],
     "metadata": None,
-    "utm_source": None,
-    "utm_medium": None,
-    "utm_campaign": None,
     "status": "published",
-    "url": "https://buy.listbee.so/seo-playbook",
-    "readiness": {"sellable": True, "actions": [], "next": None},
+    "readiness": {"buyable": True, "actions": [], "next": None},
     "created_at": "2026-03-30T12:00:00Z",
+    "stats": {"schema_version": 1, "views": 0, "purchases": 0, "gmv_minor": 0},
 }
 
 
 class TestListingLifecycleHelpers:
-    def _make(self, **overrides: object) -> ListingResponse:
-        return ListingResponse(**{**BASE_LISTING, **overrides})
+    def _make(self, **overrides: object) -> ListingDetailResponse:
+        return ListingDetailResponse(**{**BASE_LISTING, **overrides})
 
     def test_is_draft_true(self):
         listing = self._make(status="draft")
@@ -332,12 +328,8 @@ class TestListingLifecycleHelpers:
         assert listing.is_published is False
 
     def test_checkout_url_returns_url(self):
-        listing = self._make(url="https://buy.listbee.so/seo-playbook")
-        assert listing.checkout_url == "https://buy.listbee.so/seo-playbook"
-
-    def test_checkout_url_none_when_no_url(self):
-        listing = self._make(url=None)
-        assert listing.checkout_url is None
+        listing = self._make(url="https://buy.listbee.so/l/lst_abc123/seo-playbook")
+        assert listing.checkout_url == "https://buy.listbee.so/l/lst_abc123/seo-playbook"
 
 
 # ---------------------------------------------------------------------------

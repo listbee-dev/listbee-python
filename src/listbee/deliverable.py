@@ -122,10 +122,10 @@ class Deliverable:
         return (self._filename, self._file_data, self._mime_type)
 
     def to_api_body(self, token: str | None = None) -> dict[str, str | None]:
-        """SDK internal — returns JSON body for POST /deliverables."""
+        """SDK internal — returns JSON body for deliverable field on listing create/update."""
         if self._type == "file":
             return {"type": "file", "token": token or self._token}
-        return {"type": self._type, "value": self._value}
+        return {"type": self._type, "content": self._value}
 
     def __repr__(self) -> str:
         if self._type == "file" and self._file_data is not None:

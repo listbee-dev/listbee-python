@@ -43,29 +43,30 @@ from listbee import ListBee, Deliverable
 
 client = ListBee(api_key="lb_...")
 
-# Static mode — ListBee delivers the attached deliverable automatically on payment
-listing = client.listings.create(
+# Managed mode — ListBee delivers the attached deliverable automatically on payment
+result = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    fulfillment_mode="static",
     deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
-listing = client.listings.publish(listing.id)
-print(listing.url)   # https://buy.listbee.so/r7kq2xy9
+# result is a ListingCreateResponse envelope
+print(result.signing_secret)   # store immediately — shown once!
+print(result.listing.id)       # lst_...
+listing = client.listings.publish(result.listing.id)
+print(listing.url)   # https://buy.listbee.so/l/lst_.../seo-playbook
 
 # Async mode — your agent receives order.paid and calls fulfill() to push content
 from listbee import CheckoutField
 
-listing = client.listings.create(
+result = client.listings.create(
     name="Custom Consulting",
     price=3500,
-    fulfillment_mode="async",
     agent_callback_url="https://yourapp.com/webhooks/listbee",
     checkout_schema=[
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
 )
-listing = client.listings.publish(listing.id)
+listing = client.listings.publish(result.listing.id)
 ```
 
 Using an environment variable instead:
@@ -79,13 +80,12 @@ from listbee import ListBee, Deliverable
 
 client = ListBee()  # reads LISTBEE_API_KEY automatically
 
-listing = client.listings.create(
+result = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    fulfillment_mode="static",
     deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
-listing = client.listings.publish(listing.id)
+listing = client.listings.publish(result.listing.id)
 print(listing.url)
 ```
 
@@ -183,43 +183,52 @@ from listbee import ListBee, Deliverable
 
 client = ListBee(api_key="lb_...")
 
-# Create — static mode (ListBee delivers the deliverable automatically on payment)
-listing = client.listings.create(
+# Create — MANAGED mode (ListBee delivers the deliverable automatically on payment)
+# POST /v1/listings returns a ListingCreateResponse envelope (not a flat listing)
+result = client.listings.create(
     name="SEO Playbook",
     price=2900,       # $29.00 in cents
-    fulfillment_mode="static",
     deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
-listing = client.listings.publish(listing.id)
-print(listing.url)          # https://buy.listbee.so/r7kq2xy
-print(listing.short_code)   # r7kq2xy — 7-char code used in the listing URL
+# result.signing_secret — store this immediately, shown only once
+# result.listing — ListingBase object with all listing fields
+print(result.signing_secret)     # lbs_sk_... — webhook signing secret, store now!
+print(result.listing.id)         # lst_...
+print(result.listing.url)        # https://buy.listbee.so/l/lst_.../seo-playbook
+print(result.listing.currency)   # usd
+print(result.listing.fulfillment_mode)  # MANAGED (computed from deliverable presence)
 
-# Create — async mode (agent receives order.paid via agent_callback_url and calls fulfill())
+listing = client.listings.publish(result.listing.id)
+print(listing.url)          # https://buy.listbee.so/l/lst_.../seo-playbook
+print(listing.stats.views)  # 0 — stats included in GET/PUT responses
+
+# Create — ASYNC mode (agent receives order.paid via agent_callback_url and calls fulfill())
 from listbee import CheckoutField
 
-listing = client.listings.create(
+result = client.listings.create(
     name="Custom Consulting",
     price=3500,
-    fulfillment_mode="async",
     agent_callback_url="https://yourapp.com/webhooks/listbee",
     checkout_schema=[
         CheckoutField.text("brief", label="Project Brief", sort_order=0),
     ],
 )
+# fulfillment_mode is ASYNC automatically (no deliverable attached)
+print(result.listing.fulfillment_mode)  # ASYNC
 
 # Create — all optional params
-listing = client.listings.create(
+result = client.listings.create(
     name="SEO Playbook 2026",
     price=2900,
-    fulfillment_mode="static",
     deliverable=Deliverable.text("License key: ABCD-1234"),
+    image_url="https://cdn.example.com/covers/seo-playbook.jpg",
+    currency="usd",                    # ISO 4217 lowercase (defaults to account currency)
     description="A comprehensive guide to modern SEO techniques.",
     tagline="Updated for 2026 algorithm changes",
     highlights=["50+ pages", "Actionable tips", "Free updates"],
     cta="Get Instant Access",          # buy button text; defaults to "Buy Now"
     compare_at_price=3900,             # strikethrough price
     badges=["Limited time", "Best seller"],
-    cover_blur="auto",                 # "auto" | "true" | "false"
     rating=4.8,
     rating_count=1243,
     reviews=[
@@ -230,36 +239,48 @@ listing = client.listings.create(
     ],
     metadata={"source": "n8n", "campaign": "launch-week"},
 )
-print(listing.id)    # lst_r7kq2xy9m3pR5tW1
+print(result.listing.id)    # lst_...
 
-# Get by ID
+# Get by ID — returns ListingDetailResponse (includes stats)
 listing = client.listings.get("lst_r7kq2xy9m3pR5tW1")
+print(listing.stats.views)        # page view count
+print(listing.stats.purchases)    # purchase count
+print(listing.stats.gmv_minor)    # gross merchandise value in cents
 
-# List — auto-paginates
+# Deliverable shape on response — {"type": "url"|"text", "content": "..."}
+if listing.deliverable:
+    print(listing.deliverable.type)     # "url" or "text"
+    print(listing.deliverable.content)  # the URL or text (redacted on public reads)
+
+# Readiness — use buyable (not sellable)
+if not listing.readiness.buyable:
+    print(listing.readiness.next)    # highest-priority action code
+
+# List — auto-paginates, each item is ListingSummary
 for listing in client.listings.list():
-    print(listing.short_code, listing.name)
+    print(listing.name, listing.url)          # url is composite /l/{id}/{slug}
+    print(listing.image_url, listing.currency)
 
-# Update — partial updates
+# Update — partial updates, returns ListingDetailResponse
 updated = client.listings.update(
     "lst_r7kq2xy9m3pR5tW1",
     name="SEO Playbook 2026 Updated",
     price=3900,
+    image_url="https://cdn.example.com/new-cover.jpg",
 )
 
-# Update deliverable (static mode)
-from listbee import CheckoutField
-
+# Update deliverable
 updated = client.listings.update(
     "lst_r7kq2xy9m3pR5tW1",
     deliverable=Deliverable.url("https://example.com/new-version.pdf"),
 )
 
-# Switch to async mode
-updated = client.listings.update(
-    "lst_r7kq2xy9m3pR5tW1",
-    fulfillment_mode="async",
-    agent_callback_url="https://yourapp.com/webhooks/listbee",
-)
+# Rotate signing secret — returns RotateSigningSecretResponse
+from listbee import RotateSigningSecretResponse
+
+result = client.listings.update("lst_r7kq2xy9m3pR5tW1", signing_secret="rotate")
+if isinstance(result, RotateSigningSecretResponse):
+    print(result.signing_secret)    # new secret — store immediately
 
 # Update checkout schema
 updated = client.listings.update(
@@ -417,47 +438,44 @@ for plan in plans.data:
 
 ## Fulfillment Modes
 
-ListBee supports two fulfillment modes set via `fulfillment_mode` on each listing.
+ListBee supports two fulfillment modes. `fulfillment_mode` is **computed server-side** from whether a deliverable is attached — you do not set it explicitly.
 
-**Static** (`fulfillment_mode="static"`) — ListBee delivers a pre-attached digital deliverable (URL, text, or file) automatically when the buyer pays. Attach a single deliverable to the listing before publishing.
+**MANAGED** — ListBee delivers a pre-attached digital deliverable (URL or text) automatically when the buyer pays. Set by attaching a `deliverable` to the listing.
 
 ```python
 from listbee import Deliverable
 
-# Attach a URL deliverable
-listing = client.listings.create(
+# Attach a URL deliverable — fulfillment_mode becomes MANAGED automatically
+result = client.listings.create(
     name="SEO Playbook",
     price=2900,
-    fulfillment_mode="static",
     deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
 )
-listing = client.listings.publish(listing.id)
+listing = client.listings.publish(result.listing.id)
 
 # Attach a text deliverable (license key, access code, etc.)
-listing = client.listings.create(
+result = client.listings.create(
     name="Plugin License",
     price=4900,
-    fulfillment_mode="static",
     deliverable=Deliverable.text("Your license key: ABCD-1234-EFGH-5678"),
 )
 ```
 
-**Async** (`fulfillment_mode="async"`) — ListBee fires an `order.paid` event to your `agent_callback_url`. Your agent generates content and pushes it back via `orders.fulfill()`. Use for AI-generated content, physical goods, services, or anything requiring custom logic.
+**ASYNC** — ListBee fires an `order.paid` event to your `agent_callback_url`. Your agent generates content and pushes it back via `orders.fulfill()`. Use for AI-generated content, physical goods, services, or anything requiring custom logic. Set by omitting the `deliverable`.
 
 ```python
 from listbee import CheckoutField, Deliverable
 
-# AI-generated content — receive order, generate, push back via fulfill()
-listing = client.listings.create(
+# AI-generated content — no deliverable = ASYNC mode automatically
+result = client.listings.create(
     name="Custom AI Report",
     price=4900,
-    fulfillment_mode="async",
     agent_callback_url="https://yourapp.com/webhooks/listbee",
     checkout_schema=[
         CheckoutField.text("topic", label="Report Topic", sort_order=0),
     ],
 )
-listing = client.listings.publish(listing.id)
+listing = client.listings.publish(result.listing.id)
 
 # When your endpoint receives the order.paid event, generate and push back:
 order = client.orders.fulfill(
@@ -479,7 +497,7 @@ if order.actions:
 
 Every listing and account includes a `readiness` field that tells you whether it can currently accept payments.
 
-- `listing.readiness.sellable` — `True` when buyers can complete a purchase
+- `listing.readiness.buyable` — `True` when buyers can complete a purchase right now
 - `account.readiness.operational` — `True` when the account can sell
 
 When `False`, an `actions` list explains what's needed and how to resolve each item. The `next` field points to the highest-priority action (prefers `kind: api`).
@@ -501,8 +519,8 @@ if not account.readiness.operational:
 Listing readiness follows the same shape:
 
 ```python
-listing = client.listings.get("r7kq2xy9")
-if not listing.readiness.sellable:
+listing = client.listings.get("lst_r7kq2xy9m3pR5tW1")
+if not listing.readiness.buyable:
     for action in listing.readiness.actions:
         print(action.code, action.message)
     print(f"Next: {listing.readiness.next}")
@@ -525,7 +543,7 @@ if not listing.readiness.sellable:
 
 Verify that incoming webhook requests genuinely come from ListBee before processing them.
 
-Each listing has a signing secret. Retrieve it from the listing's `signing_secret_preview` field or use the full secret stored at listing creation time.
+Each listing has a signing secret returned once at creation time (`ListingCreateResponse.signing_secret`). Store it in your secrets manager. To rotate, call `listings.update(id, signing_secret="rotate")`.
 
 ```python
 from listbee import verify_signature, WebhookVerificationError
@@ -571,13 +589,14 @@ List endpoints return **slim summary objects** (`ListingSummary` / `OrderSummary
 
 ```python
 # Auto-pagination — iterates all pages transparently
-# Each item is a ListingSummary (slim: id, short_code, name, price, status, url, ...)
+# Each item is a ListingSummary (slim: id, url, name, price, currency, image_url, status, ...)
 for listing in client.listings.list():
-    print(listing.name, listing.url)
+    print(listing.name, listing.url)          # url is composite /l/{id}/{slug}
+    print(listing.image_url, listing.currency)
 
-# Need full details? Fetch by ID
+# Need full details? Fetch by ID — returns ListingDetailResponse (includes stats)
 full = client.listings.get(listing.id)
-print(full.deliverable, full.reviews, full.faqs)
+print(full.deliverable, full.reviews, full.faqs, full.stats)
 
 # Manual page control — access current page directly
 page = client.listings.list(limit=10)
@@ -629,7 +648,7 @@ if order.needs_fulfillment:
 ### Listing State Helpers
 
 ```python
-listing = client.listings.get("r7kq2xy9")
+listing = client.listings.get("lst_r7kq2xy9m3pR5tW1")
 
 # Publication state
 if listing.is_draft:
@@ -639,12 +658,21 @@ if listing.is_published:
 if listing.is_archived:
     print("Listing has been archived")
 
-# Deliverable state (static mode)
+# Deliverable state (MANAGED mode)
 if listing.deliverable:
     print(f"Has deliverable: {listing.deliverable.type}")
+    print(f"Content: {listing.deliverable.content}")  # url or text value
 
-# Checkout link
+# Checkout link — composite /l/{id}/{slug}
 print(f"Share: {listing.checkout_url}")
+
+# Stats (available on GET/PUT responses)
+print(f"Views: {listing.stats.views}")
+print(f"Purchases: {listing.stats.purchases}")
+
+# Readiness — use buyable
+if not listing.readiness.buyable:
+    print(f"Not buyable: {listing.readiness.next}")
 ```
 
 ### Readiness System Helpers
@@ -674,8 +702,8 @@ for action in api_actions:
 Similar helpers on `ListingReadiness`:
 
 ```python
-listing = client.listings.get("r7kq2xy9")
-if not listing.readiness.is_ready:
+listing = client.listings.get("lst_r7kq2xy9m3pR5tW1")
+if not listing.readiness.is_ready:   # is_ready checks buyable
     next_action = listing.readiness.next_action
     print(f"Next: {next_action.code}")
 ```
@@ -910,6 +938,8 @@ except RateLimitError as e:
     print(f"Rate limited. Resets at {e.reset}, {e.remaining}/{e.limit} remaining")
 except ValidationError as e:
     print(f"Bad request — field: {e.param}, detail: {e.detail}")
+    for err in e.errors:   # per-field validation errors (list of FieldValidationError)
+        print(f"  {err.loc}: {err.msg}")
 except APIConnectionError:
     print("Network error — check your connection")
 except APITimeoutError:
@@ -929,8 +959,11 @@ Error responses follow [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Probl
 | `title` | `str` | Short, stable error category label |
 | `type` | `str` | URI identifying the error type |
 | `param` | `str \| None` | Request field that caused the error |
+| `errors` | `list[FieldValidationError]` | Per-field validation errors (422 only) |
 
 `RateLimitError` additionally exposes `limit`, `remaining`, and `reset` (parsed from response headers).
+
+Each `FieldValidationError` in `errors` has `loc` (list of path segments), `msg` (human-readable), and `type` (Pydantic error code).
 
 ## Async Usage
 
@@ -944,18 +977,19 @@ async def main():
     client = AsyncListBee(api_key="lb_...")
 
     # Create a listing and publish
-    listing = await client.listings.create(
+    result = await client.listings.create(
         name="SEO Playbook",
         price=2900,
-        fulfillment_mode="static",
         deliverable=Deliverable.url("https://example.com/seo-playbook.pdf"),
     )
-    listing = await client.listings.publish(listing.id)
+    # result is a ListingCreateResponse envelope
+    print(result.signing_secret)   # store immediately!
+    listing = await client.listings.publish(result.listing.id)
     print(listing.url)
 
     # Iterate all listings
     async for listing in await client.listings.list():
-        print(listing.short_code, listing.name)
+        print(listing.image_url, listing.name)
 
     # Filter paid orders
     async for order in await client.orders.list(status="paid"):

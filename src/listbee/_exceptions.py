@@ -20,6 +20,26 @@ class APITimeoutError(ListBeeError):
     """Raised when a request times out."""
 
 
+class FieldValidationError:
+    """A single per-field validation error from a 422 response.
+
+    Attributes:
+        loc: JSON path to the invalid field (e.g. ``["body", "price"]``).
+        msg: Human-readable error message.
+        type: Pydantic error type code (e.g. ``"value_error"``).
+    """
+
+    __slots__ = ("loc", "msg", "type")
+
+    def __init__(self, loc: list[str | int], msg: str, type: str) -> None:
+        self.loc = loc
+        self.msg = msg
+        self.type = type
+
+    def __repr__(self) -> str:
+        return f"FieldValidationError(loc={self.loc!r}, msg={self.msg!r})"
+
+
 class APIStatusError(ListBeeError):
     """Raised when the API returns an error response (4xx/5xx).
 
@@ -30,6 +50,7 @@ class APIStatusError(ListBeeError):
         detail: Specific explanation of what went wrong.
         code: Machine-readable error code.
         param: Request field that caused the error, if applicable.
+        errors: Per-field validation errors (422 responses only). Empty list otherwise.
         extras: RFC 9457 extension members not covered by the standard fields.
     """
 
@@ -43,6 +64,7 @@ class APIStatusError(ListBeeError):
         code: str,
         param: str | None = None,
         request_id: str | None = None,
+        errors: list[FieldValidationError] | None = None,
         extras: dict[str, Any] | None = None,
     ) -> None:
         self.type = type
@@ -52,6 +74,7 @@ class APIStatusError(ListBeeError):
         self.code = code
         self.param = param
         self.request_id = request_id
+        self.errors: list[FieldValidationError] = errors or []
         self.extras: dict[str, Any] = extras or {}
         super().__init__(detail)
 
@@ -99,6 +122,7 @@ class RateLimitError(APIStatusError):
         code: str,
         param: str | None = None,
         request_id: str | None = None,
+        errors: list[FieldValidationError] | None = None,
         extras: dict[str, Any] | None = None,
         limit: int | None = None,
         remaining: int | None = None,
@@ -112,6 +136,7 @@ class RateLimitError(APIStatusError):
             code=code,
             param=param,
             request_id=request_id,
+            errors=errors,
             extras=extras,
         )
         self.limit = limit
@@ -155,7 +180,24 @@ STATUS_CODE_TO_EXCEPTION: dict[int, type[APIStatusError]] = {
 }
 
 
-_KNOWN_FIELDS = {"type", "title", "status", "detail", "code", "param"}
+_KNOWN_FIELDS = {"type", "title", "status", "detail", "code", "param", "errors"}
+
+
+def _parse_field_errors(raw: list[Any] | None) -> list[FieldValidationError]:
+    """Parse per-field validation errors from a 422 response body."""
+    if not raw:
+        return []
+    result: list[FieldValidationError] = []
+    for item in raw:
+        if isinstance(item, dict):
+            result.append(
+                FieldValidationError(
+                    loc=item.get("loc", []),
+                    msg=item.get("msg", ""),
+                    type=item.get("type", ""),
+                )
+            )
+    return result
 
 
 def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, str]) -> None:
@@ -166,6 +208,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
     error_detail: str = body.get("detail", "")
     error_code: str = body.get("code", "")
     error_param: str | None = body.get("param")
+    errors: list[FieldValidationError] = _parse_field_errors(body.get("errors"))
 
     extras = {k: v for k, v in body.items() if k not in _KNOWN_FIELDS}
 
@@ -185,6 +228,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
             code=error_code,
             param=error_param,
             request_id=request_id,
+            errors=errors,
             extras=extras,
             limit=int(limit_str) if limit_str else None,
             remaining=int(remaining_str) if remaining_str else None,
@@ -199,6 +243,7 @@ def raise_for_status(status_code: int, body: dict[str, Any], headers: dict[str, 
         "code": error_code,
         "param": error_param,
         "request_id": request_id,
+        "errors": errors,
         "extras": extras,
     }
 

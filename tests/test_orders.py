@@ -324,7 +324,7 @@ class TestFulfillOrder:
             )
         assert isinstance(result, OrderResponse)
         body = json.loads(route.calls[0].request.content)
-        assert body["deliverable"] == {"type": "text", "value": "Your personalized report..."}
+        assert body["deliverable"] == {"type": "text", "content": "Your personalized report..."}
 
     def test_fulfill_order_with_url_deliverable(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
@@ -336,7 +336,7 @@ class TestFulfillOrder:
                 deliverable=Deliverable.url("https://example.com/generated.pdf"),
             )
         body = json.loads(route.calls[0].request.content)
-        assert body["deliverable"] == {"type": "url", "value": "https://example.com/generated.pdf"}
+        assert body["deliverable"] == {"type": "url", "content": "https://example.com/generated.pdf"}
 
     def test_fulfill_order_with_metadata(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:

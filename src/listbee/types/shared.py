@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from enum import Enum
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -26,21 +26,13 @@ class DeliverableType(StrEnum):
 class FulfillmentMode(StrEnum):
     """Fulfillment mode for a listing.
 
-    * ``static`` — ListBee delivers the attached ``deliverable`` automatically on payment.
-    * ``async`` — The external app receives ``order.paid`` via ``agent_callback_url``
+    * ``MANAGED`` — ListBee delivers the attached ``deliverable`` automatically on payment.
+    * ``ASYNC`` — The external app receives ``order.paid`` via ``agent_callback_url``
       and pushes generated content back via :meth:`~listbee.resources.orders.Orders.fulfill`.
     """
 
-    STATIC = "static"
-    ASYNC = "async"
-
-
-class DeliverableStatus(StrEnum):
-    """Status of a digital deliverable."""
-
-    PROCESSING = "processing"
-    READY = "ready"
-    FAILED = "failed"
+    MANAGED = "MANAGED"
+    ASYNC = "ASYNC"
 
 
 class ActionPriority(StrEnum):
@@ -101,45 +93,46 @@ class CheckoutFieldResponse(BaseModel):
 
 
 class DeliverableResponse(BaseModel):
-    """Digital deliverable attached to a listing or order."""
+    """Digital deliverable attached to a listing or order (response model).
+
+    ``content`` is present on owner reads and after purchase. Null on public reads
+    (buyers do not see it before purchase).
+    """
 
     model_config = ConfigDict(frozen=True)
 
-    object: Literal["deliverable"] = Field(
-        default="deliverable",
-        description="Object type discriminator. Always `deliverable`.",
-        examples=["deliverable"],
-    )
-    id: str = Field(
-        description="Unique deliverable identifier (del_ prefixed).",
-        examples=["del_7kQ2xY9mN3pR5tW1vB8a01"],
-    )
     type: DeliverableType = Field(
-        description="Type of deliverable: `url` or `text`.",
+        description="Type of deliverable: `url` (redirect link) or `text` (inline string).",
         examples=["url"],
-    )
-    status: DeliverableStatus = Field(
-        description="Deliverable status: `processing`, `ready`, or `failed`.",
-        examples=["ready"],
-    )
-    url: str | None = Field(
-        default=None,
-        description="Redirect URL (url type only).",
-        examples=["https://example.com/secret"],
     )
     content: str | None = Field(
         default=None,
-        description="Text content (text type only).",
-        examples=["Buy signal: AAPL"],
+        description=(
+            "Deliverable content. For `url` type: a URL the buyer is redirected to. "
+            "For `text` type: the literal string delivered. "
+            "Present on owner reads; null on public reads."
+        ),
+        examples=["https://example.com/secret-area"],
     )
 
 
-class BlurMode(StrEnum):
-    """Cover image blur mode for a listing."""
+class DeliverableRequest(BaseModel):
+    """Strict input model for creating or updating a deliverable (extra=forbid)."""
 
-    TRUE = "true"
-    FALSE = "false"
-    AUTO = "auto"
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    type: DeliverableType = Field(
+        description="Deliverable type: `url` (redirect link) or `text` (literal string).",
+        examples=["url"],
+    )
+    content: str | None = Field(
+        default=None,
+        description=(
+            "For `url` type: must start with http:// or https://. "
+            "For `text` type: plain text content, max 10000 chars."
+        ),
+        examples=["https://example.com/secret-area"],
+    )
 
 
 class ListingStatus(StrEnum):
@@ -250,25 +243,35 @@ class ListingReadiness(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    sellable: bool = Field(
+    buyable: bool = Field(
         description=(
-            "True when buyers can complete a purchase on this listing. False means one or more actions are needed."
+            "True when buyers can complete a purchase right now. "
+            "False means at least one blocker exists — check `actions` and `next` for what to fix."
         ),
         examples=[True],
     )
     actions: list[Action] = Field(
         default=[],
-        description="Actions needed to reach sellable state. Empty when `sellable` is true.",
+        description=(
+            "Ordered list of actions blocking or available to improve this listing. "
+            "Each action has a `code`, `kind`, `priority`, `message`, and `resolve` instructions. "
+            "Empty when `buyable` is true."
+        ),
     )
     next: str | None = Field(
         default=None,
-        description="Code of the highest-priority action (prefers kind: api). Null when sellable.",
+        description=(
+            "Code of the single highest-priority action to take next. "
+            "Prefers `kind: api` actions so agents can self-heal without human intervention. "
+            "Null when `buyable` is true."
+        ),
+        examples=["stripe_connect_required"],
     )
 
     @property
     def is_ready(self) -> bool:
         """True when buyers can complete a purchase on this listing."""
-        return self.sellable
+        return self.buyable
 
     @property
     def next_action(self) -> Action | None:

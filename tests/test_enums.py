@@ -2,7 +2,7 @@
 
 from listbee import (
     ActionCode,
-    DeliverableStatus,
+    DeliverableType,
     WebhookEventType,
 )
 
@@ -59,6 +59,6 @@ class TestActionCode:
         assert stale.isdisjoint(current)
 
 
-class TestDeliverableStatus:
+class TestDeliverableType:
     def test_exists(self):
-        assert {e.value for e in DeliverableStatus} == {"processing", "ready", "failed"}
+        assert {e.value for e in DeliverableType} == {"url", "text"}

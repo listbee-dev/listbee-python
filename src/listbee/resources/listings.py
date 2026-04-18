@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any
 from listbee._constants import LISTING_CREATE_TIMEOUT
 from listbee._pagination import AsyncCursorPage, SyncCursorPage
 from listbee._raw_response import RawResponse
-from listbee.types.listing import ListingResponse, ListingSummary
+from listbee.types.listing import ListingDetailResponse, ListingSummary
+from listbee.types.listing_create import ListingCreateResponse, RotateSigningSecretResponse
 
 if TYPE_CHECKING:
     from listbee._base_client import AsyncClient, SyncClient
@@ -47,37 +48,37 @@ class _RawListingsProxy:
         name: str,
         price: int,
         **kwargs: Any,
-    ) -> RawResponse[ListingResponse]:
+    ) -> RawResponse[ListingCreateResponse]:
         """Create a new listing and return the raw response."""
         body = {"name": name, "price": price, **{k: v for k, v in kwargs.items() if v is not None}}
         response = self._client.request_raw("POST", "/v1/listings", json=body)
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingCreateResponse)
 
-    def get(self, listing_id: str) -> RawResponse[ListingResponse]:
+    def get(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Retrieve a listing by ID and return the raw response."""
         response = self._client.request_raw("GET", f"/v1/listings/{listing_id}")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    def update(self, listing_id: str, **kwargs: Any) -> RawResponse[ListingResponse]:
+    def update(self, listing_id: str, **kwargs: Any) -> RawResponse[ListingDetailResponse]:
         """Update a listing and return the raw response."""
         body = {k: v for k, v in kwargs.items() if v is not None}
         response = self._client.request_raw("PUT", f"/v1/listings/{listing_id}", json=body)
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    def publish(self, listing_id: str) -> RawResponse[ListingResponse]:
+    def publish(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Publish a draft listing and return the raw response."""
         response = self._client.request_raw("POST", f"/v1/listings/{listing_id}/publish")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    def unpublish(self, listing_id: str) -> RawResponse[ListingResponse]:
+    def unpublish(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Unpublish a listing and return the raw response."""
         response = self._client.request_raw("POST", f"/v1/listings/{listing_id}/unpublish")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    def archive(self, listing_id: str) -> RawResponse[ListingResponse]:
+    def archive(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Archive a listing and return the raw response."""
         response = self._client.request_raw("POST", f"/v1/listings/{listing_id}/archive")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
 
 class _AsyncRawListingsProxy:
@@ -86,31 +87,31 @@ class _AsyncRawListingsProxy:
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def get(self, listing_id: str) -> RawResponse[ListingResponse]:
+    async def get(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Retrieve a listing by ID and return the raw response (async)."""
         response = await self._client.request_raw("GET", f"/v1/listings/{listing_id}")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    async def update(self, listing_id: str, **kwargs: Any) -> RawResponse[ListingResponse]:
+    async def update(self, listing_id: str, **kwargs: Any) -> RawResponse[ListingDetailResponse]:
         """Update a listing and return the raw response (async)."""
         body = {k: v for k, v in kwargs.items() if v is not None}
         response = await self._client.request_raw("PUT", f"/v1/listings/{listing_id}", json=body)
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    async def publish(self, listing_id: str) -> RawResponse[ListingResponse]:
+    async def publish(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Publish a draft listing and return the raw response (async)."""
         response = await self._client.request_raw("POST", f"/v1/listings/{listing_id}/publish")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    async def unpublish(self, listing_id: str) -> RawResponse[ListingResponse]:
+    async def unpublish(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Unpublish a listing and return the raw response (async)."""
         response = await self._client.request_raw("POST", f"/v1/listings/{listing_id}/unpublish")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
-    async def archive(self, listing_id: str) -> RawResponse[ListingResponse]:
+    async def archive(self, listing_id: str) -> RawResponse[ListingDetailResponse]:
         """Archive a listing and return the raw response (async)."""
         response = await self._client.request_raw("POST", f"/v1/listings/{listing_id}/archive")
-        return RawResponse(response, ListingResponse)
+        return RawResponse(response, ListingDetailResponse)
 
 
 class Listings:
@@ -130,7 +131,6 @@ class Listings:
         name: str,
         price: int,
         deliverable: Any | None = None,
-        fulfillment_mode: str | None = None,
         agent_callback_url: str | None = None,
         signing_secret: str | None = None,
         checkout_schema: list[Any] | None = None,
@@ -138,37 +138,33 @@ class Listings:
         tagline: str | None = None,
         highlights: list[str] | None = None,
         cta: str | None = None,
-        cover_url: str | None = None,
+        image_url: str | None = None,
+        currency: str | None = None,
         metadata: dict[str, Any] | None = None,
         compare_at_price: int | None = None,
         badges: list[str] | None = None,
-        cover_blur: str = "auto",
         rating: float | None = None,
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
-        utm_source: str | None = None,
-        utm_medium: str | None = None,
-        utm_campaign: str | None = None,
         timeout: float | None = None,
-    ) -> ListingResponse:
+    ) -> ListingCreateResponse:
         """Create a new listing.
 
-        Builds the request body from non-None params. ``cover_blur`` is only
-        included when it differs from the API default of ``"auto"``.
+        Builds the request body from non-None params. Returns a
+        :class:`~listbee.types.listing_create.ListingCreateResponse` envelope containing
+        the listing and a one-time ``signing_secret``. Store the secret immediately.
 
-        Currency is inherited from the account, so it is not specified here.
+        ``fulfillment_mode`` is computed server-side from deliverable presence:
+        ``MANAGED`` when a deliverable is attached, ``ASYNC`` otherwise.
 
         Args:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             deliverable: Single digital deliverable. Use :class:`~listbee.Deliverable`
                 builder: ``Deliverable.url("https://...")`` or ``Deliverable.text("...")``.
-            fulfillment_mode: ``"static"`` (ListBee delivers ``deliverable`` automatically)
-                or ``"async"`` (your app receives ``order.paid`` and calls
-                :meth:`~listbee.resources.orders.Orders.fulfill` to push content).
             agent_callback_url: Optional HTTPS URL that receives ``order.paid`` /
-                ``order.fulfilled`` webhooks. Required for ``fulfillment_mode="async"``.
+                ``order.fulfilled`` webhooks.
             signing_secret: Optional custom signing secret for webhook verification.
                 If omitted, ListBee generates one (shown once in the response).
             checkout_schema: Custom fields collected at checkout. Each element can be a
@@ -177,25 +173,22 @@ class Listings:
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
             cta: Buy button text. Defaults to "Buy Now" when not set.
-            cover_url: URL of a cover image to fetch and store.
+            image_url: Cover image URL (https://). Shown on the product page.
+            currency: ISO 4217 lowercase currency code (e.g. "usd"). Defaults to account currency.
             metadata: Arbitrary key-value pairs forwarded in webhook events.
                 Stripe-aligned limits: max 50 keys, keys ≤ 40 chars, string values ≤ 500 chars.
             compare_at_price: Strikethrough price in smallest currency unit.
             badges: Short promotional badges shown on the product page.
-            cover_blur: Cover blur mode — "auto", "true", or "false". Only sent
-                when different from "auto".
             rating: Seller-provided aggregate star rating (1–5).
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
-            utm_source: UTM source tag attached to checkout links (e.g. "twitter").
-            utm_medium: UTM medium tag attached to checkout links (e.g. "social").
-            utm_campaign: UTM campaign tag attached to checkout links (e.g. "launch-week").
             timeout: Request timeout in seconds. Defaults to
-                ``LISTING_CREATE_TIMEOUT`` (120s) because cover processing can take a while.
+                ``LISTING_CREATE_TIMEOUT`` (120s).
 
         Returns:
-            The created :class:`~listbee.types.listing.ListingResponse`.
+            :class:`~listbee.types.listing_create.ListingCreateResponse` with ``listing``
+            (:class:`~listbee.types.listing.ListingBase`) and one-time ``signing_secret``.
         """
         body: dict[str, Any] = {
             "name": name,
@@ -203,8 +196,6 @@ class Listings:
         }
         if deliverable is not None:
             body["deliverable"] = _resolve_deliverable(deliverable)
-        if fulfillment_mode is not None:
-            body["fulfillment_mode"] = fulfillment_mode
         if agent_callback_url is not None:
             body["agent_callback_url"] = agent_callback_url
         if signing_secret is not None:
@@ -219,16 +210,16 @@ class Listings:
             body["highlights"] = highlights
         if cta is not None:
             body["cta"] = cta
-        if cover_url is not None:
-            body["cover_url"] = cover_url
+        if image_url is not None:
+            body["image_url"] = image_url
+        if currency is not None:
+            body["currency"] = currency
         if metadata is not None:
             body["metadata"] = metadata
         if compare_at_price is not None:
             body["compare_at_price"] = compare_at_price
         if badges is not None:
             body["badges"] = badges
-        if cover_blur != "auto":
-            body["cover_blur"] = cover_blur
         if rating is not None:
             body["rating"] = rating
         if rating_count is not None:
@@ -237,28 +228,22 @@ class Listings:
             body["reviews"] = reviews
         if faqs is not None:
             body["faqs"] = faqs
-        if utm_source is not None:
-            body["utm_source"] = utm_source
-        if utm_medium is not None:
-            body["utm_medium"] = utm_medium
-        if utm_campaign is not None:
-            body["utm_campaign"] = utm_campaign
 
         effective_timeout = timeout if timeout is not None else LISTING_CREATE_TIMEOUT
         response = self._client.post("/v1/listings", json=body, timeout=effective_timeout)
-        return ListingResponse.model_validate(response.json())
+        return ListingCreateResponse.model_validate(response.json())
 
-    def get(self, listing_id: str) -> ListingResponse:
+    def get(self, listing_id: str) -> ListingDetailResponse:
         """Retrieve a listing by its ID.
 
         Args:
             listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The :class:`~listbee.types.listing.ListingResponse` for that listing.
+            :class:`~listbee.types.listing.ListingDetailResponse` for that listing (includes stats).
         """
         response = self._client.get(f"/v1/listings/{listing_id}")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
     def list(
         self, *, limit: int = 20, cursor: str | None = None, status: str | None = None
@@ -267,7 +252,7 @@ class Listings:
 
         Each item is a :class:`~listbee.types.listing.ListingSummary` with the core fields
         needed to display listing cards. Call :meth:`get` with the listing ID for the full
-        :class:`~listbee.types.listing.ListingResponse` including deliverable, reviews, and FAQs.
+        :class:`~listbee.types.listing.ListingDetailResponse` including stats and deliverable.
 
         Iterating the returned page automatically fetches subsequent pages:
 
@@ -299,7 +284,6 @@ class Listings:
         name: str | None = None,
         price: int | None = None,
         deliverable: Any | None = None,
-        fulfillment_mode: str | None = None,
         agent_callback_url: str | None = None,
         signing_secret: str | None = None,
         checkout_schema: list[Any] | None = None,
@@ -307,24 +291,23 @@ class Listings:
         tagline: str | None = None,
         highlights: list[str] | None = None,
         cta: str | None = None,
-        cover_url: str | None = None,
+        image_url: str | None = None,
+        currency: str | None = None,
         metadata: dict[str, Any] | None = None,
         compare_at_price: int | None = None,
         badges: list[str] | None = None,
-        cover_blur: str | None = None,
         rating: float | None = None,
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
-        utm_source: str | None = None,
-        utm_medium: str | None = None,
-        utm_campaign: str | None = None,
-    ) -> ListingResponse:
+    ) -> ListingDetailResponse | RotateSigningSecretResponse:
         """Update an existing listing.
 
         Only the supplied fields are updated; all others remain unchanged.
 
-        To rotate the signing secret, pass ``signing_secret="rotate"``.
+        To rotate the signing secret, pass ``signing_secret="rotate"``. The response will be a
+        :class:`~listbee.types.listing_create.RotateSigningSecretResponse` envelope (use
+        ``isinstance(result, RotateSigningSecretResponse)`` to detect).
 
         Args:
             listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
@@ -332,7 +315,6 @@ class Listings:
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             deliverable: Single digital deliverable. Use :class:`~listbee.Deliverable`
                 builder: ``Deliverable.url("https://...")`` or ``Deliverable.text("...")``.
-            fulfillment_mode: ``"static"`` or ``"async"``.
             agent_callback_url: HTTPS URL for ``order.paid`` / ``order.fulfilled`` webhooks.
             signing_secret: Pass ``"rotate"`` to rotate the webhook signing secret
                 (returns :class:`~listbee.types.listing_create.RotateSigningSecretResponse`).
@@ -341,27 +323,25 @@ class Listings:
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
             cta: Buy button text.
-            cover_url: URL of a cover image to fetch and store.
+            image_url: Cover image URL (https://).
+            currency: ISO 4217 lowercase currency code (e.g. "usd").
             metadata: Arbitrary key-value pairs forwarded in webhook events.
             compare_at_price: Strikethrough price in smallest currency unit.
             badges: Short promotional badges shown on the product page.
-            cover_blur: Cover blur mode — "auto", "true", or "false".
             rating: Seller-provided aggregate star rating (1–5).
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
-            utm_source: UTM source tag attached to checkout links (e.g. "twitter").
-            utm_medium: UTM medium tag attached to checkout links (e.g. "social").
-            utm_campaign: UTM campaign tag attached to checkout links (e.g. "launch-week").
 
         Returns:
-            The updated :class:`~listbee.types.listing.ListingResponse`.
+            :class:`~listbee.types.listing.ListingDetailResponse` normally, or
+            :class:`~listbee.types.listing_create.RotateSigningSecretResponse` when
+            ``signing_secret="rotate"`` is passed.
         """
         body: dict[str, Any] = {}
         fields: dict[str, Any] = {
             "name": name,
             "price": price,
-            "fulfillment_mode": fulfillment_mode,
             "agent_callback_url": agent_callback_url,
             "signing_secret": signing_secret,
             "checkout_schema": _resolve_checkout_schema(checkout_schema),
@@ -369,18 +349,15 @@ class Listings:
             "tagline": tagline,
             "highlights": highlights,
             "cta": cta,
-            "cover_url": cover_url,
+            "image_url": image_url,
+            "currency": currency,
             "metadata": metadata,
             "compare_at_price": compare_at_price,
             "badges": badges,
-            "cover_blur": cover_blur,
             "rating": rating,
             "rating_count": rating_count,
             "reviews": reviews,
             "faqs": faqs,
-            "utm_source": utm_source,
-            "utm_medium": utm_medium,
-            "utm_campaign": utm_campaign,
         }
         if deliverable is not None:
             body["deliverable"] = _resolve_deliverable(deliverable)
@@ -388,7 +365,10 @@ class Listings:
             if value is not None:
                 body[key] = value
         response = self._client.put(f"/v1/listings/{listing_id}", json=body)
-        return ListingResponse.model_validate(response.json())
+        data = response.json()
+        if data.get("object") == "rotate_signing_secret":
+            return RotateSigningSecretResponse.model_validate(data)
+        return ListingDetailResponse.model_validate(data)
 
     def delete(self, listing_id: str) -> None:
         """Delete a listing.
@@ -398,7 +378,7 @@ class Listings:
         """
         self._client.delete(f"/v1/listings/{listing_id}")
 
-    def publish(self, listing_id: str) -> ListingResponse:
+    def publish(self, listing_id: str) -> ListingDetailResponse:
         """Publish a draft listing, making it live and buyable.
 
         Fails with 409 if readiness requirements are not met.
@@ -407,12 +387,12 @@ class Listings:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The published :class:`~listbee.types.listing.ListingResponse`.
+            The published :class:`~listbee.types.listing.ListingDetailResponse`.
         """
         response = self._client.post(f"/v1/listings/{listing_id}/publish")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
-    def unpublish(self, listing_id: str) -> ListingResponse:
+    def unpublish(self, listing_id: str) -> ListingDetailResponse:
         """Unpublish a listing, reverting it to draft.
 
         The listing will no longer be visible to buyers. Use :meth:`publish`
@@ -422,12 +402,12 @@ class Listings:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The updated :class:`~listbee.types.listing.ListingResponse` with status ``draft``.
+            The updated :class:`~listbee.types.listing.ListingDetailResponse` with status ``draft``.
         """
         response = self._client.post(f"/v1/listings/{listing_id}/unpublish")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
-    def archive(self, listing_id: str) -> ListingResponse:
+    def archive(self, listing_id: str) -> ListingDetailResponse:
         """Archive a listing, removing it from active management.
 
         Archived listings are no longer visible to buyers and cannot be purchased.
@@ -437,10 +417,10 @@ class Listings:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The updated :class:`~listbee.types.listing.ListingResponse` with status ``archived``.
+            The updated :class:`~listbee.types.listing.ListingDetailResponse` with status ``archived``.
         """
         response = self._client.post(f"/v1/listings/{listing_id}/archive")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
 
 class AsyncListings:
@@ -460,7 +440,6 @@ class AsyncListings:
         name: str,
         price: int,
         deliverable: Any | None = None,
-        fulfillment_mode: str | None = None,
         agent_callback_url: str | None = None,
         signing_secret: str | None = None,
         checkout_schema: list[Any] | None = None,
@@ -468,30 +447,27 @@ class AsyncListings:
         tagline: str | None = None,
         highlights: list[str] | None = None,
         cta: str | None = None,
-        cover_url: str | None = None,
+        image_url: str | None = None,
+        currency: str | None = None,
         metadata: dict[str, Any] | None = None,
         compare_at_price: int | None = None,
         badges: list[str] | None = None,
-        cover_blur: str = "auto",
         rating: float | None = None,
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
-        utm_source: str | None = None,
-        utm_medium: str | None = None,
-        utm_campaign: str | None = None,
         timeout: float | None = None,
-    ) -> ListingResponse:
+    ) -> ListingCreateResponse:
         """Create a new listing (async).
 
-        Builds the request body from non-None params.
+        Returns a :class:`~listbee.types.listing_create.ListingCreateResponse` envelope
+        containing the listing and a one-time ``signing_secret``. Store the secret immediately.
 
         Args:
             name: Product name shown on the product page.
             price: Price in the smallest currency unit (e.g. 2900 = $29.00).
             deliverable: Single digital deliverable. Use :class:`~listbee.Deliverable`
                 builder: ``Deliverable.url("https://...")`` or ``Deliverable.text("...")``.
-            fulfillment_mode: ``"static"`` or ``"async"``.
             agent_callback_url: HTTPS URL for ``order.paid`` / ``order.fulfilled`` webhooks.
             signing_secret: Optional custom signing secret for webhook verification.
             checkout_schema: Custom fields collected at checkout. Max 10 fields.
@@ -499,22 +475,20 @@ class AsyncListings:
             tagline: Short line shown below the product name.
             highlights: Bullet-point feature badges shown on the product page.
             cta: Buy button text. Defaults to "Buy Now" when not set.
-            cover_url: URL of a cover image to fetch and store.
+            image_url: Cover image URL (https://).
+            currency: ISO 4217 lowercase currency code (e.g. "usd").
             metadata: Arbitrary key-value pairs forwarded in webhook events.
             compare_at_price: Strikethrough price in smallest currency unit.
             badges: Short promotional badges shown on the product page.
-            cover_blur: Cover blur mode — "auto", "true", or "false".
             rating: Seller-provided aggregate star rating (1–5).
             rating_count: Seller-provided review or purchase count.
             reviews: Featured review cards shown on the product page.
             faqs: FAQ accordion items shown on the product page.
-            utm_source: UTM source tag attached to checkout links.
-            utm_medium: UTM medium tag attached to checkout links.
-            utm_campaign: UTM campaign tag attached to checkout links.
             timeout: Request timeout in seconds (default: ``LISTING_CREATE_TIMEOUT``).
 
         Returns:
-            The created :class:`~listbee.types.listing.ListingResponse`.
+            :class:`~listbee.types.listing_create.ListingCreateResponse` with ``listing``
+            (:class:`~listbee.types.listing.ListingBase`) and one-time ``signing_secret``.
         """
         body: dict[str, Any] = {
             "name": name,
@@ -522,8 +496,6 @@ class AsyncListings:
         }
         if deliverable is not None:
             body["deliverable"] = _resolve_deliverable(deliverable)
-        if fulfillment_mode is not None:
-            body["fulfillment_mode"] = fulfillment_mode
         if agent_callback_url is not None:
             body["agent_callback_url"] = agent_callback_url
         if signing_secret is not None:
@@ -538,16 +510,16 @@ class AsyncListings:
             body["highlights"] = highlights
         if cta is not None:
             body["cta"] = cta
-        if cover_url is not None:
-            body["cover_url"] = cover_url
+        if image_url is not None:
+            body["image_url"] = image_url
+        if currency is not None:
+            body["currency"] = currency
         if metadata is not None:
             body["metadata"] = metadata
         if compare_at_price is not None:
             body["compare_at_price"] = compare_at_price
         if badges is not None:
             body["badges"] = badges
-        if cover_blur != "auto":
-            body["cover_blur"] = cover_blur
         if rating is not None:
             body["rating"] = rating
         if rating_count is not None:
@@ -556,28 +528,22 @@ class AsyncListings:
             body["reviews"] = reviews
         if faqs is not None:
             body["faqs"] = faqs
-        if utm_source is not None:
-            body["utm_source"] = utm_source
-        if utm_medium is not None:
-            body["utm_medium"] = utm_medium
-        if utm_campaign is not None:
-            body["utm_campaign"] = utm_campaign
 
         effective_timeout = timeout if timeout is not None else LISTING_CREATE_TIMEOUT
         response = await self._client.post("/v1/listings", json=body, timeout=effective_timeout)
-        return ListingResponse.model_validate(response.json())
+        return ListingCreateResponse.model_validate(response.json())
 
-    async def get(self, listing_id: str) -> ListingResponse:
+    async def get(self, listing_id: str) -> ListingDetailResponse:
         """Retrieve a listing by its ID (async).
 
         Args:
             listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The :class:`~listbee.types.listing.ListingResponse` for that listing.
+            :class:`~listbee.types.listing.ListingDetailResponse` for that listing (includes stats).
         """
         response = await self._client.get(f"/v1/listings/{listing_id}")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
     async def list(
         self, *, limit: int = 20, cursor: str | None = None, status: str | None = None
@@ -614,7 +580,6 @@ class AsyncListings:
         name: str | None = None,
         price: int | None = None,
         deliverable: Any | None = None,
-        fulfillment_mode: str | None = None,
         agent_callback_url: str | None = None,
         signing_secret: str | None = None,
         checkout_schema: list[Any] | None = None,
@@ -622,29 +587,26 @@ class AsyncListings:
         tagline: str | None = None,
         highlights: list[str] | None = None,
         cta: str | None = None,
-        cover_url: str | None = None,
+        image_url: str | None = None,
+        currency: str | None = None,
         metadata: dict[str, Any] | None = None,
         compare_at_price: int | None = None,
         badges: list[str] | None = None,
-        cover_blur: str | None = None,
         rating: float | None = None,
         rating_count: int | None = None,
         reviews: list[dict[str, Any]] | None = None,
         faqs: list[dict[str, Any]] | None = None,
-        utm_source: str | None = None,
-        utm_medium: str | None = None,
-        utm_campaign: str | None = None,
-    ) -> ListingResponse:
+    ) -> ListingDetailResponse | RotateSigningSecretResponse:
         """Update an existing listing (async).
 
         Only the supplied fields are updated; all others remain unchanged.
+        Pass ``signing_secret="rotate"`` to rotate the signing secret.
 
         Args:
             listing_id: The listing's unique identifier (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
             name: Product name shown on the product page.
             price: Price in the smallest currency unit.
             deliverable: Single digital deliverable.
-            fulfillment_mode: ``"static"`` or ``"async"``.
             agent_callback_url: HTTPS URL for webhook delivery.
             signing_secret: Pass ``"rotate"`` to rotate the signing secret.
             checkout_schema: Custom checkout fields. Max 10.
@@ -652,27 +614,25 @@ class AsyncListings:
             tagline: Short tagline.
             highlights: Bullet-point feature badges.
             cta: Buy button text.
-            cover_url: URL of a cover image.
+            image_url: Cover image URL (https://).
+            currency: ISO 4217 lowercase currency code.
             metadata: Arbitrary key-value pairs.
             compare_at_price: Strikethrough price.
             badges: Promotional badges.
-            cover_blur: Cover blur mode.
             rating: Star rating (1-5).
             rating_count: Review/purchase count.
             reviews: Featured review cards.
             faqs: FAQ accordion items.
-            utm_source: UTM source.
-            utm_medium: UTM medium.
-            utm_campaign: UTM campaign.
 
         Returns:
-            The updated :class:`~listbee.types.listing.ListingResponse`.
+            :class:`~listbee.types.listing.ListingDetailResponse` normally, or
+            :class:`~listbee.types.listing_create.RotateSigningSecretResponse` when
+            ``signing_secret="rotate"`` is passed.
         """
         body: dict[str, Any] = {}
         fields: dict[str, Any] = {
             "name": name,
             "price": price,
-            "fulfillment_mode": fulfillment_mode,
             "agent_callback_url": agent_callback_url,
             "signing_secret": signing_secret,
             "checkout_schema": _resolve_checkout_schema(checkout_schema),
@@ -680,18 +640,15 @@ class AsyncListings:
             "tagline": tagline,
             "highlights": highlights,
             "cta": cta,
-            "cover_url": cover_url,
+            "image_url": image_url,
+            "currency": currency,
             "metadata": metadata,
             "compare_at_price": compare_at_price,
             "badges": badges,
-            "cover_blur": cover_blur,
             "rating": rating,
             "rating_count": rating_count,
             "reviews": reviews,
             "faqs": faqs,
-            "utm_source": utm_source,
-            "utm_medium": utm_medium,
-            "utm_campaign": utm_campaign,
         }
         if deliverable is not None:
             body["deliverable"] = _resolve_deliverable(deliverable)
@@ -699,7 +656,10 @@ class AsyncListings:
             if value is not None:
                 body[key] = value
         response = await self._client.put(f"/v1/listings/{listing_id}", json=body)
-        return ListingResponse.model_validate(response.json())
+        data = response.json()
+        if data.get("object") == "rotate_signing_secret":
+            return RotateSigningSecretResponse.model_validate(data)
+        return ListingDetailResponse.model_validate(data)
 
     async def delete(self, listing_id: str) -> None:
         """Delete a listing (async).
@@ -709,7 +669,7 @@ class AsyncListings:
         """
         await self._client.delete(f"/v1/listings/{listing_id}")
 
-    async def publish(self, listing_id: str) -> ListingResponse:
+    async def publish(self, listing_id: str) -> ListingDetailResponse:
         """Publish a draft listing, making it live and buyable (async).
 
         Fails with 409 if readiness requirements are not met.
@@ -718,31 +678,31 @@ class AsyncListings:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The published :class:`~listbee.types.listing.ListingResponse`.
+            The published :class:`~listbee.types.listing.ListingDetailResponse`.
         """
         response = await self._client.post(f"/v1/listings/{listing_id}/publish")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
-    async def unpublish(self, listing_id: str) -> ListingResponse:
+    async def unpublish(self, listing_id: str) -> ListingDetailResponse:
         """Unpublish a listing, reverting it to draft (async).
 
         Args:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The updated :class:`~listbee.types.listing.ListingResponse` with status ``draft``.
+            The updated :class:`~listbee.types.listing.ListingDetailResponse` with status ``draft``.
         """
         response = await self._client.post(f"/v1/listings/{listing_id}/unpublish")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())
 
-    async def archive(self, listing_id: str) -> ListingResponse:
+    async def archive(self, listing_id: str) -> ListingDetailResponse:
         """Archive a listing, removing it from active management (async).
 
         Args:
             listing_id: The listing's ID (e.g. "lst_7kQ2xY9mN3pR5tW1vB8a").
 
         Returns:
-            The updated :class:`~listbee.types.listing.ListingResponse` with status ``archived``.
+            The updated :class:`~listbee.types.listing.ListingDetailResponse` with status ``archived``.
         """
         response = await self._client.post(f"/v1/listings/{listing_id}/archive")
-        return ListingResponse.model_validate(response.json())
+        return ListingDetailResponse.model_validate(response.json())

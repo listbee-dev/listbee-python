@@ -8,7 +8,6 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from listbee.types.shared import (
-    BlurMode,
     CheckoutFieldResponse,
     DeliverableResponse,
     FulfillmentMode,
@@ -18,10 +17,10 @@ from listbee.types.shared import (
 
 
 class ListingSummary(BaseModel):
-    """Slim listing object returned in list responses.
+    """Lightweight listing object returned in list responses.
 
     Use :meth:`~listbee.resources.listings.Listings.get` to retrieve the full
-    :class:`ListingResponse` with the deliverable, reviews, FAQs, and all other fields.
+    :class:`ListingDetailResponse` with stats and all detail fields.
     """
 
     object: Literal["listing"] = Field(
@@ -30,69 +29,65 @@ class ListingSummary(BaseModel):
         examples=["listing"],
     )
     id: str = Field(
-        description="Unique listing identifier.",
+        description="Unique listing ID (lst_ prefixed). Use this for GET /v1/listings/{id} to fetch full detail.",
         examples=["lst_7kQ2xY9mN3pR5tW1vB8a"],
     )
-    short_code: str = Field(
-        description="7-character base62 short code used in product page URLs.",
-        examples=["r7kq2xy"],
+    url: str = Field(
+        description="Shareable product page URL. Share this with buyers. ID is the routing key; slug is derived from name.",
+        examples=["https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"],
     )
     name: str = Field(
-        description="Product name shown on the product page.",
+        description="Product name.",
         examples=["SEO Playbook 2026"],
     )
     tagline: str | None = Field(
         default=None,
-        description="Short line shown below the product name.",
+        description="Short tagline shown below the product name. Null if not set.",
         examples=["Updated for 2026 algorithm changes"],
     )
     price: int = Field(
-        description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
+        description="Price in cents. $29 = 2900.",
         examples=[2900],
+    )
+    currency: str = Field(
+        description="Three-letter ISO 4217 currency code (lowercase).",
+        examples=["usd"],
     )
     compare_at_price: int | None = Field(
         default=None,
-        description="Strikethrough price in smallest currency unit.",
-        examples=[3900],
+        description="Strikethrough price in cents. Null if not set.",
+        examples=[4900],
     )
     cta: str | None = Field(
         default=None,
-        description="Buy button text. Defaults to 'Buy Now' when not set.",
+        description="Buy button text. Null means default 'Buy Now' is used.",
         examples=["Get Instant Access"],
     )
     badges: list[str] = Field(
         default_factory=list,
-        description="Short promotional badges shown on the product page.",
-        examples=[["Limited time", "Best seller"]],
+        description="Short promotional badges. Empty list if none set.",
+        examples=[["Best seller"]],
     )
     highlights: list[str] = Field(
         default_factory=list,
-        description="Bullet-point feature badges shown on the product page.",
-        examples=[["50+ pages", "Actionable tips", "Free updates"]],
+        description="Bullet-point feature list. Empty list if none set.",
+        examples=[["50+ pages", "Actionable tips"]],
     )
     status: ListingStatus = Field(
-        description="Current listing status.",
-        examples=["draft"],
+        description="Listing status: `draft`, `published`, or `archived`.",
+        examples=["published"],
     )
     fulfillment_mode: FulfillmentMode = Field(
-        default=FulfillmentMode.STATIC,
-        description=(
-            "Fulfillment mode: `static` (ListBee delivers attached deliverable automatically) "
-            "or `async` (agent receives order.paid and pushes generated content)."
-        ),
-        examples=["static"],
+        description="`MANAGED` if a deliverable is attached; `ASYNC` if your agent handles fulfillment.",
+        examples=["MANAGED"],
     )
-    has_cover: bool = Field(
-        description="`true` if a cover image exists (uploaded or auto-generated).",
-        examples=[True],
-    )
-    url: str | None = Field(
+    image_url: str | None = Field(
         default=None,
-        description="Full product page URL — share this with buyers.",
-        examples=["https://buy.listbee.so/seo-playbook"],
+        description="Cover image URL. Null if not set.",
+        examples=["https://cdn.example.com/covers/abc123.jpg"],
     )
     created_at: datetime = Field(
-        description="ISO 8601 timestamp of when the listing was created.",
+        description="ISO 8601 timestamp when the listing was created.",
     )
 
     @property
@@ -141,8 +136,35 @@ class FaqItem(BaseModel):
     )
 
 
-class ListingResponse(BaseModel):
-    """Full listing object returned by the ListBee API."""
+class ListingStats(BaseModel):
+    """Aggregate performance stats for a listing."""
+
+    schema_version: int = Field(
+        default=1,
+        description="Stats schema version.",
+    )
+    views: int = Field(
+        default=0,
+        description="Total page views for this listing.",
+        examples=[142],
+    )
+    purchases: int = Field(
+        default=0,
+        description="Total number of completed purchases.",
+        examples=[17],
+    )
+    gmv_minor: int = Field(
+        default=0,
+        description="Gross merchandise value in cents (smallest currency unit).",
+        examples=[49300],
+    )
+
+
+class ListingBase(BaseModel):
+    """Listing fields returned to the owner. Returned by POST /v1/listings (inside envelope).
+
+    Does not include stats — use :class:`ListingDetailResponse` (from GET/PUT) for stats.
+    """
 
     object: Literal["listing"] = Field(
         default="listing",
@@ -150,157 +172,123 @@ class ListingResponse(BaseModel):
         examples=["listing"],
     )
     id: str = Field(
-        description="Unique listing identifier.",
+        description="Unique listing ID (lst_ prefixed). Use this for all API operations.",
         examples=["lst_7kQ2xY9mN3pR5tW1vB8a"],
     )
-    short_code: str = Field(
-        description="7-character base62 short code used in product page URLs.",
-        examples=["r7kq2xy"],
+    url: str = Field(
+        description=(
+            "Shareable product page URL in the form `/l/{id}/{slug}`. "
+            "The slug is derived from the listing name at serialization time and is not persisted — "
+            "the ID is the routing key. Share this URL with buyers."
+        ),
+        examples=["https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"],
     )
     name: str = Field(
         description="Product name shown on the product page.",
         examples=["SEO Playbook 2026"],
     )
-    description: str | None = Field(
-        default=None,
-        description="Longer product description, plain text.",
-        examples=["A comprehensive guide to modern SEO techniques."],
-    )
-    tagline: str | None = Field(
-        default=None,
-        description="Short line shown below the product name.",
-        examples=["Updated for 2026 algorithm changes"],
-    )
-    highlights: list[str] = Field(
-        default_factory=list,
-        description="Bullet-point feature badges shown on the product page.",
-        examples=[["50+ pages", "Actionable tips", "Free updates"]],
-    )
-    cta: str | None = Field(
-        default=None,
-        description="Buy button text. Defaults to 'Buy Now' when not set.",
-        examples=["Get Instant Access"],
-    )
     price: int = Field(
-        description="Price in the smallest currency unit (e.g. 2900 = $29.00).",
+        description="Price in cents (smallest currency unit). $29 = 2900.",
         examples=[2900],
     )
+    currency: str = Field(
+        description="Three-letter ISO 4217 currency code (lowercase).",
+        examples=["usd"],
+    )
+    status: ListingStatus = Field(
+        description="Listing lifecycle status: `draft`, `published`, or `archived`. Only published listings have a live checkout URL.",
+        examples=["published"],
+    )
     fulfillment_mode: FulfillmentMode = Field(
-        default=FulfillmentMode.STATIC,
         description=(
-            "Fulfillment mode: `static` (ListBee delivers attached deliverable automatically) "
-            "or `async` (agent receives order.paid via agent_callback_url and pushes content)."
+            "Computed from deliverable presence. `MANAGED` when a deliverable is attached "
+            "(ListBee delivers automatically). `ASYNC` when no deliverable — "
+            "your agent handles delivery via POST /v1/orders/{order_id}/fulfill or webhook."
         ),
-        examples=["static"],
+        examples=["MANAGED"],
+    )
+    image_url: str | None = Field(
+        default=None,
+        description="Cover image URL (https://). Shown prominently on the product page. Null if not set.",
+        examples=["https://cdn.example.com/covers/abc123.jpg"],
+    )
+    agent_callback_url: str | None = Field(
+        default=None,
+        description="Per-listing webhook URL for order events (signed with this listing's signing_secret). Null if not set.",
+        examples=["https://my-agent.example.com/fulfill"],
     )
     deliverable: DeliverableResponse | None = Field(
         default=None,
         description=(
-            "Single digital deliverable attached to this listing. "
-            "Present for static-mode listings. Null for async-mode listings."
+            "The stored deliverable ListBee delivers automatically on payment. "
+            "Null for ASYNC listings. Content is redacted on non-owner reads."
         ),
     )
-    agent_callback_url: str | None = Field(
-        default=None,
+    readiness: ListingReadiness = Field(
         description=(
-            "Optional HTTPS URL that receives order.paid and order.fulfilled webhooks. "
-            "Set for async-mode listings where the agent handles fulfillment."
+            "Agent-facing readiness signal. Check `readiness.buyable` first — if false, "
+            "`readiness.next` gives the highest-priority action code and `readiness.actions` "
+            "lists each blocker with resolve instructions."
         ),
-        examples=["https://yourapp.com/webhooks/listbee"],
-    )
-    signing_secret_preview: str = Field(
-        default="****",
-        description=(
-            "Last 4 characters of the listing's webhook signing secret. "
-            "The full secret is only shown once at creation time."
-        ),
-        examples=["a1b2"],
-    )
-    has_cover: bool = Field(
-        description="`true` if a cover image exists (uploaded or auto-generated).",
-        examples=[True],
     )
     checkout_schema: list[CheckoutFieldResponse] | None = Field(
         default=None,
-        description="Custom fields collected from the buyer at checkout. Max 10.",
+        description="Custom fields collected from the buyer at checkout. Null if no custom fields configured.",
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None,
+        description="Key-value pairs you attached at creation or update. Forwarded in webhook event payloads. Null if not set.",
+        examples=[{"source": "n8n", "campaign": "launch-week"}],
+    )
+    tagline: str | None = Field(
+        default=None,
+        description="Short tagline shown below the product name on the product page.",
+        examples=["Updated for 2026 algorithm changes"],
+    )
+    description: str | None = Field(
+        default=None,
+        description="Product description shown on the product page.",
+    )
+    highlights: list[str] = Field(
+        default_factory=list,
+        description="Bullet-point feature list shown on the product page. Empty list if none set.",
+        examples=[["50+ pages", "Actionable tips"]],
+    )
+    faqs: list[FaqItem] = Field(
+        default_factory=list,
+        description="FAQ accordion items shown on the product page. Empty list if none set.",
+    )
+    cta: str | None = Field(
+        default=None,
+        description="Buy button text. Null means the default 'Buy Now' is used.",
+        examples=["Get Instant Access"],
     )
     compare_at_price: int | None = Field(
         default=None,
-        description="Strikethrough price in smallest currency unit.",
-        examples=[3900],
+        description="Strikethrough price in cents shown alongside the regular price. Null if not set.",
+        examples=[4900],
     )
     badges: list[str] = Field(
         default_factory=list,
-        description="Short promotional badges shown on the product page.",
-        examples=[["Limited time", "Best seller"]],
-    )
-    cover_blur: BlurMode = Field(
-        default=BlurMode.AUTO,
-        description="Cover image blur mode. `true` always blurs, `false` never blurs, `auto` blurs image files.",
-        examples=["auto"],
+        description="Short promotional badges shown on the product page. Empty list if none set.",
+        examples=[["Best seller", "Limited time"]],
     )
     rating: float | None = Field(
         default=None,
-        description="Seller-provided aggregate star rating (1–5).",
+        description="Seller-provided aggregate star rating (1.0–5.0). Null if not set.",
         examples=[4.8],
     )
     rating_count: int | None = Field(
         default=None,
-        description="Seller-provided review or purchase count shown alongside the rating.",
+        description="Seller-provided review/purchase count shown alongside the rating. Null if not set.",
         examples=[1243],
     )
     reviews: list[Review] = Field(
-        default=[],
-        description="Featured review cards shown on the product page.",
-    )
-    faqs: list[FaqItem] = Field(
-        default=[],
-        description="FAQ accordion items shown on the product page.",
-    )
-    metadata: dict[str, Any] | None = Field(
-        default=None,
-        description=(
-            "Arbitrary key-value pairs forwarded in webhook events. "
-            "Stripe-aligned limits: max 50 keys, keys ≤ 40 chars, string values ≤ 500 chars."
-        ),
-        examples=[{"source": "n8n", "campaign": "launch-week"}],
-    )
-    utm_source: str | None = Field(
-        default=None,
-        description="UTM source tag attached to checkout links (e.g. 'twitter'). Null means use account defaults.",
-        examples=["twitter"],
-    )
-    utm_medium: str | None = Field(
-        default=None,
-        description="UTM medium tag attached to checkout links (e.g. 'social'). Null means use account defaults.",
-        examples=["social"],
-    )
-    utm_campaign: str | None = Field(
-        default=None,
-        description="UTM campaign tag attached to checkout links (e.g. 'launch-week'). Null means use account defaults.",
-        examples=["launch-week"],
-    )
-    status: ListingStatus = Field(
-        description="Current listing status.",
-        examples=["draft"],
-    )
-    url: str | None = Field(
-        default=None,
-        description="Full product page URL — share this with buyers.",
-        examples=["https://buy.listbee.so/seo-playbook"],
-    )
-    embed_url: str | None = Field(
-        default=None,
-        description="Embeddable checkout URL for this listing.",
-    )
-    readiness: ListingReadiness = Field(
-        description=(
-            "Monetization readiness. `sellable` is true when buyers can complete a purchase. "
-            "If false, `actions` lists what's needed with resolve details and `next` points to the highest-priority action."
-        ),
+        default_factory=list,
+        description="Featured seller-provided review cards shown on the product page. Empty list if none set.",
     )
     created_at: datetime = Field(
-        description="ISO 8601 timestamp of when the listing was created.",
+        description="ISO 8601 timestamp when the listing was created.",
     )
 
     @property
@@ -319,6 +307,17 @@ class ListingResponse(BaseModel):
         return self.status == ListingStatus.ARCHIVED
 
     @property
-    def checkout_url(self) -> str | None:
-        """Full product page URL — share this with buyers. None if the listing is not published."""
+    def checkout_url(self) -> str:
+        """Full product page URL — share this with buyers."""
         return self.url
+
+
+class ListingDetailResponse(ListingBase):
+    """Full listing detail: base fields + stats.
+
+    Returned by GET /v1/listings/{id} and PUT /v1/listings/{id}.
+    """
+
+    stats: ListingStats = Field(
+        description="Aggregate performance stats for this listing: views, purchases, and gross merchandise value in cents.",
+    )

@@ -116,21 +116,21 @@ class TestAction:
 
 
 class TestListingReadiness:
-    def test_sellable_with_empty_actions(self):
-        readiness = ListingReadiness(sellable=True, actions=[], next=None)
-        assert readiness.sellable is True
+    def test_buyable_with_empty_actions(self):
+        readiness = ListingReadiness(buyable=True, actions=[], next=None)
+        assert readiness.buyable is True
         assert readiness.actions == []
         assert readiness.next is None
 
-    def test_not_sellable_with_actions_and_next(self):
+    def test_not_buyable_with_actions_and_next(self):
         action = Action(
             code=ActionCode.LISTING_DELIVERABLE_MISSING,
             kind=ActionKind.API,
             message="Attach a deliverable to your listing",
             resolve=ActionResolve(method="PUT", endpoint="/v1/listings/lst_abc123", url=None, params=None),
         )
-        readiness = ListingReadiness(sellable=False, actions=[action], next="listing_deliverable_missing")
-        assert readiness.sellable is False
+        readiness = ListingReadiness(buyable=False, actions=[action], next="listing_deliverable_missing")
+        assert readiness.buyable is False
         assert len(readiness.actions) == 1
         assert readiness.next == "listing_deliverable_missing"
 
