@@ -128,8 +128,7 @@ class DeliverableRequest(BaseModel):
     content: str | None = Field(
         default=None,
         description=(
-            "For `url` type: must start with http:// or https://. "
-            "For `text` type: plain text content, max 10000 chars."
+            "For `url` type: must start with http:// or https://. For `text` type: plain text content, max 10000 chars."
         ),
         examples=["https://example.com/secret-area"],
     )

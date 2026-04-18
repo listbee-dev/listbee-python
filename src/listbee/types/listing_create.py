@@ -53,9 +53,6 @@ class RotateSigningSecretResponse(BaseModel):
         description="The updated listing.",
     )
     signing_secret: str = Field(
-        description=(
-            "New signing secret. Replaces the previous one immediately. "
-            "Store immediately — only shown once."
-        ),
+        description=("New signing secret. Replaces the previous one immediately. Store immediately — only shown once."),
         examples=["new-long-signing-secret-value"],
     )

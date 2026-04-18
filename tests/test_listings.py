@@ -277,9 +277,7 @@ class TestGetListing:
 
     def test_get_listing_sends_correct_path(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.get("/v1/listings/lst_abc123").mock(
-                return_value=httpx.Response(200, json=LISTING_DETAIL_JSON)
-            )
+            route = mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_DETAIL_JSON))
             listings.get("lst_abc123")
         assert route.called
 
@@ -314,9 +312,7 @@ class TestGetListing:
 
     def test_listing_response_async_mode(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/listings/lst_ext456").mock(
-                return_value=httpx.Response(200, json=ASYNC_LISTING_DETAIL_JSON)
-            )
+            mock.get("/v1/listings/lst_ext456").mock(return_value=httpx.Response(200, json=ASYNC_LISTING_DETAIL_JSON))
             result = listings.get("lst_ext456")
         assert result.fulfillment_mode == "ASYNC"
         assert result.agent_callback_url == "https://yourapp.com/webhooks/listbee"
@@ -413,9 +409,7 @@ class TestUpdateListing:
 
     def test_update_with_deliverable_builder(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/lst_abc123").mock(
-                return_value=httpx.Response(200, json=LISTING_DETAIL_JSON)
-            )
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_DETAIL_JSON))
             listings.update("lst_abc123", deliverable=Deliverable.url("https://example.com/new"))
         body = json.loads(route.calls[0].request.content)
         # deliverable uses "content" key
@@ -423,9 +417,7 @@ class TestUpdateListing:
 
     def test_update_with_image_url(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/lst_abc123").mock(
-                return_value=httpx.Response(200, json=LISTING_DETAIL_JSON)
-            )
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_DETAIL_JSON))
             listings.update("lst_abc123", image_url="https://cdn.example.com/new.jpg")
         body = json.loads(route.calls[0].request.content)
         assert body["image_url"] == "https://cdn.example.com/new.jpg"
@@ -441,9 +433,7 @@ class TestUpdateListing:
 
     def test_update_omits_none_fields(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.put("/v1/listings/lst_abc123").mock(
-                return_value=httpx.Response(200, json=LISTING_DETAIL_JSON)
-            )
+            route = mock.put("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_DETAIL_JSON))
             listings.update("lst_abc123", name="New Name")
         body = json.loads(route.calls[0].request.content)
         assert body == {"name": "New Name"}
@@ -494,9 +484,7 @@ class TestUnpublishListing:
     def test_unpublish_returns_listing_detail_response(self, listings):
         draft_listing = {**LISTING_DETAIL_JSON, "status": "draft"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/lst_abc123/unpublish").mock(
-                return_value=httpx.Response(200, json=draft_listing)
-            )
+            mock.post("/v1/listings/lst_abc123/unpublish").mock(return_value=httpx.Response(200, json=draft_listing))
             result = listings.unpublish("lst_abc123")
         assert isinstance(result, ListingDetailResponse)
         assert result.status == "draft"
@@ -514,9 +502,7 @@ class TestArchiveListing:
     def test_archive_returns_listing_detail_response(self, listings):
         archived_listing = {**LISTING_DETAIL_JSON, "status": "archived"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/lst_abc123/archive").mock(
-                return_value=httpx.Response(200, json=archived_listing)
-            )
+            mock.post("/v1/listings/lst_abc123/archive").mock(return_value=httpx.Response(200, json=archived_listing))
             result = listings.archive("lst_abc123")
         assert isinstance(result, ListingDetailResponse)
         assert result.status == "archived"
