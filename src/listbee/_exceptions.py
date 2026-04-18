@@ -190,11 +190,12 @@ def _parse_field_errors(raw: list[Any] | None) -> list[FieldValidationError]:
     result: list[FieldValidationError] = []
     for item in raw:
         if isinstance(item, dict):
+            item_dict: dict[str, Any] = item  # type: ignore[assignment]
             result.append(
                 FieldValidationError(
-                    loc=item.get("loc", []),
-                    msg=item.get("msg", ""),
-                    type=item.get("type", ""),
+                    loc=item_dict.get("loc", []),
+                    msg=item_dict.get("msg", ""),
+                    type=item_dict.get("type", ""),
                 )
             )
     return result

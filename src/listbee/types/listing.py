@@ -255,7 +255,7 @@ class ListingBase(BaseModel):
         examples=[["50+ pages", "Actionable tips"]],
     )
     faqs: list[FaqItem] = Field(
-        default_factory=list,
+        default_factory=lambda: [],
         description="FAQ accordion items shown on the product page. Empty list if none set.",
     )
     cta: str | None = Field(
@@ -284,7 +284,7 @@ class ListingBase(BaseModel):
         examples=[1243],
     )
     reviews: list[Review] = Field(
-        default_factory=list,
+        default_factory=lambda: [],
         description="Featured seller-provided review cards shown on the product page. Empty list if none set.",
     )
     created_at: datetime = Field(
