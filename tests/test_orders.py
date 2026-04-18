@@ -130,9 +130,7 @@ class TestGetOrder:
 
     def test_get_order_fulfilled_has_deliverable_and_unlock_url(self, orders):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/orders/ord_fulfilled123").mock(
-                return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON)
-            )
+            mock.get("/v1/orders/ord_fulfilled123").mock(return_value=httpx.Response(200, json=FULFILLED_ORDER_JSON))
             result = orders.get("ord_fulfilled123")
         assert result.deliverable is not None
         assert result.deliverable.type == "text"

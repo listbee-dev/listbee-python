@@ -49,8 +49,7 @@ class AccountResponse(BaseModel):
     ga_measurement_id: str | None = Field(
         default=None,
         description=(
-            "Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). "
-            "Used to track conversions on checkout pages."
+            "Google Analytics 4 Measurement ID (e.g. 'G-XXXXXXXXXX'). Used to track conversions on checkout pages."
         ),
         examples=["G-XXXXXXXXXX"],
     )
@@ -60,10 +59,7 @@ class AccountResponse(BaseModel):
     )
     events_callback_url: str | None = Field(
         default=None,
-        description=(
-            "Optional account-level webhook URL for non-order events. "
-            "Set to null to remove."
-        ),
+        description=("Optional account-level webhook URL for non-order events. Set to null to remove."),
         examples=["https://agent.example.com/events"],
     )
     readiness: AccountReadiness = Field(

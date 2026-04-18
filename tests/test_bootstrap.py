@@ -84,9 +84,7 @@ def bootstrap(sync_client):
 class TestBootstrapStart:
     def test_start_sends_email_and_returns_token(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/bootstrap/start").mock(
-                return_value=httpx.Response(202, json=BOOTSTRAP_START_JSON)
-            )
+            route = mock.post("/v1/bootstrap/start").mock(return_value=httpx.Response(202, json=BOOTSTRAP_START_JSON))
             result = bootstrap.start(email="seller@example.com")
         body = json.loads(route.calls[0].request.content)
         assert body == {"email": "seller@example.com"}
@@ -106,9 +104,7 @@ class TestBootstrapStart:
 class TestBootstrapVerify:
     def test_verify_sends_bootstrap_token_and_otp_code(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            route = mock.post("/v1/bootstrap/verify").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON)
-            )
+            route = mock.post("/v1/bootstrap/verify").mock(return_value=httpx.Response(200, json=BOOTSTRAP_VERIFY_JSON))
             result = bootstrap.verify(bootstrap_token="bst_abc123def456", otp_code="123456")
         body = json.loads(route.calls[0].request.content)
         assert body == {"bootstrap_token": "bst_abc123def456", "otp_code": "123456"}
@@ -132,9 +128,7 @@ class TestBootstrapVerify:
 class TestBootstrapPoll:
     def test_poll_returns_not_ready(self, bootstrap):
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.get("/v1/bootstrap/acc_new1234567890").mock(
-                return_value=httpx.Response(200, json=BOOTSTRAP_POLL_JSON)
-            )
+            mock.get("/v1/bootstrap/acc_new1234567890").mock(return_value=httpx.Response(200, json=BOOTSTRAP_POLL_JSON))
             result = bootstrap.poll("acc_new1234567890")
         assert isinstance(result, BootstrapPollResponse)
         assert result.ready is False

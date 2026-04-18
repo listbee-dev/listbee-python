@@ -403,9 +403,7 @@ class TestUnpublishListing:
     def test_unpublish_returns_listing_response(self, listings):
         draft_listing = {**LISTING_JSON, "status": "draft"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/lst_abc123/unpublish").mock(
-                return_value=httpx.Response(200, json=draft_listing)
-            )
+            mock.post("/v1/listings/lst_abc123/unpublish").mock(return_value=httpx.Response(200, json=draft_listing))
             result = listings.unpublish("lst_abc123")
         assert isinstance(result, ListingResponse)
         assert result.status == "draft"
@@ -423,9 +421,7 @@ class TestArchiveListing:
     def test_archive_returns_listing_response(self, listings):
         archived_listing = {**LISTING_JSON, "status": "archived"}
         with respx.mock(base_url="https://api.listbee.so") as mock:
-            mock.post("/v1/listings/lst_abc123/archive").mock(
-                return_value=httpx.Response(200, json=archived_listing)
-            )
+            mock.post("/v1/listings/lst_abc123/archive").mock(return_value=httpx.Response(200, json=archived_listing))
             result = listings.archive("lst_abc123")
         assert isinstance(result, ListingResponse)
         assert result.status == "archived"

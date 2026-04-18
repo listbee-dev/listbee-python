@@ -186,10 +186,7 @@ class OrderResponse(BaseModel):
     )
     unlock_url: str | None = Field(
         default=None,
-        description=(
-            "Permanent bearer link sent to the buyer. "
-            "The buyer uses this to access their purchased content."
-        ),
+        description=("Permanent bearer link sent to the buyer. The buyer uses this to access their purchased content."),
         examples=["https://buy.listbee.so/dl/ord_9xM4kP7nR2qT5wY1?token=..."],
     )
     actions: list[Action] | None = Field(
