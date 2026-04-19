@@ -15,6 +15,7 @@ warnings.warn(
 )
 
 # --- existing module content preserved below ---
+# ruff: noqa: E402
 
 from httpx import AsyncClient as DefaultAsyncHttpxClient
 from httpx import Client as DefaultHttpxClient
