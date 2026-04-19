@@ -34,7 +34,7 @@ class ListingSummary(BaseModel):
     )
     url: str = Field(
         description="Shareable product page URL. Share this with buyers. ID is the routing key; slug is derived from name.",
-        examples=["https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"],
+        examples=["https://buy.listbee.so/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"],
     )
     name: str = Field(
         description="Product name.",
@@ -177,11 +177,11 @@ class ListingBase(BaseModel):
     )
     url: str = Field(
         description=(
-            "Shareable product page URL in the form `/l/{id}/{slug}`. "
+            "Shareable product page URL in the form `/{id}/{slug}`. "
             "The slug is derived from the listing name at serialization time and is not persisted — "
             "the ID is the routing key. Share this URL with buyers."
         ),
-        examples=["https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"],
+        examples=["https://buy.listbee.so/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"],
     )
     name: str = Field(
         description="Product name shown on the product page.",

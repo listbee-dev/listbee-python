@@ -24,7 +24,7 @@ _STATS = {"schema_version": 1, "views": 0, "purchases": 0, "gmv_minor": 0}
 LISTING_BASE_JSON = {
     "object": "listing",
     "id": "lst_abc123",
-    "url": "https://buy.listbee.so/l/lst_abc123/seo-playbook",
+    "url": "https://buy.listbee.so/lst_abc123/seo-playbook",
     "name": "SEO Playbook",
     "price": 2900,
     "currency": "usd",
@@ -69,7 +69,7 @@ LISTING_DETAIL_JSON = {
 ASYNC_LISTING_DETAIL_JSON = {
     **LISTING_DETAIL_JSON,
     "id": "lst_ext456",
-    "url": "https://buy.listbee.so/l/lst_ext456/custom-service",
+    "url": "https://buy.listbee.so/lst_ext456/custom-service",
     "name": "Custom Service",
     "fulfillment_mode": "ASYNC",
     "deliverable": None,
@@ -89,7 +89,7 @@ ASYNC_LISTING_DETAIL_JSON = {
 LISTING_SUMMARY_JSON = {
     "object": "listing",
     "id": "lst_abc123",
-    "url": "https://buy.listbee.so/l/lst_abc123/seo-playbook",
+    "url": "https://buy.listbee.so/lst_abc123/seo-playbook",
     "name": "SEO Playbook",
     "tagline": None,
     "price": 2900,
@@ -308,7 +308,7 @@ class TestGetListing:
         with respx.mock(base_url="https://api.listbee.so") as mock:
             mock.get("/v1/listings/lst_abc123").mock(return_value=httpx.Response(200, json=LISTING_DETAIL_JSON))
             result = listings.get("lst_abc123")
-        assert "/l/" in result.url
+        assert "buy.listbee.so/lst_" in result.url
 
     def test_listing_response_async_mode(self, listings):
         with respx.mock(base_url="https://api.listbee.so") as mock:

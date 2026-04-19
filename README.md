@@ -53,7 +53,7 @@ result = client.listings.create(
 print(result.signing_secret)   # store immediately — shown once!
 print(result.listing.id)       # lst_...
 listing = client.listings.publish(result.listing.id)
-print(listing.url)   # https://buy.listbee.so/l/lst_.../seo-playbook
+print(listing.url)   # https://buy.listbee.so/lst_.../seo-playbook
 
 # Async mode — your agent receives order.paid and calls fulfill() to push content
 from listbee import CheckoutField
@@ -194,12 +194,12 @@ result = client.listings.create(
 # result.listing — ListingBase object with all listing fields
 print(result.signing_secret)     # lbs_sk_... — webhook signing secret, store now!
 print(result.listing.id)         # lst_...
-print(result.listing.url)        # https://buy.listbee.so/l/lst_.../seo-playbook
+print(result.listing.url)        # https://buy.listbee.so/lst_.../seo-playbook
 print(result.listing.currency)   # usd
 print(result.listing.fulfillment_mode)  # MANAGED (computed from deliverable presence)
 
 listing = client.listings.publish(result.listing.id)
-print(listing.url)          # https://buy.listbee.so/l/lst_.../seo-playbook
+print(listing.url)          # https://buy.listbee.so/lst_.../seo-playbook
 print(listing.stats.views)  # 0 — stats included in GET/PUT responses
 
 # Create — ASYNC mode (agent receives order.paid via agent_callback_url and calls fulfill())
@@ -258,7 +258,7 @@ if not listing.readiness.buyable:
 
 # List — auto-paginates, each item is ListingSummary
 for listing in client.listings.list():
-    print(listing.name, listing.url)          # url is composite /l/{id}/{slug}
+    print(listing.name, listing.url)          # url is composite /{id}/{slug}
     print(listing.image_url, listing.currency)
 
 # Update — partial updates, returns ListingDetailResponse
@@ -591,7 +591,7 @@ List endpoints return **slim summary objects** (`ListingSummary` / `OrderSummary
 # Auto-pagination — iterates all pages transparently
 # Each item is a ListingSummary (slim: id, url, name, price, currency, image_url, status, ...)
 for listing in client.listings.list():
-    print(listing.name, listing.url)          # url is composite /l/{id}/{slug}
+    print(listing.name, listing.url)          # url is composite /{id}/{slug}
     print(listing.image_url, listing.currency)
 
 # Need full details? Fetch by ID — returns ListingDetailResponse (includes stats)
@@ -663,7 +663,7 @@ if listing.deliverable:
     print(f"Has deliverable: {listing.deliverable.type}")
     print(f"Content: {listing.deliverable.content}")  # url or text value
 
-# Checkout link — composite /l/{id}/{slug}
+# Checkout link — composite /{id}/{slug}
 print(f"Share: {listing.checkout_url}")
 
 # Stats (available on GET/PUT responses)

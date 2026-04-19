@@ -280,7 +280,7 @@ class TestOrderStateHelpers:
 BASE_LISTING = {
     "object": "listing",
     "id": "lst_abc123",
-    "url": "https://buy.listbee.so/l/lst_abc123/seo-playbook",
+    "url": "https://buy.listbee.so/lst_abc123/seo-playbook",
     "name": "SEO Playbook",
     "description": None,
     "tagline": None,
@@ -328,8 +328,8 @@ class TestListingLifecycleHelpers:
         assert listing.is_published is False
 
     def test_checkout_url_returns_url(self):
-        listing = self._make(url="https://buy.listbee.so/l/lst_abc123/seo-playbook")
-        assert listing.checkout_url == "https://buy.listbee.so/l/lst_abc123/seo-playbook"
+        listing = self._make(url="https://buy.listbee.so/lst_abc123/seo-playbook")
+        assert listing.checkout_url == "https://buy.listbee.so/lst_abc123/seo-playbook"
 
 
 # ---------------------------------------------------------------------------

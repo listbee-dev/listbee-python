@@ -465,7 +465,7 @@ class TestWithRawResponse:
         mock_raw.json.return_value = {
             "object": "listing",
             "id": "lst_test",
-            "url": "https://buy.listbee.so/l/lst_test/test-listing",
+            "url": "https://buy.listbee.so/lst_test/test-listing",
             "name": "Test Listing",
             "price": 1000,
             "currency": "usd",

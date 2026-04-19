@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-04-18
+
+### Changed
+- Listing URLs now use the simpler `/{id}/{slug?}` shape (dropped `/l/` prefix). The `lst_` prefix on IDs disambiguates from reserved sub-routes (`success`, `status`, `buy`). Test fixtures and doc examples updated.
+
 ## [0.23.0] - 2026-04-18
 
 ### Added
@@ -27,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DeliverableRequest.value` renamed to `content` — `Deliverable.to_api_body()` now emits `{"type": ..., "content": ...}`
 - `FulfillmentMode` enum values changed to `MANAGED` / `ASYNC` (uppercase, computed server-side from deliverable presence)
 - `listings.create()` and `listings.update()` remove `fulfillment_mode`, `cover_blur`, `cover_url`, `utm_source`, `utm_medium`, `utm_campaign` params (all removed from API)
-- Listing URLs are now composite `/l/{id}/{slug?}` — `ListingSummary.url` is always populated
+- Listing URLs are now composite `/{id}/{slug?}` — `ListingSummary.url` is always populated
 - `raise_for_status` now parses `errors` array from 422 responses into `FieldValidationError` objects
 
 ### Removed
