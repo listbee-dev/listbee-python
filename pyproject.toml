@@ -4,25 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "listbee"
-version = "0.23.1"
+version = "0.99.0"
 description = "Official Python SDK for the ListBee API — one API call to sell and deliver digital content."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [{ name = "ListBee", email = "damian@listbee.so" }]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 7 - Inactive",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Typing :: Typed",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Internet :: WWW/HTTP",
-    "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
     "httpx>=0.25.0",
@@ -60,6 +53,9 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:listbee",
+]
 
 [tool.pyright]
 pythonVersion = "3.10"

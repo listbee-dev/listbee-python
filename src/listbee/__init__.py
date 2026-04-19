@@ -1,20 +1,20 @@
-"""ListBee Python SDK — sell anything, payment collected, digital delivery handled.
+"""ListBee Python SDK — DEPRECATED.
 
-Usage::
-
-    from listbee import ListBee, Deliverable
-
-    client = ListBee(api_key="lb_...")
-    result = client.listings.create(
-        name="SEO Playbook",
-        price=2999,
-        deliverable=Deliverable.url("https://example.com/download"),
-    )
-    # result.signing_secret — store this immediately, shown once
-    # result.listing — ListingBase object
-    listing = client.listings.publish(result.listing.id)
-    print(listing.url)
+ListBee has pivoted to MCP-native architecture. This SDK is no longer
+maintained. Use https://mcp.listbee.so or the OpenAPI spec at
+https://listbee.so/openapi.json.
 """
+
+import warnings
+
+warnings.warn(
+    "listbee Python SDK is deprecated — use MCP (https://mcp.listbee.so) or "
+    "OpenAPI (https://listbee.so/openapi.json) directly. See README for details.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# --- existing module content preserved below ---
 
 from httpx import AsyncClient as DefaultAsyncHttpxClient
 from httpx import Client as DefaultHttpxClient
